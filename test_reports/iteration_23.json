@@ -1,0 +1,41 @@
+{
+  "summary": "Frontend-only regression + new-feature verification for Design System v1 overhaul (Onboarding chromeless wizard, grouped sidebar, Account Settings, Command Palette, spatial Inventory map, reimagined Executive Dashboard). All 8 requested test scenarios PASS with 0 console errors/warnings. No regressions found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Sidebar (long nav)", "issues": ["At viewport heights ~1000px the sidebar is scrollable and the [data-testid='nav-profile'] chip sits below the fold; it is reachable by scrolling the sidebar but a sticky-footer treatment for the profile chip would make Account Settings 1-click reachable at any viewport height. Non-blocking."]},
+      {"screen": "Toast stack", "issues": ["Success toasts from consecutive Save actions (Profile → Notifications → Password validation) appear to stack/overlap in a single toast container rather than dismiss the previous — the DOM shows concatenated content like 'Profile updatedPreferences saved'. Visually they may render separately, but consider auto-dismissing prior toast on new one. Non-blocking."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "app.js — chromeless onboarding branch is correctly gated: /#/onboarding never renders #nav (verified both post-login redirect and manual navigation). Good.",
+    "profile.js — settings-panel implements 3 sub-tabs with correct data-testids (settings-tab-profile/notifications/security) and unique testids for swatches (pf-color-XXXXXX), inputs (pf-name-input, pf-phone-input), and Save buttons (pf-save, pf-notif-save, sec-save). Naming for the security save button is 'sec-save' rather than the assumed 'pf-pass-save'; not a bug but worth aligning the pf-* naming convention across all three tabs for consistency.",
+    "Command palette result labels concatenate item title + kind (e.g. 'LeadsPage', 'Lead ScoringPage', 'Journey Test Lead...Lead') without whitespace between title and kind badge in the DOM textContent — visually fine (kind rendered as pill), but consider aria-labels for a11y separation.",
+    "Inventory spatial map renders 4 projects / 5 phases / 51 plots and plot-save modal opens on cell click; visual differentiation of Available/Held/Booked/Sold present. Good."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (8/8 scenarios)"},
+  "test_credentials": "admin@crm.local / Admin@12345 (used; password NOT changed — only validation error paths exercised on security tab)",
+  "seed_data_creation": "None. Profile record for admin was updated in-place (avatar_color set via swatch, phone set to 9000000001, weekly_digest preference toggled and saved). This is the intended admin self-edit flow and matches the PUT /api/v1/auth/profile contract.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "1) On a fresh admin login the router redirects to #/onboarding (chromeless, no #nav). To reach the rest of the app in tests, either walk the wizard or force location.hash='#/dashboard' — the dashboard then correctly renders #nav. 2) Nav group titles are TEXT-TRANSFORM uppercase in CSS but retain original casing in the DOM ('Deals & Finance', not 'DEALS & FINANCE') — use case-insensitive matching. 3) [data-testid='nav-profile'] is at the bottom of a scrollable sidebar; use scrollIntoView() before clicking on shorter viewports. 4) The security submit button testid is 'sec-save' (not 'pf-pass-save' or similar). 5) Validation toasts observed: 'Password must be at least 8 characters' and 'Passwords do not match' — both surface correctly without hitting the backend.",
+  "verified_scenarios": [
+    "Dashboard hero/kpis/barchart + recent leads table all render; 0 console errors.",
+    "Sidebar grouped into Overview / Sales / Deals & Finance / Messaging / Automation & Setup / Partners / Administration (all 7 groups present).",
+    "Routes tested with white active pill (.nav__item.active): Leads, Pipeline, Inventory, WhatsApp Inbox (#/inbox), Flow Builder (#/workflows), Users & Roles.",
+    "Account Settings via [data-testid='nav-profile'] chip AND #/profile — settings-panel + all 3 sub-tabs present.",
+    "Profile save: swatch pick + phone update via pf-save → 'Profile updated' toast.",
+    "Notifications: pref-weekly_digest toggle + pf-notif-save → 'Preferences saved' toast.",
+    "Security validation: <8 char → 'Password must be at least 8 characters'; mismatch → 'Passwords do not match'. NO successful password change submitted.",
+    "Command Palette: Ctrl+K + cmdk-trigger both open cmdk-overlay + cmdk-input; typing 'lead' returns 3 results (1 LEAD kind + 2 PAGE kind); cmdk-item-0 navigates to #/leads/20; Escape closes overlay.",
+    "Inventory spatial map: 4 inv-project-* cards, 5 phase-* maps, 51 plot-* cells; clicking a plot opens edit modal with plot-save.",
+    "Onboarding chromeless: #/onboarding renders WITHOUT #nav on both post-login redirect and manual revisit; after forcing #/dashboard, #nav is present again.",
+    "Regression: #/leads list renders with new styling; cmdk deep-link into #/leads/20 works (Journey tab was fully verified in iteration_22)."
+  ],
+  "rca of the issue": "N/A — no defects found in this iteration."
+}

@@ -79,6 +79,21 @@ class AuthController extends Controller
         return response()->json(['user' => $this->userPayload($user->fresh()->load('role.permissions'))]);
     }
 
+    /** Update own profile (name, phone, avatar color, notification preferences). */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'phone' => 'nullable|string|max:30',
+            'avatar_color' => 'nullable|string|max:20',
+            'preferences' => 'nullable|array',
+        ]);
+        $user->fill($data)->save();
+
+        return response()->json(['user' => $this->userPayload($user->fresh()->load('role.permissions'))]);
+    }
+
     private function userPayload(User $user): array
     {
         return [
@@ -86,6 +101,8 @@ class AuthController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
+            'avatar_color' => $user->avatar_color,
+            'preferences' => $user->preferences ?: (object) [],
             'role' => $user->role?->slug,
             'role_name' => $user->role?->name,
             'department' => $user->role?->department,

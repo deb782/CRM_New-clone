@@ -4,49 +4,59 @@
   CRM.pages = CRM.pages || {};
 
   const NAV = [
-    { label: 'Workspace', perm: 'leads.view', items: [
+    { label: 'Overview', perm: 'leads.view', items: [
       { route: 'dashboard', icon: 'fa-gauge-high', name: 'Dashboard' },
+      { route: 'slaBoard', icon: 'fa-fire-flame-curved', name: 'SLA Board' },
+      { route: 'tasks', icon: 'fa-list-check', name: 'Tasks' },
+    ]},
+    { label: 'Sales', perm: 'leads.view', items: [
       { route: 'leads', icon: 'fa-users', name: 'Leads' },
       { route: 'pipeline', icon: 'fa-diagram-project', name: 'Pipeline' },
-      { route: 'inventory', icon: 'fa-building', name: 'Inventory' },
+      { route: 'callList', icon: 'fa-phone-volume', name: 'Call List' },
       { route: 'visits', icon: 'fa-calendar-check', name: 'Site Visits' },
+      { route: 'inventory', icon: 'fa-building', name: 'Inventory' },
+      { route: 'import', icon: 'fa-file-arrow-up', name: 'Import' },
+    ]},
+    { label: 'Deals & Finance', perm: 'leads.view', items: [
       { route: 'bookings', icon: 'fa-file-contract', name: 'Bookings' },
       { route: 'collections', icon: 'fa-indian-rupee-sign', name: 'Collections' },
       { route: 'demands', icon: 'fa-file-invoice-dollar', name: 'Demand Letters' },
-      { route: 'callList', icon: 'fa-phone-volume', name: 'Call List' },
-      { route: 'inbox', icon: 'fa-whatsapp', iconStyle: 'brand', name: 'WhatsApp Inbox' },
-      { route: 'slaBoard', icon: 'fa-gauge-high', name: 'SLA Board' },
-      { route: 'tasks', icon: 'fa-list-check', name: 'Tasks' },
-      { route: 'import', icon: 'fa-file-arrow-up', name: 'Import' },
-    ]},
-    { label: 'Configuration', perm: 'config.manage', items: [
-      { route: 'workflows', icon: 'fa-diagram-project', name: 'Flow Builder', perm: 'workflow.manage' },
       { route: 'approvals', icon: 'fa-gavel', name: 'Discount Approvals', perm: 'discounts.approve' },
-      { route: 'plans', icon: 'fa-money-check-dollar', name: 'Payment Plans' },
-      { route: 'scoring', icon: 'fa-sliders', name: 'Lead Scoring' },
+    ]},
+    { label: 'Messaging', perm: 'leads.view', items: [
+      { route: 'inbox', icon: 'fa-whatsapp', iconStyle: 'brand', name: 'WhatsApp Inbox' },
+      { route: 'broadcasts', icon: 'fa-bullhorn', name: 'WA Broadcasts', perm: 'config.manage' },
+      { route: 'waAutomations', icon: 'fa-robot', name: 'WA Auto-Replies', perm: 'config.manage' },
+      { route: 'waTemplates', icon: 'fa-file-lines', name: 'WA Templates', perm: 'config.manage' },
+      { route: 'waCanned', icon: 'fa-bolt', name: 'WA Canned Replies', perm: 'config.manage' },
+      { route: 'waAnalytics', icon: 'fa-chart-line', name: 'WA Analytics', perm: 'config.manage' },
+      { route: 'emailTemplates', icon: 'fa-envelope-open-text', name: 'Email Templates', perm: 'config.manage' },
+      { route: 'emailCampaigns', icon: 'fa-paper-plane', name: 'Email Campaigns', perm: 'config.manage' },
+      { route: 'chatbot', icon: 'fa-comment-dots', name: 'Chat Widget', perm: 'config.manage' },
+    ]},
+    { label: 'Automation & Setup', perm: 'config.manage', items: [
+      { route: 'workflows', icon: 'fa-diagram-project', name: 'Flow Builder', perm: 'workflow.manage' },
       { route: 'automation', icon: 'fa-bolt', name: 'Automations' },
+      { route: 'scoring', icon: 'fa-sliders', name: 'Lead Scoring' },
       { route: 'templates', icon: 'fa-comment-dots', name: 'Templates' },
+      { route: 'plans', icon: 'fa-money-check-dollar', name: 'Payment Plans' },
+    ]},
+    { label: 'Partners', perm: 'config.manage', items: [
       { route: 'partners', icon: 'fa-handshake', name: 'Channel Partners' },
       { route: 'commissions', icon: 'fa-hand-holding-dollar', name: 'Commissions' },
-      { route: 'broadcasts', icon: 'fa-bullhorn', name: 'WA Broadcasts' },
-      { route: 'waAutomations', icon: 'fa-robot', name: 'WA Auto-Replies' },
-      { route: 'waTemplates', icon: 'fa-file-lines', name: 'WA Templates' },
-      { route: 'waCanned', icon: 'fa-bolt', name: 'WA Canned Replies' },
-      { route: 'waAnalytics', icon: 'fa-chart-line', name: 'WA Analytics' },
-      { route: 'emailTemplates', icon: 'fa-envelope-open-text', name: 'Email Templates' },
-      { route: 'emailCampaigns', icon: 'fa-paper-plane', name: 'Email Campaigns' },
-      { route: 'chatbot', icon: 'fa-robot', name: 'Chat Widget' },
+    ]},
+    { label: 'Administration', perm: 'config.manage', items: [
+      { route: 'users', icon: 'fa-user-shield', name: 'Users & Roles', perm: 'users.manage' },
       { route: 'preview', icon: 'fa-user-secret', name: 'Preview Roles', adminOnly: true },
       { route: 'health', icon: 'fa-heart-pulse', name: 'System Health' },
       { route: 'audit', icon: 'fa-clipboard-list', name: 'Audit Log' },
-      { route: 'users', icon: 'fa-user-shield', name: 'Users & Roles', perm: 'users.manage' },
     ]},
     { label: 'Partner', perm: 'partner.portal', items: [
       { route: 'portal', icon: 'fa-handshake', name: 'My Portal' },
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', preview: 'Preview Roles', onboarding: 'Welcome & Setup', workflows: 'Lead-Flow Builder', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', preview: 'Preview Roles', onboarding: 'Welcome & Setup', workflows: 'Lead-Flow Builder', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal', profile: 'Account Settings' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
@@ -122,8 +132,8 @@
 
     const theme = document.documentElement.getAttribute('data-theme');
     nav.appendChild(el('div', { class: 'nav__foot' },
-      el('div', { class: 'nav__user' },
-        el('div', { class: 'avatar' }, initials(state.user.name)),
+      el('a', { class: 'nav__user', href: '#/profile', 'data-testid': 'nav-profile', title: 'Account settings' },
+        el('div', { class: 'avatar', style: state.user.avatar_color ? ('background:' + state.user.avatar_color + ';color:#fff') : null }, initials(state.user.name)),
         el('div', { class: 'meta' }, el('b', {}, state.user.name), el('span', {}, state.user.role_name || ''))),
       el('div', { style: 'display:flex;gap:8px;margin-top:8px' },
         el('button', { class: 'btn btn--ghost btn--sm', style: 'flex:1', 'data-testid': 'theme-toggle', onclick: () => { applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); render(); } },
@@ -136,6 +146,8 @@
       el('button', { class: 'icon-btn nav-toggle', onclick: () => document.getElementById('nav').classList.toggle('open') }, el('i', { class: 'fa-solid fa-bars' })),
       el('h1', { id: 'page-title' }, TITLES[active] || 'CRM'),
       el('div', { class: 'spacer' }),
+      el('button', { class: 'cmdk-trigger', 'data-testid': 'cmdk-trigger', onclick: openPalette },
+        el('i', { class: 'fa-solid fa-magnifying-glass' }), el('span', {}, 'Search'), el('kbd', {}, '⌘K')),
       el('span', { id: 'topbar-actions' }));
 
     app.innerHTML = '';
@@ -144,6 +156,18 @@
   }
 
   function logout() { api.post('/auth/logout').catch(() => {}); setToken(null); state.user = null; sessionStorage.removeItem('crm_homed'); sessionStorage.removeItem('crm_onboard_checked'); sessionStorage.removeItem('crm_admin_token'); document.getElementById('imp-banner')?.remove(); location.hash = '#/login'; }
+
+  function paletteDestinations() {
+    const dests = [];
+    NAV.forEach(group => {
+      if (group.perm && !can(group.perm)) return;
+      group.items.forEach(i => { if ((!i.perm || can(i.perm)) && (!i.adminOnly || (state.user && state.user.role === 'admin'))) dests.push({ route: i.route, label: i.name, icon: i.icon }); });
+    });
+    dests.push({ route: 'profile', label: 'Account Settings', icon: 'fa-user' });
+    return dests;
+  }
+  function openPalette() { if (CRM.openCommandPalette) CRM.openCommandPalette(paletteDestinations()); }
+  CRM.openPalette = openPalette;
 
   async function render() {
     document.querySelectorAll('.drawer-overlay, .modal-overlay').forEach(n => n.remove());
@@ -200,5 +224,8 @@
 
   window.addEventListener('hashchange', render);
   window.addEventListener('DOMContentLoaded', render);
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (token() && state.user) openPalette(); }
+  });
   if (document.readyState !== 'loading') render();
 })();

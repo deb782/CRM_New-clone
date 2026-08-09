@@ -11,7 +11,7 @@
 
   function statusDot(s) { const m = STATUS_META[s] || STATUS_META.available; return el('span', { class: 'temp', style: 'color:' + m.c }, el('span', { style: `display:inline-block;width:8px;height:8px;border-radius:50%;background:${m.c};margin-right:6px` }), m.l); }
 
-  // ============ INVENTORY BOARD ============
+  // ============ INVENTORY — Spatial Availability Map ============
   CRM.pages.inventory = async function (view) {
     CRM.setActions(can('projects.manage')
       ? el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'add-plot-btn', onclick: () => plotForm() }, el('i', { class: 'fa-solid fa-plus' }), 'Add Unit')
@@ -19,41 +19,43 @@
     const res = await api.get('/inventory/tree');
     view.innerHTML = '';
 
-    // Legend
-    view.appendChild(el('div', { class: 'toolbar' }, el('div', { class: 'pill-row' },
-      ...Object.entries(STATUS_META).map(([k, m]) => el('span', { class: 'chip' }, el('span', { style: `display:inline-block;width:9px;height:9px;border-radius:50%;background:${m.c}` }), m.l)))));
-
     if (!res.projects.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-building' }), el('div', {}, 'No projects yet'))); return; }
 
     res.projects.forEach(p => {
       const c = p.counts;
-      const head = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px' },
-        el('div', {}, el('div', { style: 'font-size:16px;font-weight:600' }, p.name),
-          el('div', { style: 'font-size:12px;color:var(--text-3)' }, [p.city, p.zone].filter(Boolean).join(' · '))),
-        el('div', { class: 'pill-row' },
-          el('span', { class: 'chip', style: 'color:var(--won)' }, c.available + ' available'),
-          el('span', { class: 'chip', style: 'color:var(--warm)' }, c.held + ' held'),
-          el('span', { class: 'chip', style: 'color:var(--accent)' }, c.booked + ' booked'),
-          el('span', { class: 'chip' }, c.sold + ' sold')));
-      view.appendChild(head);
+      const totalUnits = (c.available || 0) + (c.held || 0) + (c.booked || 0) + (c.sold || 0);
+      const soldPct = totalUnits ? Math.round(((c.booked || 0) + (c.sold || 0)) / totalUnits * 100) : 0;
+
+      // Project hero: big available number + a thin absorption bar
+      const hero = el('div', { class: 'inv-hero', 'data-testid': 'inv-project-' + p.id },
+        el('div', { class: 'inv-hero__left' },
+          el('div', { class: 'inv-hero__name' }, p.name),
+          el('div', { class: 'inv-hero__loc' }, [p.city, p.zone].filter(Boolean).join(' · ') || 'Location not set'),
+          el('div', { class: 'inv-legend' },
+            legendChip('available', c.available || 0), legendChip('held', c.held || 0),
+            legendChip('booked', c.booked || 0), legendChip('sold', c.sold || 0))),
+        el('div', { class: 'inv-hero__metric' },
+          el('div', { class: 'inv-hero__num' }, String(c.available || 0), el('span', { class: 'unit' }, '/ ' + totalUnits)),
+          el('div', { class: 'inv-hero__lbl' }, 'Units available'),
+          el('div', { class: 'inv-absorb' }, el('span', { style: 'width:' + soldPct + '%' })),
+          el('div', { class: 'inv-hero__lbl', style: 'margin-top:6px' }, soldPct + '% absorbed')));
+      view.appendChild(hero);
 
       const phases = p.phases.concat(p.unassigned_plots.length ? [{ id: null, name: 'Unassigned', plots: p.unassigned_plots }] : []);
       phases.forEach(ph => {
-        view.appendChild(el('div', { class: 'section-title', style: 'margin-top:14px' },
+        view.appendChild(el('div', { class: 'section-title', style: 'margin-top:20px' },
           el('i', { class: 'fa-solid fa-layer-group' }), ph.name,
           ph.possession_target ? el('span', { class: 'chip', style: 'margin-left:8px' }, 'Possession: ' + ph.possession_target) : null));
-        const grid = el('div', { class: 'grid', style: 'grid-template-columns:repeat(auto-fill,minmax(180px,1fr))', 'data-testid': 'phase-' + (ph.id || 'none') });
+        const map = el('div', { class: 'inv-map', 'data-testid': 'phase-' + (ph.id || 'none') });
         (ph.plots || []).forEach(plot => {
-          const m = STATUS_META[plot.status] || STATUS_META.available;
-          grid.appendChild(el('div', { class: 'card', 'data-testid': 'plot-' + plot.id, style: `padding:14px;cursor:pointer;border-left:3px solid ${m.c}`, onclick: () => plotForm(plot, p) },
-            el('div', { style: 'display:flex;justify-content:space-between;align-items:center' },
-              el('b', { class: 'mono' }, plot.number), statusDot(plot.status)),
-            el('div', { style: 'font-size:12px;color:var(--text-2);margin-top:6px' }, [plot.unit_type, plot.floor ? 'Floor ' + plot.floor : null, plot.facing].filter(Boolean).join(' · ')),
-            el('div', { style: 'font-size:12px;color:var(--text-3);margin-top:2px' }, (plot.carpet_area ? plot.carpet_area + ' sqft' : '')),
-            el('div', { style: 'font-weight:600;margin-top:8px' }, money(plot.price))));
+          const st = STATUS_META[plot.status] ? plot.status : 'available';
+          const tip = 'Unit ' + plot.number + ' · ' + (STATUS_META[st].l) + (plot.unit_type ? ' · ' + plot.unit_type : '') + (plot.price ? ' · ' + money(plot.price) : '');
+          map.appendChild(el('button', { class: 'inv-cell inv-cell--' + st, type: 'button', title: tip, 'data-testid': 'plot-' + plot.id, onclick: () => plotForm(plot, p) },
+            el('span', { class: 'inv-cell__no' }, plot.number),
+            el('span', { class: 'inv-cell__t' }, plot.unit_type || '—')));
         });
-        if (!(ph.plots || []).length) grid.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;padding:10px' }, 'No units'));
-        view.appendChild(grid);
+        if (!(ph.plots || []).length) map.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;padding:10px' }, 'No units'));
+        view.appendChild(map);
       });
     });
 
@@ -83,6 +85,11 @@
       });
     }
   };
+
+  function legendChip(status, count) {
+    const m = STATUS_META[status];
+    return el('span', { class: 'inv-legchip inv-legchip--' + status }, el('i', {}), m.l, el('b', {}, String(count)));
+  }
 
   // ============ SITE VISITS ============
   CRM.pages.visits = async function (view) {

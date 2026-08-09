@@ -62,6 +62,7 @@ Route::prefix('v1')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::post('auth/change-password', [AuthController::class, 'changePassword']);
+        Route::put('auth/profile', [AuthController::class, 'updateProfile']);
         Route::post('auth/impersonate', [AuthController::class, 'impersonate']);
 
         // Everything below requires the forced first-login password change to be done

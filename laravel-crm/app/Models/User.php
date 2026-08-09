@@ -11,7 +11,7 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasApiTokens;
 
-    protected $fillable = ['name', 'email', 'password', 'role_id', 'phone', 'is_active', 'must_change_password'];
+    protected $fillable = ['name', 'email', 'password', 'role_id', 'phone', 'is_active', 'must_change_password', 'avatar_color', 'preferences'];
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
@@ -21,6 +21,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
+            'preferences' => 'array',
         ];
     }
 
