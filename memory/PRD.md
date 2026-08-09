@@ -133,6 +133,12 @@ Built mock-first (WHATSAPP_DRIVER=mock), real-time via ~4s polling. Ported & imp
 - **Inbox Analytics** (`GET /whatsapp/analytics`, leads.view): open conversations, unread backlog, unassigned, avg first-response minutes (inbound→next outbound), messages-per-agent, 7-day trend. New page `waAnalytics`.
 - New migration `2026_01_13_...whatsapp_media_templates`; frontend blade bumped to v=11; nav items WA Templates + WA Analytics under Configuration.
 
+## Implemented — WhatsApp Canned Replies + Template Variables + Assignment Routing (2026-06, verified 16/16 backend + 100% frontend, iteration_16)
+- **Canned Replies**: saved snippets (title/shortcut/body) agents insert with one click via a composer button; managed on the WA Canned Replies page. `whatsapp/canned-replies` CRUD (leads.view). New: `whatsapp_canned_replies` table, `WhatsappCannedReply`, `WhatsAppCannedReplyController`.
+- **Template Variables**: inbox Template dialog detects `{{1}}{{2}}` placeholders, shows a field per variable with live preview; sends `variables[]` — `InboxService` fills the body positionally and `CloudApiDriver::sendTemplate()` builds Meta body-component parameters at go-live. Works outside the 24h window (templates exempt).
+- **Assignment Routing**: new WhatsApp conversations auto-assign to the least-busy active sales_exec/sales_manager (`InboxService::pickAgent()`), toggleable via `whatsapp/settings` (GET leads.view, PUT config.manage) with a switch on WA Analytics. New: `whatsapp_settings` (auto_assign, default on), `WhatsappSetting`.
+- New migration `2026_01_14_...whatsapp_canned_and_settings`; `Contract::sendTemplate()` added to all drivers; nav item WA Canned Replies; blade v=12.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
