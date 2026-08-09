@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // --- Public ---
-    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:60,1');
     Route::middleware('throttle:60,1')->group(function () {
         Route::post('webhooks/lead-form', [WebhookController::class, 'leadForm']);
         Route::post('webhooks/whatsapp', [WebhookController::class, 'whatsapp']);

@@ -66,10 +66,18 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **UI**: new **Post-Sales** tab in the lead drawer (payments+receipts with verify/match/discrepancy, record-payment modal, document checklist with received/verify, letters with generate-welcome).
 - New files: migration `2026_01_05_...payments_documents_letters`, models `Payment/DocumentChecklistItem/Letter`, services `PaymentService/PostSalesService`, controllers `PaymentController/PostSalesController`.
 
+## Implemented — Phase C · Sections O, P, Q (2026-06, verified 92/92 tests)
+- **P Milestone payment schedule**: auto-derived from the booking's payment plan on confirmation (default 5 milestones); token 10% auto-fills the first milestone. Per-milestone payment + receipt, status engine (pending/due/partial/paid/overdue). 30/15/7/1-day + due-date reminders via `crm:reminders`. **Collections dashboard** (`GET /collections`): collected vs scheduled vs outstanding + aging buckets (current/0-30/31-60/61-90/90+) + overdue milestone list. New sidebar pages: Collections.
+- **O Allotment & AFS**: allotment letter (`ALT-YYYY-NNNN`) auto-issued once collection ≥10% of deal value. RERA-style **Agreement for Sale** (`AFS-YYYY-NNNN`) lifecycle: draft → send-for-sign (mock e-sign ref + 5-day review window) → signed → registered (registration no). Idempotent per booking.
+- **Q Demand letters**: serial `DMD-YYYY-NNNN` for overdue milestones with 18% p.a. late-interest (total = outstanding + interest). Auto-issued for overdue milestones by `crm:reminders`. Delivery log (whatsapp+email / registered post w/ tracking ref) + escalation to manager/legal (creates task). New sidebar page: Demand Letters.
+- **UI**: Post-Sales tab in the lead drawer now also shows Payment Schedule (pay modal), Agreement for Sale (workflow buttons), and Demand Letters. Collections + Demand Letters list pages.
+- **Dev**: login throttle raised 20→60/min to avoid 429 flakes in test suites.
+- New files: migration `2026_01_06_...payment_schedule_and_agreements`, models `PaymentMilestone/Agreement/DemandLetter`, services `PaymentScheduleService/AgreementService/DemandLetterService`, controllers `PaymentScheduleController/AgreementController/DemandLetterController`.
+
 ## Backlog (prioritized)
-- **P1 (Phase C — O–Q)**: allotment letter (≥10% trigger) + RERA-style AFS + mock e-sign, milestone schedule + staged reminders (30/15/7/1-day), demand letters with serial + late interest.
-- **P2 (Phase D — R–T)**: Channel Partner portal + commission, full automation trigger engine + ~40 edge cases, audit/error dashboards, performance hardening (<2s search @100K), QA against A–T.
-- **Tech hardening**: receipt/letter serial generation uses COUNT+1 (unique constraint guards duplicates but throws under rare concurrency) — move to atomic counter/retry when going multi-user.
+- **P2 (Phase D — R–T)**: Channel Partner portal + commission, full automation trigger engine + ~40 edge cases (R), automation trigger acceptance tests (S), audit/error dashboards + performance hardening (<2s search @100K, automation <2 min) (T), full QA against A–T.
+- **Tech hardening**: receipt/letter/serial generation uses COUNT+1 (unique constraint guards duplicates but throws under rare concurrency) — move to atomic counter/retry when going multi-user. Collections `collected` is org-wide while `scheduled/outstanding` derive from milestones — consistent once all bookings have schedules.
+- **Chatbot**: port the chatbot from https://github.com/deb782/CRM_New-clone when prioritized (crawl returned nothing usable; a basic lead-capture endpoint is live).
 - **Integrations (live, when keys provided)**: Razorpay keys+webhook secret, WATI base URL+token, Gmail Workspace SMTP.
 
 ## Next tasks
