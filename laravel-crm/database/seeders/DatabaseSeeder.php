@@ -272,6 +272,32 @@ class DatabaseSeeder extends Seeder
             ],
             'active' => true,
         ]);
+        AutomationRule::updateOrCreate(['name' => 'Proposal on Negotiation'], [
+            'event' => 'status.changed', 'conditions' => ['to' => 'negotiation'],
+            'actions' => [
+                ['type' => 'create_task', 'title' => 'Prepare & send proposal / cost sheet', 'task_type' => 'follow_up', 'due_in_hours' => 24, 'priority' => 'high'],
+                ['type' => 'send_whatsapp', 'body' => 'Hi {{name}}, we are preparing your personalised proposal and will share it shortly.'],
+            ],
+            'active' => true,
+        ]);
+        AutomationRule::updateOrCreate(['name' => 'Onboard on Won'], [
+            'event' => 'status.changed', 'conditions' => ['to' => 'won'],
+            'actions' => [
+                ['type' => 'create_task', 'title' => 'Post-sales onboarding & document collection', 'task_type' => 'follow_up', 'due_in_hours' => 24, 'priority' => 'high'],
+                ['type' => 'send_email', 'subject' => 'Welcome aboard!', 'body' => 'Hi {{name}}, congratulations on your booking with {{project}}. Your onboarding begins now.'],
+            ],
+            'active' => true,
+        ]);
+        AutomationRule::updateOrCreate(['name' => 'Pause on Not Interested'], [
+            'event' => 'status.changed', 'conditions' => ['to' => ['not_interested', 'lost']],
+            'actions' => [['type' => 'pause_sequence', 'reason' => 'lead closed / not interested']],
+            'active' => true,
+        ]);
+        AutomationRule::updateOrCreate(['name' => 'Reply follow-up on WhatsApp'], [
+            'event' => 'whatsapp.replied', 'conditions' => [],
+            'actions' => [['type' => 'create_task', 'title' => 'Respond to WhatsApp reply', 'task_type' => 'follow_up', 'due_in_hours' => 2, 'priority' => 'high']],
+            'active' => true,
+        ]);
     }
 
     private function demoData(array $projects): void

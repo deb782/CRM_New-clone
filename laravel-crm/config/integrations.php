@@ -67,6 +67,8 @@ return [
     'sla' => [
         'ack_minutes' => 5,          // A: auto-acknowledgement <= 5 min
         'verify_hours' => 2,         // C: escalation if verify task not started in 2h
+        'handover_hours' => 24,      // K: sales handover initial contact SLA
+        'site_visit_report_hours' => 2, // I: site-visit report SLA
         'over_contact_daily' => 2,   // F: max attempts/day without engagement
     ],
 ];

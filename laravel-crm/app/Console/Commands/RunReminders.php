@@ -17,8 +17,11 @@ class RunReminders extends Command
 
     public function handle(ActivityService $activity, SiteVisitService $visits, WhatsAppService $whatsapp, EmailService $email): int
     {
-        // C1.1 — Verify Lead tasks not started within 2h => escalate
+        // C1.1 — Verify Lead tasks not started within 2h => escalate to manager
         $slaHours = config('integrations.sla.verify_hours', 2);
+        $managerId = \App\Models\User::whereHas('role', fn ($q) => $q->where('slug', 'sales_manager'))
+            ->where('is_active', true)->value('id')
+            ?? \App\Models\User::whereHas('role', fn ($q) => $q->where('slug', 'admin'))->value('id');
         $stale = Task::where('type', 'verify')
             ->where('status', 'open')
             ->where('escalated', false)
@@ -26,23 +29,26 @@ class RunReminders extends Command
             ->get();
 
         foreach ($stale as $task) {
-            $task->update(['escalated' => true, 'priority' => 'high']);
+            $task->update(['escalated' => true, 'priority' => 'high', 'assigned_to' => $managerId ?: $task->assigned_to]);
             if ($task->lead) {
-                $activity->log($task->lead, 'system', 'Verify task escalated (SLA breach)');
+                $activity->log($task->lead, 'system', 'Verify task escalated to manager (SLA breach > '.$slaHours.'h)');
             }
         }
         $this->info("Escalated {$stale->count()} verify task(s).");
 
-        // Generic overdue follow-up escalation
+        // Generic overdue follow-up / handover escalation to manager
         $overdue = Task::whereIn('type', ['follow_up', 'callback'])
             ->where('status', 'open')
             ->where('escalated', false)
-            ->where('due_at', '<', now()->subHours(1))
+            ->where('due_at', '<', now())
             ->get();
         foreach ($overdue as $task) {
-            $task->update(['escalated' => true]);
+            $task->update(['escalated' => true, 'priority' => 'high', 'assigned_to' => $managerId ?: $task->assigned_to]);
+            if ($task->lead) {
+                $activity->log($task->lead, 'system', 'Task escalated to manager (SLA breach): '.$task->title);
+            }
         }
-        $this->info("Flagged {$overdue->count()} overdue follow-up(s).");
+        $this->info("Escalated {$overdue->count()} overdue task(s).");
 
         // I1.3 — Site-visit reminders (24h + 1h) and no-show detection
         $upcoming = SiteVisit::whereIn('status', ['scheduled', 'confirmed', 'rescheduled'])
