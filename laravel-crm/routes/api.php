@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AgreementController;
 use App\Http\Controllers\Api\AuditController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AutomationController;
+use App\Http\Controllers\Api\ChannelPartnerController;
 use App\Http\Controllers\Api\CommunicationController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\CostSheetController;
@@ -65,6 +66,9 @@ Route::prefix('v1')->group(function () {
         Route::post('leads/{lead}/verify', [LeadController::class, 'verify'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/recalculate', [LeadController::class, 'recalculate']);
         Route::post('leads/{lead}/merge', [LeadController::class, 'merge'])->middleware('permission:leads.edit');
+        Route::post('leads/{lead}/dnc', [LeadController::class, 'markDnc'])->middleware('permission:leads.edit');
+        Route::post('leads/{lead}/invalid', [LeadController::class, 'markInvalid'])->middleware('permission:leads.edit');
+        Route::post('leads/{lead}/consent', [LeadController::class, 'consent'])->middleware('permission:leads.edit');
         Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->middleware('permission:leads.delete');
 
         // Communication + timeline
@@ -142,6 +146,7 @@ Route::prefix('v1')->group(function () {
         Route::get('bookings/{booking}', [DealBookingController::class, 'show']);
         Route::post('bookings/{booking}/verify', [DealBookingController::class, 'verify']);
         Route::post('bookings/{booking}/pay-token', [DealBookingController::class, 'payToken']);
+        Route::post('bookings/{booking}/cancel', [DealBookingController::class, 'cancel'])->middleware('permission:postsales.manage');
 
         // Post-sales: payments, receipts, reconciliation, documents & letters (Section N)
         Route::get('payments', [PaymentController::class, 'index']);
@@ -149,6 +154,7 @@ Route::prefix('v1')->group(function () {
         Route::post('bookings/{booking}/payments', [PaymentController::class, 'store'])->middleware('permission:postsales.manage');
         Route::post('payments/{payment}/verify', [PaymentController::class, 'verify'])->middleware('permission:postsales.manage');
         Route::post('payments/{payment}/reconcile', [PaymentController::class, 'reconcile'])->middleware('permission:postsales.manage');
+        Route::post('payments/{payment}/fail', [PaymentController::class, 'markFailed'])->middleware('permission:postsales.manage');
 
         Route::get('bookings/{booking}/post-sales', [PostSalesController::class, 'show']);
         Route::post('bookings/{booking}/checklist', [PostSalesController::class, 'seedChecklist'])->middleware('permission:postsales.manage');
@@ -192,6 +198,14 @@ Route::prefix('v1')->group(function () {
         Route::get('audit-logs', [AuditController::class, 'index'])->middleware('permission:config.manage');
         Route::get('system/health', [AuditController::class, 'health'])->middleware('permission:config.manage');
         Route::get('system/performance', [AuditController::class, 'performance'])->middleware('permission:config.manage');
+
+        // Channel partners + commissions (admin) & partner portal (Section: Channel Partner)
+        Route::get('partner/portal', [ChannelPartnerController::class, 'portal'])->middleware('permission:partner.portal');
+        Route::get('partners', [ChannelPartnerController::class, 'index'])->middleware('permission:config.manage');
+        Route::post('partners', [ChannelPartnerController::class, 'store'])->middleware('permission:config.manage');
+        Route::put('partners/{channelPartner}', [ChannelPartnerController::class, 'update'])->middleware('permission:config.manage');
+        Route::get('commissions', [ChannelPartnerController::class, 'commissions'])->middleware('permission:config.manage');
+        Route::post('bookings/{booking}/commission', [ChannelPartnerController::class, 'decideCommission'])->middleware('permission:config.manage');
 
         Route::get('sequences', [SequenceController::class, 'index']);
         Route::get('templates', [TemplateController::class, 'index']);

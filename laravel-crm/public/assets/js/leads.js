@@ -271,12 +271,19 @@
     actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'recalc-btn', onclick: async () => { const r = await api.post('/leads/' + id + '/recalculate'); toast('Score: ' + r.result.total + ' (' + r.result.temperature + ')', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-arrows-rotate' }), 'Recalculate'));
     actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'enroll-btn', onclick: async () => { await api.post('/leads/' + id + '/enroll', {}); toast('Enrolled in ' + lead.temperature + ' cadence', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-seedling' }), 'Enroll Nurture'));
     actionRow.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'schedule-visit-btn', onclick: () => CRM.scheduleVisit(lead, reload) }, el('i', { class: 'fa-solid fa-calendar-check' }), 'Schedule Visit'));
+    if (!lead.do_not_contact && !lead.is_invalid && !lead.locked) {
+      actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'dnc-btn', onclick: async () => { if (!confirm('Mark this lead Do-Not-Contact? Outbound messaging will stop.')) return; await api.post('/leads/' + id + '/dnc', { reason: 'requested' }); toast('Marked Do-Not-Contact', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-ban' }), 'DNC'));
+      actionRow.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'invalid-btn', onclick: async () => { const r = prompt('Reason (wrong_number, spam, invalid, junk):', 'spam'); if (!r) return; await api.post('/leads/' + id + '/invalid', { reason: r }); toast('Marked invalid', 'warning'); reload(); } }, el('i', { class: 'fa-solid fa-triangle-exclamation' }), 'Invalid'));
+    }
     if (!lead.locked && lead.status !== 'won' && lead.status !== 'lost') {
       actionRow.appendChild(el('button', { class: 'btn btn--sm', style: 'color:var(--won);border-color:var(--won)', 'data-testid': 'won-btn', onclick: () => CRM.markWon(lead, reload) }, el('i', { class: 'fa-solid fa-trophy' }), 'Mark Won'));
       actionRow.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'lost-btn', onclick: () => CRM.markLost(lead, reload) }, el('i', { class: 'fa-solid fa-xmark' }), 'Mark Lost'));
     }
     if (lead.locked) {
       main.appendChild(el('div', { class: 'dup-alert', 'data-testid': 'lock-banner', style: 'display:flex;align-items:center;gap:8px' }, el('i', { class: 'fa-solid fa-lock' }), el('span', {}, 'Record locked — deal won and handed over to post-sales. Editing is restricted.')));
+    }
+    if (lead.do_not_contact || lead.is_invalid) {
+      main.appendChild(el('div', { class: 'dup-alert', 'data-testid': 'flag-banner', style: 'display:flex;align-items:center;gap:8px' }, el('i', { class: 'fa-solid fa-ban' }), el('span', {}, (lead.is_invalid ? 'Invalid lead' : 'Do-Not-Contact') + (lead.invalid_reason ? (' · ' + lead.invalid_reason) : '') + ' — outbound messaging is suppressed.')));
     }
     main.appendChild(actionRow);
 

@@ -69,4 +69,10 @@ class PaymentController extends Controller
         ]);
         return response()->json(['payment' => $this->service->reconcile($payment, $data['result'], $data['note'] ?? null)]);
     }
+
+    public function markFailed(Request $request, Payment $payment)
+    {
+        $data = $request->validate(['reason' => 'nullable|string']);
+        return response()->json(['payment' => $this->service->markFailed($payment, $data['reason'] ?? null)]);
+    }
 }

@@ -196,4 +196,33 @@ class LeadController extends Controller
         $lead->delete();
         return response()->json(['message' => 'deleted']);
     }
+
+    /** R1/R8 — mark Do-Not-Contact / wrong-number / spam and manage consent. */
+    public function markDnc(Request $request, Lead $lead)
+    {
+        $data = $request->validate(['reason' => 'nullable|string']);
+        $lead->forceFill(['do_not_contact' => true, 'invalid_reason' => $data['reason'] ?? 'do not contact'])->save();
+        app(\App\Services\SequenceService::class)->pause($lead, 'do not contact');
+        return response()->json(['lead' => $lead->fresh()]);
+    }
+
+    public function markInvalid(Request $request, Lead $lead)
+    {
+        $data = $request->validate(['reason' => 'required|in:wrong_number,spam,invalid,junk']);
+        $lead->forceFill(['is_invalid' => true, 'invalid_reason' => $data['reason'], 'do_not_contact' => true])->save();
+        app(\App\Services\SequenceService::class)->pause($lead, $data['reason']);
+        $this->leads->transition($lead, 'not_interested', $data['reason'], true);
+        return response()->json(['lead' => $lead->fresh()]);
+    }
+
+    public function consent(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'do_not_contact' => 'nullable|boolean',
+            'whatsapp_opt_out' => 'nullable|boolean',
+            'comm_preference' => 'nullable|in:any,call,whatsapp,email',
+        ]);
+        $lead->forceFill(array_filter($data, fn ($v) => $v !== null))->save();
+        return response()->json(['lead' => $lead->fresh()]);
+    }
 }

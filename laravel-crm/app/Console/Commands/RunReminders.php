@@ -112,9 +112,18 @@ class RunReminders extends Command
                 }
                 $m->update(['reminders_sent' => $sent]);
             } else {
-                // Overdue: mark + auto-issue a demand letter (Q)
+                // Overdue: friendly pay-link nudge (once) + mark + auto-issue demand letter (Q)
                 if ($m->status !== 'overdue') {
                     $m->update(['status' => 'overdue']);
+                }
+                if (! in_array('nudge', $sent) && $m->lead) {
+                    $link = optional($m->booking)->payment_link;
+                    $whatsapp->send($m->lead, "Hi {$m->lead->name}, a gentle reminder — your '{$m->label}' payment of ₹".number_format($m->outstanding())." is now due."
+                        .($link ? " You can pay securely here: {$link}" : ' Please reach out to complete it.'));
+                    $activity->log($m->lead, 'system', 'Overdue payment nudge sent', $m->label);
+                    $sent[] = 'nudge';
+                    $m->update(['reminders_sent' => $sent]);
+                    $mRem++;
                 }
                 if (! $m->demand_letter_id) {
                     $demands->generateForMilestone($m);

@@ -4,7 +4,7 @@
   CRM.pages = CRM.pages || {};
 
   const NAV = [
-    { label: 'Workspace', items: [
+    { label: 'Workspace', perm: 'leads.view', items: [
       { route: 'dashboard', icon: 'fa-gauge-high', name: 'Dashboard' },
       { route: 'leads', icon: 'fa-users', name: 'Leads' },
       { route: 'pipeline', icon: 'fa-diagram-project', name: 'Pipeline' },
@@ -23,13 +23,18 @@
       { route: 'scoring', icon: 'fa-sliders', name: 'Lead Scoring' },
       { route: 'automation', icon: 'fa-bolt', name: 'Automations' },
       { route: 'templates', icon: 'fa-comment-dots', name: 'Templates' },
+      { route: 'partners', icon: 'fa-handshake', name: 'Channel Partners' },
+      { route: 'commissions', icon: 'fa-hand-holding-dollar', name: 'Commissions' },
       { route: 'health', icon: 'fa-heart-pulse', name: 'System Health' },
       { route: 'audit', icon: 'fa-clipboard-list', name: 'Audit Log' },
       { route: 'users', icon: 'fa-user-shield', name: 'Users & Roles', perm: 'users.manage' },
     ]},
+    { label: 'Partner', perm: 'partner.portal', items: [
+      { route: 'portal', icon: 'fa-handshake', name: 'My Portal' },
+    ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
@@ -137,6 +142,7 @@
     }
     const { route, id } = parseRoute();
     if (route === 'login') { location.hash = '#/dashboard'; return; }
+    if (route === 'dashboard' && !can('leads.view') && can('partner.portal')) { location.hash = '#/portal'; return; }
     const view = renderShell(route);
     const page = CRM.pages[route];
     if (!page) { view.innerHTML = ''; view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-compass' }), el('div', {}, 'Page not found'))); return; }

@@ -35,6 +35,20 @@ class DatabaseSeeder extends Seeder
         $this->paymentPlans();
         $this->demoData($projects);
         $this->inventory($projects);
+        $this->channelPartners();
+    }
+
+    private function channelPartners(): void
+    {
+        $user = User::where('email', 'partner@crm.local')->first();
+        $partner = \App\Models\ChannelPartner::updateOrCreate(
+            ['name' => 'Prime Realty Partners'],
+            ['company' => 'Prime Realty LLP', 'email' => 'partner@crm.local', 'phone' => '9000000007',
+             'commission_rate' => 2.00, 'active' => true, 'user_id' => $user?->id]
+        );
+        // Attribute a handful of demo leads to this partner for the portal view
+        \App\Models\Lead::whereNull('channel_partner_id')->orderBy('id')->limit(6)
+            ->update(['channel_partner_id' => $partner->id]);
     }
 
     private function paymentPlans(): void
@@ -63,6 +77,7 @@ class DatabaseSeeder extends Seeder
             'projects.manage' => 'Manage projects', 'config.manage' => 'Manage configuration',
             'users.manage' => 'Manage users & roles', 'discounts.approve' => 'Approve discounts',
             'postsales.manage' => 'Manage post-sales / locked records',
+            'partner.portal' => 'Channel-partner portal access',
         ];
         foreach ($perms as $key => $label) {
             Permission::firstOrCreate(['key' => $key], ['label' => $label, 'group' => explode('.', $key)[0]]);
@@ -78,6 +93,7 @@ class DatabaseSeeder extends Seeder
             'marketing' => ['name' => 'Marketing', 'perms' => ['leads.view', 'leads.create', 'config.manage']],
             'crm_ops' => ['name' => 'CRM Ops', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'config.manage']],
             'post_sales' => ['name' => 'Post-Sales / CS', 'perms' => ['leads.view', 'leads.edit', 'postsales.manage']],
+            'channel_partner' => ['name' => 'Channel Partner', 'perms' => ['partner.portal']],
         ];
         $roles = [];
         foreach ($map as $slug => $cfg) {
@@ -100,6 +116,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Aisha Khan', 'email' => 'aisha@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_exec', 'phone' => '9000000004'],
             ['name' => 'Marketing Team', 'email' => 'marketing@crm.local', 'password' => 'Demo@12345', 'role' => 'marketing', 'phone' => '9000000005'],
             ['name' => 'Cust Success', 'email' => 'cs@crm.local', 'password' => 'Demo@12345', 'role' => 'post_sales', 'phone' => '9000000006'],
+            ['name' => 'Prime Realty (Partner)', 'email' => 'partner@crm.local', 'password' => 'Demo@12345', 'role' => 'channel_partner', 'phone' => '9000000007'],
         ];
         foreach ($users as $u) {
             User::updateOrCreate(['email' => $u['email']], [

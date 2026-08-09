@@ -52,6 +52,12 @@ class DealBookingController extends Controller
         return response()->json(['booking' => $this->service->payToken($booking)]);
     }
 
+    public function cancel(Request $request, Booking $booking)
+    {
+        $data = $request->validate(['reason' => 'nullable|string']);
+        return response()->json(['booking' => $this->service->cancel($booking, $data['reason'] ?? null)]);
+    }
+
     // ---- Public booking form (token link) ----
     public function publicShow(string $token)
     {

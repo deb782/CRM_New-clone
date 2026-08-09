@@ -1,6 +1,6 @@
 // ---- Configuration pages: Scoring, Automations, Templates, Users ----
 (function () {
-  const { el, api, toast, modal, initials } = CRM;
+  const { el, api, toast, modal, initials, money, can } = CRM;
 
   function tableWrap(headers, rows) {
     return el('div', { class: 'table-wrap' }, el('table', {},
@@ -251,5 +251,83 @@
     actionSel.addEventListener('change', load);
     typeInput.addEventListener('input', () => { clearTimeout(window.__auditT); window.__auditT = setTimeout(load, 350); });
     load();
+  };
+
+  // ========== CHANNEL PARTNERS (admin) ==========
+  CRM.pages.partners = async function (view) {
+    const addBtn = el('button', { class: 'btn btn--primary', 'data-testid': 'add-partner-btn', onclick: () => partnerModal() }, el('i', { class: 'fa-solid fa-plus' }), 'Add Partner');
+    CRM.setActions(addBtn);
+    view.innerHTML = '<div class="spinner"></div>';
+    const { partners } = await api.get('/partners');
+    view.innerHTML = '';
+    if (!partners.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-handshake' }), el('div', {}, 'No channel partners yet'))); }
+    else {
+      const rows = partners.map(p => el('tr', { 'data-testid': 'partner-row-' + p.id },
+        el('td', {}, p.name), el('td', {}, p.company || '—'), el('td', {}, p.phone || '—'),
+        el('td', {}, (p.commission_rate || 0) + '%'), el('td', {}, String(p.leads_count)), el('td', {}, String(p.bookings_count)),
+        el('td', {}, el('span', { class: 'chip', style: 'color:' + (p.active ? 'var(--won)' : 'var(--text-3)') }, p.active ? 'active' : 'inactive')),
+        el('td', {}, el('button', { class: 'btn btn--sm', 'data-testid': 'edit-partner-' + p.id, onclick: () => partnerModal(p) }, 'Edit'))));
+      view.appendChild(tableWrap(['Name', 'Company', 'Phone', 'Rate', 'Leads', 'Bookings', 'Status', ''], rows));
+    }
+    function partnerModal(p) {
+      const f = { name: p?.name || '', company: p?.company || '', phone: p?.phone || '', email: p?.email || '', commission_rate: p?.commission_rate || 2 };
+      const inp = (k, ph, type) => { const i = el('input', { class: 'input', type: type || 'text', value: f[k], placeholder: ph, 'data-testid': 'partner-' + k }); i.addEventListener('input', () => f[k] = i.value); return i; };
+      const save = el('button', { class: 'btn btn--primary', 'data-testid': 'partner-save' }, 'Save');
+      const m = modal({ title: p ? 'Edit Partner' : 'Add Partner', bodyNode: el('div', {},
+        el('div', { class: 'field' }, el('label', {}, 'Name'), inp('name', 'Partner name')),
+        el('div', { class: 'field' }, el('label', {}, 'Company'), inp('company', 'Company')),
+        el('div', { class: 'field' }, el('label', {}, 'Phone'), inp('phone', 'Phone')),
+        el('div', { class: 'field' }, el('label', {}, 'Email'), inp('email', 'Email', 'email')),
+        el('div', { class: 'field' }, el('label', {}, 'Commission rate (%)'), inp('commission_rate', '2', 'number'))),
+        footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+      save.addEventListener('click', async () => { if (!f.name) { toast('Name required', 'error'); return; } try { const body = { ...f, commission_rate: Number(f.commission_rate) }; if (p) await api.put('/partners/' + p.id, body); else await api.post('/partners', body); toast('Saved', 'success'); m.close(); CRM.render(); } catch (e) { toast(e.message, 'error'); } });
+    }
+  };
+
+  // ========== COMMISSIONS (admin) ==========
+  CRM.pages.commissions = async function (view) {
+    CRM.setActions(null);
+    view.innerHTML = '<div class="spinner"></div>';
+    const res = await api.get('/commissions');
+    view.innerHTML = '';
+    if (!res.data.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-hand-holding-dollar' }), el('div', {}, 'No commissions yet'))); return; }
+    const colors = { pending: 'var(--warm)', approved: 'var(--accent)', paid: 'var(--won)', none: 'var(--text-3)' };
+    const rows = res.data.map(b => {
+      const actions = el('div', { style: 'display:flex;gap:6px' });
+      if (b.commission_status === 'pending') actions.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'comm-approve-' + b.id, onclick: async () => { await api.post('/bookings/' + b.id + '/commission', { action: 'approve' }); toast('Approved', 'success'); CRM.render(); } }, 'Approve'));
+      if (['pending', 'approved'].includes(b.commission_status)) actions.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'comm-pay-' + b.id, onclick: async () => { await api.post('/bookings/' + b.id + '/commission', { action: 'pay' }); toast('Marked paid', 'success'); CRM.render(); } }, 'Mark Paid'));
+      return el('tr', { 'data-testid': 'commission-row-' + b.id },
+        el('td', { class: 'mono' }, b.booking_ref), el('td', {}, b.channel_partner ? b.channel_partner.name : '—'),
+        el('td', {}, b.lead ? b.lead.name : '—'), el('td', {}, b.commission_pct + '%'), el('td', {}, money(b.commission_amount)),
+        el('td', {}, el('span', { class: 'chip', style: 'color:' + (colors[b.commission_status] || 'var(--text-2)') }, b.commission_status)), el('td', {}, actions));
+    });
+    view.appendChild(tableWrap(['Booking', 'Partner', 'Customer', 'Rate', 'Amount', 'Status', ''], rows));
+  };
+
+  // ========== PARTNER PORTAL (scoped to partner) ==========
+  CRM.pages.portal = async function (view) {
+    CRM.setActions(null);
+    view.innerHTML = '<div class="spinner"></div>';
+    let d;
+    try { d = await api.get('/partner/portal'); }
+    catch (e) { view.innerHTML = ''; view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-circle-info' }), el('div', {}, e.message || 'No partner profile'))); return; }
+    view.innerHTML = '';
+    view.appendChild(el('div', { style: 'margin-bottom:8px' }, el('b', {}, d.partner.name), el('span', { style: 'color:var(--text-3);margin-left:8px' }, d.partner.commission_rate + '% commission')));
+    const card = (k, v, color) => el('div', { class: 'card stat' }, el('div', { class: 'k' }, k), el('div', { class: 'v', style: color ? ('color:' + color) : '' }, String(v)));
+    view.appendChild(el('div', { class: 'cards', style: 'margin-bottom:20px', 'data-testid': 'portal-cards' },
+      card('My Leads', d.summary.leads), card('My Bookings', d.summary.bookings),
+      card('Earned', money(d.summary.commission_earned), 'var(--won)'), card('Pending', money(d.summary.commission_pending), 'var(--warm)')));
+    view.appendChild(el('div', { class: 'section-title' }, 'My Bookings'));
+    if (!d.bookings.length) view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:16px' }, 'No bookings yet'));
+    else {
+      const colors = { pending: 'var(--warm)', approved: 'var(--accent)', paid: 'var(--won)', none: 'var(--text-3)' };
+      view.appendChild(tableWrap(['Booking', 'Customer', 'Unit', 'Commission', 'Status'], d.bookings.map(b => el('tr', { 'data-testid': 'portal-booking-' + b.id },
+        el('td', { class: 'mono' }, b.booking_ref), el('td', {}, b.lead ? b.lead.name : '—'), el('td', {}, b.plot ? b.plot.number : '—'),
+        el('td', {}, money(b.commission_amount)), el('td', {}, el('span', { class: 'chip', style: 'color:' + (colors[b.commission_status] || 'var(--text-2)') }, b.commission_status))))));
+    }
+    view.appendChild(el('div', { class: 'section-title' }, 'My Leads'));
+    if (!d.leads.length) view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px' }, 'No leads yet'));
+    else view.appendChild(tableWrap(['Name', 'Phone', 'Stage'], d.leads.map(l => el('tr', { 'data-testid': 'portal-lead-' + l.id },
+      el('td', {}, l.name), el('td', {}, l.phone || '—'), el('td', {}, l.stage ? l.stage.name : l.status)))));
   };
 })();

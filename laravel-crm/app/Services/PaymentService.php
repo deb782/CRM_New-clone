@@ -82,6 +82,19 @@ class PaymentService
         return $payment->fresh();
     }
 
+    /** R — mark a payment failed/bounced (e.g. cheque bounce) and reverse milestone allocation. */
+    public function markFailed(Payment $payment, ?string $reason = null): Payment
+    {
+        $payment->update(['status' => 'failed', 'failure_reason' => $reason]);
+        if ($payment->booking) {
+            app(PaymentScheduleService::class)->syncStatuses($payment->booking);
+        }
+        if ($payment->lead) {
+            $this->activity->log($payment->lead, 'system', 'Payment failed/bounced · '.$payment->receipt_no, $reason);
+        }
+        return $payment->fresh();
+    }
+
     public function receiptNo(): string
     {
         $year = now()->format('Y');

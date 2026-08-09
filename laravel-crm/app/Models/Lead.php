@@ -38,6 +38,11 @@ class Lead extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    public function channelPartner()
+    {
+        return $this->belongsTo(ChannelPartner::class);
+    }
+
     public function stage()
     {
         return $this->belongsTo(PipelineStage::class, 'pipeline_stage_id');

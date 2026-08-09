@@ -1,0 +1,46 @@
+{
+  "summary": "Phase covering Channel Partner Portal, Overdue Auto-Nudge, and Section R edge cases tested backend + frontend. 18/19 new Section R tests pass; the 1 failure is a REAL backend RBAC bug: partner user (with only partner.portal permission) can access GET /api/v1/leads and list all leads. Full regression: 117/119 (1 known flaky test_qualify_updates_score_status, 1 partner-leads leak — the actual bug). Frontend: Partner Portal renders with all required data-testids, admin sees Channel Partners + Commissions nav, lead drawer shows dnc-btn/invalid-btn, bk-cancel/pay-fail wired in deals.js.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/v1/leads (and likely leads/board, leads/call-list, leads/{id})",
+        "issue": "Missing permission:leads.view middleware. Channel Partner (partner.portal only) returns 200 and full lead list. Review requirement explicitly says 'A partner must NOT be able to access GET /api/v1/leads (expect 403)'. Also affects leads/{id}/show, leads/board, leads/call-list, leads/check-duplicate (routes/api.php lines 57–62 have no permission middleware).",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_section_r.py",
+    "/app/test_reports/pytest/iteration_8_full.xml"
+  ],
+  "action_items": [
+    "Add ->middleware('permission:leads.view') to routes/api.php lines 57–62 (leads index, board, call-list, check-duplicate, show). Ensure the 'channel_partner' role does NOT get leads.view (it currently only has partner.portal, so adding the middleware will correctly 403 partner users while sales/marketing/admin continue to have leads.view via their role perms). Verify existing seeder role→perms map includes leads.view for sales_exec / sales_manager / marketing / administrator.",
+    "OPTIONAL: The Section R WhatsApp suppression path in WhatsAppService::send still creates a WhatsappMessage row with status='failed' rather than fully skipping. Semantically correct (no outbound dispatch, activity logged as blocked) but if strict 'no row at all' is required, refactor to return early without creating the record."
+  ],
+  "critical_code_review_comments": [
+    "ROUTES BUG: routes/api.php `GET leads`, `GET leads/board`, `GET leads/call-list`, `GET leads/check-duplicate`, and `GET leads/{lead}` have NO permission middleware. Any authenticated user (including channel_partner with only partner.portal) can list/read all leads. Add permission:leads.view.",
+    "BookingService::cancel force-updates commission_status='none' even if it was previously 'approved' but not paid — desired per spec but worth documenting; paid commissions correctly preserved.",
+    "RunReminders overdue block: DemandLetter is generated via demand_letter_id nullable check. Confirmed idempotent (runs once per milestone). Nudge tracked in reminders_sent array as expected.",
+    "ChannelPartnerController::portal returns partner-scoped leads/bookings correctly. Admin without linked partner correctly returns 404 (verified).",
+    "WhatsAppService::send has proper R1.3/R8.2 consent guard (do_not_contact || whatsapp_opt_out → no driver dispatch, blocked activity logged)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_section_r.py"
+  ],
+  "success_rate": {
+    "backend": "94.7% (18/19 Section R; 117/119 overall — 1 real bug, 1 known flaky)",
+    "frontend": "100% (all required data-testids present and rendered)"
+  },
+  "test_credentials": "admin@crm.local/Admin@12345; partner@crm.local/Demo@12345; rahul@crm.local/Demo@12345; cs@crm.local/Demo@12345",
+  "seed_data_creation": "Ran `php artisan migrate:fresh --seed --force` twice (before Section R suite and before full regression). Section R tests create ephemeral TEST_R_/TEST_BK_/TEST_PF_/TEST_ND_ leads and use tinker to backdate milestones. One partner-attributed lead (Vikram Nair, id=1) was marked Won for commission verification.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "test_section_r.py covers: (1) TestChannelPartnerCommission — partner seeded (2%), Won creates commission 100000 (2% of 5M), admin approve→pay flow, exec 403 on /commissions. (2) TestPartnerPortalScoping — portal OK, denies partners/commissions (leads currently FAILING = real bug), admin 404. (3) TestSectionR_DNC_Invalid_Consent — /leads/{id}/dnc, /invalid (spam→not_interested + is_invalid), /consent (whatsapp_opt_out + comm_preference), partner 403. (4) TestWhatsAppSuppression — DNC lead → send returns WhatsappMessage status='failed' with no sent_at. (5) TestBookingCancel — plot released to 'available', pending milestones cancelled, cs role can cancel, exec 403. (6) TestPaymentFail — pays a milestone via /milestones/{id}/pay, bounces via /payments/{id}/fail, verifies milestone reverts from paid, exec denied (403/404). (7) TestOverdueNudge — verify+pay-token→confirmed booking, backdate a milestone due_at via tinker, run `php artisan crm:reminders`, assert reminders_sent contains 'nudge', status='overdue', DemandLetter row created. Frontend: partner_portal renders /portal with nav-portal + portal-cards + 4 portal-lead-* + 1 portal-booking-*. Admin Channel Partners page: add-partner-btn + partner-row-{id} + Edit. Commissions page: commission-row-{id} + comm-approve-/comm-pay- (hidden when status='paid' — expected). Lead drawer: dnc-btn + invalid-btn visible for unlocked/unflagged leads. bk-cancel-{id} + pay-fail-{id} wired in deals.js.",
+  "rca of the issue": "GET /api/v1/leads returns 200 for channel_partner because routes/api.php declares `Route::get('leads', ...)` INSIDE the `auth:sanctum` group but without any `->middleware('permission:leads.view')` gate. The permission `leads.view` is defined in the seeder ($permissions map) but no route consumes it. Fix: chain `->middleware('permission:leads.view')` on lines 57, 58, 59, 60, 62 of routes/api.php. Repro: `curl -H 'Authorization: Bearer <partner_token>' http://127.0.0.1:8000/api/v1/leads` → 200 with data payload. After fix: expect 403 for partner, 200 for admin/sales/marketing (assuming their role includes leads.view — verify DatabaseSeeder role→perms mapping includes leads.view for administrator/sales_manager/sales_exec/marketing/post_sales roles as appropriate)."
+}

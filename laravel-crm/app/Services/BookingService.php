@@ -66,6 +66,19 @@ class BookingService
         $pl = $this->razorpay->createPaymentLink($booking, $tokenAmount, 'Token / EOI');
         $booking->update(['payment_link' => $pl['url'], 'meta' => ['razorpay_plink' => $pl['id'], 'gateway' => $pl['provider']]]);
 
+        // Channel-partner commission (P/Channel Partner)
+        if ($lead->channel_partner_id) {
+            $partner = \App\Models\ChannelPartner::find($lead->channel_partner_id);
+            if ($partner) {
+                $booking->update([
+                    'channel_partner_id' => $partner->id,
+                    'commission_pct' => $partner->commission_rate,
+                    'commission_amount' => (int) round($dealValue * (float) $partner->commission_rate / 100),
+                    'commission_status' => 'pending',
+                ]);
+            }
+        }
+
         if ($plot && ! in_array($plot->status, ['sold'])) {
             $plot->update(['status' => 'booked', 'held_by_lead_id' => $lead->id, 'hold_expires_at' => null]);
         }
@@ -117,6 +130,27 @@ class BookingService
         ]);
         $this->activity->log($lead, 'system', 'Deal LOST', $reason);
         return $lead->fresh();
+    }
+
+    /** R — cancel a confirmed/in-progress booking: release inventory, cancel schedule & dues. */
+    public function cancel(Booking $booking, ?string $reason = null): Booking
+    {
+        $booking->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $reason]);
+        if ($booking->plot_id) {
+            Plot::where('id', $booking->plot_id)->update(['status' => 'available', 'held_by_lead_id' => null, 'hold_expires_at' => null]);
+        }
+        \App\Models\PaymentMilestone::where('booking_id', $booking->id)
+            ->whereIn('status', ['pending', 'due', 'partial', 'overdue'])
+            ->update(['status' => 'cancelled']);
+        \App\Models\DemandLetter::where('booking_id', $booking->id)->where('status', 'issued')
+            ->update(['status' => 'paid']);
+        if ($booking->commission_status !== 'paid') {
+            $booking->update(['commission_status' => 'none']);
+        }
+        if ($booking->lead) {
+            $this->activity->log($booking->lead, 'system', 'Booking cancelled', $reason);
+        }
+        return $booking->fresh();
     }
 
     public function submitForm(Booking $booking, array $formData): Booking

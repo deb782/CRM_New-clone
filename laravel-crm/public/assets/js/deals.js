@@ -203,6 +203,7 @@
     const btns = el('div', { style: 'display:flex;gap:8px;margin-top:12px;flex-wrap:wrap' });
     if (['form_submitted'].includes(b.status)) btns.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'bk-verify-' + b.id, onclick: async () => { await api.post('/bookings/' + b.id + '/verify'); toast('Booking verified', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-clipboard-check' }), 'Verify Form'));
     if (b.token_status !== 'paid') btns.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'bk-pay-' + b.id, onclick: async () => { await api.post('/bookings/' + b.id + '/pay-token'); toast('Token payment recorded', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-indian-rupee-sign' }), 'Record Token (mock)'));
+    if (!['cancelled'].includes(b.status) && can('postsales.manage')) btns.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'bk-cancel-' + b.id, onclick: async () => { const r = prompt('Cancellation reason'); if (r === null) return; await api.post('/bookings/' + b.id + '/cancel', { reason: r }); toast('Booking cancelled — unit released', 'warning'); reload(); } }, el('i', { class: 'fa-solid fa-ban' }), 'Cancel Booking'));
     const fd = b.form_data || {};
     return el('div', { class: 'card', 'data-testid': 'booking-' + b.id },
       el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px' },
@@ -360,6 +361,7 @@
     if (canManage && ['received', 'verified'].includes(p.status)) {
       btns.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'pay-match-' + p.id, onclick: async () => { await api.post('/payments/' + p.id + '/reconcile', { result: 'matched' }); toast('Reconciled', 'success'); refresh(); } }, 'Match'));
       btns.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'pay-disc-' + p.id, onclick: async () => { const note = prompt('Discrepancy note'); if (note === null) return; await api.post('/payments/' + p.id + '/reconcile', { result: 'discrepancy', note }); toast('Flagged discrepancy', 'warning'); refresh(); } }, 'Discrepancy'));
+      btns.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'pay-fail-' + p.id, onclick: async () => { const r = prompt('Failure reason (e.g. cheque bounced)'); if (r === null) return; await api.post('/payments/' + p.id + '/fail', { reason: r }); toast('Payment marked failed', 'warning'); refresh(); } }, 'Bounce/Fail'));
     }
     return el('div', { class: 'card', 'data-testid': 'payment-' + p.id, style: 'padding:12px;margin-bottom:8px' },
       el('div', { style: 'display:flex;justify-content:space-between;align-items:center' },

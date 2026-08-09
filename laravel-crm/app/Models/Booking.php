@@ -62,4 +62,9 @@ class Booking extends Model
     {
         return $this->hasMany(DemandLetter::class);
     }
+
+    public function channelPartner()
+    {
+        return $this->belongsTo(ChannelPartner::class);
+    }
 }
