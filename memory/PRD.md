@@ -48,9 +48,11 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **K Sales handover**: interested outcome → lead→negotiation, plot auto-held for lead, 24h sales-contact SLA task, follow-up email.
 - Site Visits list page (upcoming/completed/no-show/all) with per-row actions; visits surfaced in lead drawer side panel.
 
+- **L Cost sheets & proposals**: cost-sheet generator (base/GST/registration/maintenance/other) with live totals, payment-plan selection (seeded CLP/DP/Flexi), discount bands (≤5% auto, >5% & >10% require manager approval), approval workflow (approve/reject/counter) with RBAC (`discounts.approve`), one-click proposal generation with unique reference number, share via WhatsApp+email, and consent capture. New Quote tab in lead drawer + Discount Approvals & Payment Plans config pages.
+
 ## Backlog (prioritized)
-- **P0 (Phase B remaining — L)**: cost-sheet generator (base/taxes/registration/maintenance), payment-plan selection, discount bands + >5%/>10% approval workflow, formal proposal generation.
-- **P1 (Phase C — M–Q)**: deal closure + booking (Razorpay token/EOI), booking-form collection, payment verification + reconciliation, welcome/allotment letters, AFS + mock e-sign, milestone tracking + reminders, demand letters.
+- **P0 (Phase C — M–N)**: deal Won/Lost, auto booking form (email+WhatsApp), Razorpay token/EOI payment link, post-sales handover + record lock, payment verification + receipts, accounts reconciliation, welcome letter, document checklist.
+- **P1 (Phase C cont. — O–Q)**: allotment letter + RERA-style AFS + mock e-sign, milestone schedule + staged reminders, demand letters with serial + late interest.
 - **P2 (Phase D — R–T)**: Channel Partner portal + commission, full automation trigger engine + ~40 edge cases, audit/error dashboards, performance hardening (<2s search @100K), QA against A–T.
 
 ## Next tasks
