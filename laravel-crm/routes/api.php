@@ -45,6 +45,9 @@ Route::prefix('v1')->group(function () {
         Route::get('track/email/{event}/{emailId}', [WebhookController::class, 'emailEvent']);
         Route::post('public/refer/{code}', [\App\Http\Controllers\Api\ChannelPartnerController::class, 'refer']);
         Route::get('public/widget-config/{code}', [\App\Http\Controllers\Api\ChannelPartnerController::class, 'widgetConfig']);
+        // Email open/click tracking (public, no auth)
+        Route::get('email/open/{token}', [\App\Http\Controllers\Api\EmailTrackingController::class, 'open']);
+        Route::get('email/click/{token}', [\App\Http\Controllers\Api\EmailTrackingController::class, 'click']);
     });
     // Public booking form (token link)
     Route::middleware('throttle:60,1')->group(function () {
@@ -247,6 +250,20 @@ Route::prefix('v1')->group(function () {
             Route::delete('whatsapp/auto-replies/{auto_reply}', [WhatsAppAutoReplyController::class, 'destroy']);
             Route::post('whatsapp/templates/sync', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'sync']);
             Route::put('whatsapp/settings', [WhatsAppInboxController::class, 'updateSettings']);
+
+            // --- Email broadcast module (templates + campaigns) ---
+            Route::get('email/templates/starters', [\App\Http\Controllers\Api\EmailTemplateController::class, 'starters']);
+            Route::get('email/templates', [\App\Http\Controllers\Api\EmailTemplateController::class, 'index']);
+            Route::get('email/templates/{email_template}', [\App\Http\Controllers\Api\EmailTemplateController::class, 'show']);
+            Route::post('email/templates', [\App\Http\Controllers\Api\EmailTemplateController::class, 'store']);
+            Route::put('email/templates/{email_template}', [\App\Http\Controllers\Api\EmailTemplateController::class, 'update']);
+            Route::delete('email/templates/{email_template}', [\App\Http\Controllers\Api\EmailTemplateController::class, 'destroy']);
+            Route::get('email/campaigns', [\App\Http\Controllers\Api\EmailCampaignController::class, 'index']);
+            Route::get('email/campaigns/{email_campaign}', [\App\Http\Controllers\Api\EmailCampaignController::class, 'show']);
+            Route::post('email/campaigns', [\App\Http\Controllers\Api\EmailCampaignController::class, 'store']);
+            Route::put('email/campaigns/{email_campaign}', [\App\Http\Controllers\Api\EmailCampaignController::class, 'update']);
+            Route::delete('email/campaigns/{email_campaign}', [\App\Http\Controllers\Api\EmailCampaignController::class, 'destroy']);
+            Route::post('email/campaigns/{email_campaign}/send', [\App\Http\Controllers\Api\EmailCampaignController::class, 'send']);
         });
         Route::get('partners', [ChannelPartnerController::class, 'index'])->middleware('permission:config.manage');
         Route::post('partners', [ChannelPartnerController::class, 'store'])->middleware('permission:config.manage');

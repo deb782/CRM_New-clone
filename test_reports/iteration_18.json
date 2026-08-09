@@ -1,0 +1,38 @@
+{
+  "summary": "Tested Email Broadcast module (Laravel) end-to-end. Backend: 25/28 checks passed. Frontend: designer + campaign flow works with all required data-testids. Personalization uses double-braces {{name}} not single-brace {name} as spec states; {{project}} is hardcoded to 'our projects' rather than lead's project.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/v1/email/campaigns/{id}/send (personalize)", "issue": "Personalize function only replaces double-brace mustache tags {{name}}/{{email}}/{{phone}}/{{project}}. Spec + designer allow single-brace {name}. Single-brace tags pass through unreplaced in sent HTML (verified via laravel.log). All 5 seeded starters use double braces so they work, but user-authored templates with {name} will not personalize."},
+      {"endpoint": "POST /api/v1/email/campaigns/{id}/send (project tag)", "issue": "{{project}} is hardcoded to the literal string 'our projects' in EmailCampaignController::personalize(), ignoring the lead's actual project/interest_project."},
+      {"endpoint": "GET /api/v1/email/click/{token} (missing u)", "issue": "Works (302 to app URL) but semantics: current impl still increments click_count even when no u provided. Consider not counting invalid click attempts."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Left sidebar", "issues": ["No visible 'Email Templates' / 'Email Campaigns' nav items in the sidebar screenshot (only WA Broadcasts/Templates visible). Data-testids nav-emailTemplates / nav-emailCampaigns exist in DOM and hash routes work, but user discoverability is poor. Verify these nav links are surfaced."]}
+    ]
+  },
+  "test_report_links": ["/app/laravel-crm/tests/email_broadcast_test.sh"],
+  "action_items": [
+    "Extend EmailCampaignController::personalize() to accept BOTH {name} and {{name}} (and same for email/phone/project) so user-authored templates and the designer merge-tag dropdown work as documented.",
+    "Replace hardcoded '{{project}}' => 'our projects' with the lead's actual project name (e.g., $lead->interest_project ?? 'our projects').",
+    "Add sidebar nav entries for Email Templates and Email Campaigns if missing (data-testids exist but visibility unclear)."
+  ],
+  "critical_code_review_comments": [
+    "EmailCampaignController.php:96-104 personalize() uses only {{tag}} mustache syntax while product spec and merge-tag dropdown expose {tag} — mismatch will silently produce unpersonalized emails.",
+    "{{project}} hardcoded to 'our projects' — should pull from Lead model.",
+    "EmailMessage table does not store the rendered body_html; makes debugging bounces/complaints harder. Consider storing the personalized+tracked body (or a snapshot) for audit.",
+    "Public tracking endpoints correctly bypass Sanctum. Good."
+  ],
+  "updated_files": ["/app/laravel-crm/tests/email_broadcast_test.sh"],
+  "success_rate": {"backend": "89%", "frontend": "100%"},
+  "test_credentials": "priya@crm.local/Demo@12345, rahul@crm.local/Demo@12345, partner@crm.local/Demo@12345, admin@crm.local/Admin@12345",
+  "seed_data_creation": "Created TEST_Tpl_<ts>, TEST_Camp_<ts>, TEST_CampTEMP_<ts>, TEST_DelTpl_<ts> (deleted), plus UI_Tpl_<ts> and UI_Camp_<ts> via UI flow. No manual seeds required — Laravel DB reseed handles baseline.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend test script at /app/laravel-crm/tests/email_broadcast_test.sh (bash + curl + tinker); run with `bash /app/laravel-crm/tests/email_broadcast_test.sh`. It exercises CRUD, send, tracking, RBAC, and audience filters. Response envelopes: templates -> {template:{...}}, campaigns -> {campaign:{...}}, starters -> {starters:[5]}. EmailMessage does NOT store body; verify injection via /app/laravel-crm/storage/logs/laravel.log (mock driver logs full HTML). Frontend flow verified with data-testids listed in review_request; all present and functional.",
+  "rca of the issue": "Personalization mismatch RCA: EmailCampaignController::personalize() defines strtr map with only {{tag}} keys. Repro: create template with html '<p>Hi {name}</p>' via API or UI designer, POST /send. Check /app/laravel-crm/storage/logs/laravel.log — literal '{name}' remains in outgoing HTML. Mitigation: expand map to include both {name} and {{name}} entries (2 keys each) or run a preprocessing regex converting {tag} -> {{tag}} before strtr."
+}

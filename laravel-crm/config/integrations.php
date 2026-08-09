@@ -19,6 +19,11 @@ return [
         'session_window_hours' => (int) env('WHATSAPP_SESSION_WINDOW_HOURS', 24),
     ],
 
+    'email' => [
+        // mock = log only (default); smtp = Laravel Mail (Gmail Workspace) at go-live
+        'driver' => env('EMAIL_DRIVER', 'mock'),
+    ],
+
     'telephony' => [
         'driver' => env('TELEPHONY_DRIVER', 'mock'),
         'exotel' => [
