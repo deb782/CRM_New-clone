@@ -205,6 +205,13 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - Verified: condition branching (Hot→email, else→task), wait/resume cycle, real new_lead trigger creates non-sim run + Task, checklist exists-detection, RBAC 403 for non-workflow.manage, starter build (8 nodes/7 connections), test-run panel. Comms are MOCKED pending WhatsApp/SMTP go-live.
 - Remaining phases: Phase 5 (live train-tracker lead view). Backlog observability nits noted in iteration_21 (queue trigger at scale, log truncation).
 
+## Implemented — Phase 5: Live Lead Train-Tracker (2026-06, tested 100% iteration_22)
+- **Read-only journey view** inside the lead detail drawer as a new "Journey" tab. Shows each lead's real-time position on its activated workflow, grounded in actual `WorkflowRun` execution records (not a static diagram).
+- **Endpoint**: `GET /api/v1/leads/{id}/journey` (middleware `permission:leads.view`) → `WorkflowController@leadJourney`. Returns the driving workflow graph, lead summary, latest **non-simulated** run (`status`, `current_node`, `done[]`, `log[]`, `resume_at`, `completed_at`) + `progress{done,total}`. If the lead has no run, returns the active workflow map with `run=null` so the UI shows a "not started — route ahead" preview.
+- **UI** (`public/assets/js/leads.js` v=13, `public/assets/css/tracker.css`): mission-control header (workflow name + status pill + progress bar), horizontal metro-style track of station cards ordered left-to-right by longest-path-from-trigger, activity trail. Station states: done (green) / current / waiting (violet, pulsing, shows resume time) / failed (red) / pending / skipped. Green rail = traveled path, dashed grey = ahead. Auto-scrolls to the lead's current station. Polls every 4s and stops on completed/failed run or tab switch/drawer close.
+- **RBAC/isolation verified**: BDE/Sales Head/Admin → 200; Channel Partner → 403 (lacks `leads.view`). No mutation of workflow/run data.
+- Bug fixed during testing: integer node-id vs string `current_node` type-mismatch stopped the current/waiting station highlighting — normalized to String() both sides.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
