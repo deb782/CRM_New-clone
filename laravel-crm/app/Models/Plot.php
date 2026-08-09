@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Plot extends Model
 {
     protected $guarded = ['id'];
-    protected $casts = ['meta' => 'array', 'hold_expires_at' => 'datetime'];
+    protected $casts = ['meta' => 'array', 'attributes' => 'array', 'hold_expires_at' => 'datetime'];
 
     public function project()
     {

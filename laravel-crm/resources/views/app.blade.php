@@ -23,7 +23,8 @@
     <script src="{{ asset('assets/js/deals.js') }}?v=10"></script>
     <script src="{{ asset('assets/js/config.js') }}?v=10"></script>
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=14"></script>
-    <script src="{{ asset('assets/js/email.js') }}?v=19"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=20"></script>
+    <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
+    <script src="{{ asset('assets/js/onboarding.js') }}?v=21"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=21"></script>
 </body>
 </html>

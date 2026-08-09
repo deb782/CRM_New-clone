@@ -43,6 +43,41 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out']);
     }
 
+    /** Super-admin only: preview the app as any user (Preview Roles). */
+    public function impersonate(Request $request)
+    {
+        if ($request->user()->role?->slug !== 'admin') {
+            return response()->json(['message' => 'Only the Super Admin can preview roles.'], 403);
+        }
+        $data = $request->validate(['user_id' => 'required|exists:users,id']);
+        $target = User::with('role.permissions')->findOrFail($data['user_id']);
+        $token = $target->createToken('crm-preview')->plainTextToken;
+
+        return response()->json(['token' => $token, 'user' => $this->userPayload($target)]);
+    }
+
+    /** Change own password. Forced first-login change skips the current-password check. */
+    public function changePassword(Request $request)
+    {
+        $user = $request->user();
+        $rules = ['new_password' => 'required|string|min:8|confirmed'];
+        if (! $user->must_change_password) {
+            $rules['current_password'] = 'required|string';
+        }
+        $data = $request->validate($rules);
+
+        if (! $user->must_change_password && ! Hash::check($data['current_password'], $user->password)) {
+            throw ValidationException::withMessages(['current_password' => 'Current password is incorrect.']);
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($data['new_password']),
+            'must_change_password' => false,
+        ])->save();
+
+        return response()->json(['user' => $this->userPayload($user->fresh()->load('role.permissions'))]);
+    }
+
     private function userPayload(User $user): array
     {
         return [
@@ -54,6 +89,7 @@ class AuthController extends Controller
             'role_name' => $user->role?->name,
             'department' => $user->role?->department,
             'tier' => $user->role?->tier,
+            'must_change_password' => (bool) $user->must_change_password,
             'permissions' => $user->role?->slug === 'admin'
                 ? ['*']
                 : ($user->role?->permissions->pluck('key')->all() ?? []),

@@ -67,6 +67,7 @@ class InventoryController extends Controller
         $data = $request->validate([
             'project_id' => 'required|exists:projects,id',
             'phase_id' => 'nullable|exists:phases,id',
+            'category' => 'nullable|string',
             'number' => 'required|string',
             'unit_type' => 'nullable|string',
             'carpet_area' => 'nullable|numeric',
@@ -74,6 +75,7 @@ class InventoryController extends Controller
             'floor' => 'nullable|string',
             'facing' => 'nullable|string',
             'price' => 'nullable|integer',
+            'attributes' => 'nullable|array',
             'status' => 'nullable|in:available,held,booked,sold',
         ]);
         return response()->json(['plot' => Plot::create($data)], 201);

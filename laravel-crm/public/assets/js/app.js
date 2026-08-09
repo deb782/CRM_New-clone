@@ -35,6 +35,7 @@
       { route: 'emailTemplates', icon: 'fa-envelope-open-text', name: 'Email Templates' },
       { route: 'emailCampaigns', icon: 'fa-paper-plane', name: 'Email Campaigns' },
       { route: 'chatbot', icon: 'fa-robot', name: 'Chat Widget' },
+      { route: 'preview', icon: 'fa-user-secret', name: 'Preview Roles', adminOnly: true },
       { route: 'health', icon: 'fa-heart-pulse', name: 'System Health' },
       { route: 'audit', icon: 'fa-clipboard-list', name: 'Audit Log' },
       { route: 'users', icon: 'fa-user-shield', name: 'Users & Roles', perm: 'users.manage' },
@@ -44,7 +45,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', preview: 'Preview Roles', onboarding: 'Welcome & Setup', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
@@ -66,7 +67,7 @@
       btn.disabled = true; btn.textContent = 'Signing in…';
       try {
         const res = await api.login(email.value.trim(), pass.value);
-        setToken(res.token); state.user = res.user; sessionStorage.removeItem('crm_homed');
+        setToken(res.token); state.user = res.user; sessionStorage.removeItem('crm_homed'); sessionStorage.removeItem('crm_onboard_checked'); sessionStorage.removeItem('crm_admin_token');
         toast('Welcome back, ' + res.user.name.split(' ')[0], 'success');
         location.hash = '#/dashboard';
       } catch (err) {
@@ -108,7 +109,7 @@
 
     NAV.forEach(group => {
       if (group.perm && !can(group.perm)) return;
-      const items = group.items.filter(i => !i.perm || can(i.perm));
+      const items = group.items.filter(i => (!i.perm || can(i.perm)) && (!i.adminOnly || state.user.role === 'admin'));
       if (!items.length) return;
       const g = el('div', { class: 'nav__group' }, el('div', { class: 'nav__label' }, group.label));
       items.forEach(i => {
@@ -141,17 +142,27 @@
     return view;
   }
 
-  function logout() { api.post('/auth/logout').catch(() => {}); setToken(null); state.user = null; sessionStorage.removeItem('crm_homed'); location.hash = '#/login'; }
+  function logout() { api.post('/auth/logout').catch(() => {}); setToken(null); state.user = null; sessionStorage.removeItem('crm_homed'); sessionStorage.removeItem('crm_onboard_checked'); sessionStorage.removeItem('crm_admin_token'); document.getElementById('imp-banner')?.remove(); location.hash = '#/login'; }
 
   async function render() {
     document.querySelectorAll('.drawer-overlay, .modal-overlay').forEach(n => n.remove());
-    if (!token()) { renderLogin(); return; }
+    if (!token()) { document.getElementById('imp-banner')?.remove(); renderLogin(); return; }
     if (!state.user) {
       try { const res = await api.me(); state.user = res.user; }
       catch (e) { renderLogin(); return; }
     }
+    // Forced first-login password change gate
+    if (state.user.must_change_password) { CRM.changePasswordScreen(); return; }
     const { route, id } = parseRoute();
     if (route === 'login') { location.hash = '#/dashboard'; return; }
+    // Super Admin: first-time onboarding (unless already chosen/completed or previewing)
+    if (state.user.role === 'admin' && !sessionStorage.getItem('crm_onboard_checked') && !sessionStorage.getItem('crm_admin_token')) {
+      sessionStorage.setItem('crm_onboard_checked', '1');
+      try {
+        const ob = await api.get('/onboarding');
+        if (!ob.completed && !ob.setup_choice && (route === 'dashboard' || !route)) { location.hash = '#/onboarding'; return; }
+      } catch (e) { /* ignore */ }
+    }
     // Role-based home: land each role on what they act on first (once per session)
     if ((route === 'dashboard' || !route) && !sessionStorage.getItem('crm_homed')) {
       sessionStorage.setItem('crm_homed', '1');
@@ -160,9 +171,13 @@
     }
     if (route === 'dashboard' && !can('leads.view') && can('partner.portal')) { location.hash = '#/portal'; return; }
     const view = renderShell(route);
+    CRM.renderImpersonationBanner();
     const page = CRM.pages[route];
     if (!page) { view.innerHTML = ''; view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-compass' }), el('div', {}, 'Page not found'))); return; }
-    try { await page(view, id); }
+    try {
+      await page(view, id);
+      if (route === 'dashboard') { try { await CRM.renderOnboardingBanner(view); } catch (e) { /* ignore */ } }
+    }
     catch (err) { view.innerHTML = ''; view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-triangle-exclamation' }), el('div', {}, err.message || 'Failed to load'))); }
   }
 

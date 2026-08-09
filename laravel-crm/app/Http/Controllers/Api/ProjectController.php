@@ -18,6 +18,7 @@ class ProjectController extends Controller
         $data = $request->validate([
             'name' => 'required|string',
             'code' => 'required|string|unique:projects,code',
+            'project_type' => 'nullable|in:plotted,residential',
             'city' => 'nullable|string',
             'zone' => 'nullable|string',
             'address' => 'nullable|string',
@@ -25,6 +26,7 @@ class ProjectController extends Controller
             'price_min' => 'nullable|integer',
             'price_max' => 'nullable|integer',
             'description' => 'nullable|string',
+            'meta' => 'nullable|array',
         ]);
         return response()->json(['project' => Project::create($data)], 201);
     }
@@ -36,7 +38,7 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
-        $project->update($request->only(['name', 'city', 'zone', 'address', 'unit_types', 'price_min', 'price_max', 'status', 'description']));
+        $project->update($request->only(['name', 'project_type', 'city', 'zone', 'address', 'unit_types', 'price_min', 'price_max', 'status', 'description', 'meta']));
         return response()->json(['project' => $project->fresh()]);
     }
 }

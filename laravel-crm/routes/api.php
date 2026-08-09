@@ -58,10 +58,19 @@ Route::prefix('v1')->group(function () {
 
     // --- Authenticated ---
     Route::middleware('auth:sanctum')->group(function () {
+        // Always allowed (even when a password change is pending)
         Route::get('me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::post('auth/change-password', [AuthController::class, 'changePassword']);
+        Route::post('auth/impersonate', [AuthController::class, 'impersonate']);
+
+        // Everything below requires the forced first-login password change to be done
+        Route::middleware('force_pw')->group(function () {
 
         Route::get('dashboard', [DashboardController::class, 'stats']);
+        // Onboarding wizard state
+        Route::get('onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'show']);
+        Route::put('onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'update'])->middleware('permission:config.manage');
 
         // Leads
         Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');
@@ -286,5 +295,6 @@ Route::prefix('v1')->group(function () {
         Route::post('users', [UserController::class, 'store'])->middleware('permission:users.manage');
         Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:users.manage');
         Route::get('roles', [UserController::class, 'roles']);
+        }); // end force_pw group
     });
 });
