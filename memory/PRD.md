@@ -41,8 +41,15 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - WhatsApp (WATI/Cloud) — mock driver. Telephony (Exotel) — mock. Email — logged, not delivered.
 - Razorpay, e-sign, SMS gateway, chatbot, Meta lead-ads, calendar — not wired this phase (Phase B–D).
 
+## Implemented — Phase B (2026-06, verified 44/44 tests)
+- **Inventory (Projects→Phases→Plots)**: full tree with availability counts, phase + plot CRUD (RBAC-gated), color-coded board UI (available/held/booked/sold), unit specs (type/area/floor/facing/price).
+- **I Site-visit scheduling**: slot availability, schedule from lead drawer (auto stage→Site Visit Scheduled), WhatsApp+email confirmation, 24h/1h reminders + no-show detection via `crm:reminders`, confirm/reschedule (with 3rd-reschedule escalation, 4th→no_response).
+- **J Execution & outcomes**: geo check-in/out, site-visit report, outcomes (interested/considering/not_interested/no_show/reschedule) with defined follow-ups.
+- **K Sales handover**: interested outcome → lead→negotiation, plot auto-held for lead, 24h sales-contact SLA task, follow-up email.
+- Site Visits list page (upcoming/completed/no-show/all) with per-row actions; visits surfaced in lead drawer side panel.
+
 ## Backlog (prioritized)
-- **P0 (Phase B — I–L)**: site-visit scheduling/execution/outcomes, sales handover, inventory board (Projects→Phases→Plots), cost-sheet/quotation, payment-plan selection, discount approvals, proposals.
+- **P0 (Phase B remaining — L)**: cost-sheet generator (base/taxes/registration/maintenance), payment-plan selection, discount bands + >5%/>10% approval workflow, formal proposal generation.
 - **P1 (Phase C — M–Q)**: deal closure + booking (Razorpay token/EOI), booking-form collection, payment verification + reconciliation, welcome/allotment letters, AFS + mock e-sign, milestone tracking + reminders, demand letters.
 - **P2 (Phase D — R–T)**: Channel Partner portal + commission, full automation trigger engine + ~40 edge cases, audit/error dashboards, performance hardening (<2s search @100K), QA against A–T.
 
