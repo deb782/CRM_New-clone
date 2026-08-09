@@ -166,7 +166,7 @@
       panel.appendChild(el('div', { class: 'access-panel__head' },
         el('div', {}, el('div', { class: 'access-panel__role' }, selected.name),
           el('div', { class: 'access-panel__sub' }, locked ? 'Super Admin has unrestricted access to every feature.' : (DEPT[selected.department] || selected.department) + ' · ' + selected.users_count + ' user(s)' + (isCustomised(selected) ? ' · customised' : ' · default access'))),
-        locked ? null : el('div', { class: 'access-panel__actions' }, resetBtn, saveBtn)));
+        locked ? null : el('div', { class: 'access-panel__actions' }, isCustomised(selected) ? resetBtn : null, saveBtn)));
 
       if (locked) { panel.appendChild(el('div', { class: 'empty', style: 'padding:40px' }, el('i', { class: 'fa-solid fa-shield-halved' }), el('div', {}, 'Full access — nothing to configure'))); return; }
       panel.appendChild(el('div', { style: 'margin:4px 0 20px' }, searchInput));

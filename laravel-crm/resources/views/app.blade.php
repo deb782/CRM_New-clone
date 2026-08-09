@@ -35,7 +35,7 @@
     <script src="{{ asset('assets/js/onboarding.js') }}?v=22"></script>
     <script src="{{ asset('assets/js/workflow.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=1"></script>
-    <script src="{{ asset('assets/js/people.js') }}?v=2"></script>
+    <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/app.js') }}?v=25"></script>
 </body>
 </html>
