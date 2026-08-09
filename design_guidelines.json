@@ -1,123 +1,234 @@
 {
-  "theme_and_concept": {
-    "concept": "Mission Control Blueprint",
-    "description": "A highly advanced, technical, and precise visual node builder that feels like a space-flight launch sequence dashboard. It is data-dense, highly interactive, and relies on strict grids and precise technical typography. Runs inside a light-themed Laravel CRM, so it acts as a 'Command Center' module with high-contrast clinical light mode (crisp white, intricate blue grids, sharp neon accents for statuses).",
-    "archetype": "THE PERFORMANCE PRO (Adapted for Data/Technical UI)",
-    "mode": "Technical Light"
+  "project_context": {
+    "aesthetic": "Sophisticated, minimal, premium enterprise SaaS. Editorial, data-focused. High-end analytics feel.",
+    "tech_stack": "Laravel 11, Blade, Vanilla JS SPA, Tailwind CSS",
+    "core_directive": "Reimagine the visual language. Preserve all functionality but reinvent the experience to be memorable, premium, and calm under complexity. Design like an elite founding design team."
   },
-  "global_rules": {
-    "stack": "Laravel Blade + Vanilla JS + CSS Variables. NO React, NO Tailwind assumptions. Use standard CSS classes.",
-    "testing": "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., `data-testid=\"node-trigger-drag\"`).",
-    "icons": "FontAwesome or Lucide (as per CRM baseline).",
-    "transparency": "CRITICAL: DO NOT use complete transparent backgrounds for overlays, side panels, or sticky headers. Always use solid or heavily blurred backgrounds."
-  },
-  "typography": {
-    "strategy": "Swiss Brutalist meets Old Money Tech",
-    "headings": "Chivo or IBM Plex Sans (Never Inter/Roboto/Open Sans). Weight: 700 or 800.",
-    "body": "IBM Plex Sans (Clean, legible for dense data).",
-    "technical_data": "JetBrains Mono (Used for node IDs, timestamps, delay counts, and live tracking stats).",
-    "scales": {
-      "h1": "2.5rem (40px) tracking-tight",
-      "h2": "1.5rem (24px) tracking-tight",
-      "h3": "1.125rem (18px)",
-      "body": "0.875rem (14px)",
-      "labels": "0.75rem (12px) uppercase tracking-[0.2em]"
-    }
-  },
-  "colors": {
-    "css_variables": {
-      "--bg-app": "#F8FAFC",
-      "--bg-canvas": "#FFFFFF",
-      "--grid-color": "#E2E8F0",
-      "--grid-color-dark": "#CBD5E1",
-      "--panel-bg": "#FFFFFF",
-      "--panel-border": "#E2E8F0",
-      "--text-primary": "#0F172A",
-      "--text-secondary": "#64748B",
-      "--text-muted": "#94A3B8",
-      "--primary-blue": "#2563EB",
-      "--edge-default": "#94A3B8",
-      "--edge-active": "#2563EB",
-      "--edge-error": "#EF4444",
-      "--node-bg": "#FFFFFF",
-      "--node-border": "#CBD5E1",
-      "--node-shadow": "0 4px 20px -4px rgba(15, 23, 42, 0.08)",
-      "--color-trigger": "#10B981",
-      "--color-action-wa": "#22C55E",
-      "--color-action-email": "#3B82F6",
-      "--color-condition": "#F59E0B",
-      "--color-wait": "#8B5CF6",
-      "--color-fallback": "#EF4444",
-      "--color-status": "#475569"
-    }
-  },
-  "ui_layout": {
-    "structure": "Three-pane mission control layout.",
-    "left_pane": {
-      "name": "Node Palette",
-      "width": "280px",
-      "design": "Solid white background, right border 1px solid var(--panel-border). Contains draggable node types grouped by category. Accordion-style layout. Each draggable item has a left color-bar indicating its category."
+  "design_tokens": {
+    "colors": {
+      "background_main": "#F5F5F2",
+      "background_alt": "#FAFAF7",
+      "surface_primary": "#FFFFFF",
+      "surface_secondary": "#E3EEF4",
+      "text_primary": "#111111",
+      "text_secondary": "#737373",
+      "text_tertiary": "#A3A3A3",
+      "border_subtle": "#E5E5DF",
+      "border_focus": "#111111",
+      "accent_lime": "#DFFF00",
+      "danger": "#FF3B30",
+      "success": "#34C759",
+      "warning": "#FFCC00"
     },
-    "center_pane": {
-      "name": "Drawflow Canvas",
-      "width": "calc(100% - 580px)",
-      "design": "Dense blueprint grid background. Top edge contains the toolbar. Bottom right contains the minimap and zoom controls."
+    "typography": {
+      "font_family": "'Manrope', sans-serif",
+      "cdn_link": "<link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap\" rel=\"stylesheet\">",
+      "scale": {
+        "xs": "0.75rem",
+        "sm": "0.875rem",
+        "base": "1rem",
+        "lg": "1.125rem",
+        "xl": "1.25rem",
+        "2xl": "1.5rem",
+        "3xl": "1.875rem",
+        "4xl": "2.25rem",
+        "5xl": "3rem",
+        "6xl": "3.75rem",
+        "7xl": "4.5rem",
+        "8xl": "6rem"
+      },
+      "weights": {
+        "light": 300,
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700,
+        "extrabold": 800
+      },
+      "line_heights": {
+        "tight": 1.1,
+        "snug": 1.3,
+        "normal": 1.5,
+        "relaxed": 1.75
+      }
     },
-    "right_pane": {
-      "name": "Node Config & Tally Panel",
-      "width": "300px",
-      "design": "Slide-out or fixed solid panel. Left border 1px solid var(--panel-border). Holds per-node settings (template pickers, delay inputs, attachments) AND the 'Mission Tally / Onboarding Checklist'."
-    }
-  },
-  "canvas_design": {
-    "grid": "Use a complex double-grid to look like a blueprint. 20px minor grid (light dots), 100px major grid (solid 1px lines).",
-    "toolbar": "Floating glass panel at the top-center (`backdrop-filter: blur(16px); background: rgba(255,255,255,0.8)`). Houses Save, Validate, Reset, and view toggles.",
-    "minimap": "Bottom-left or bottom-right floating widget. 1px solid border, dense shadow. Provides a bird's-eye view of the complex branch diagram.",
-    "help_icons": "Strategically placed `fa-circle-info` icons next to complex terms. Hovering triggers a crisp, dark tooltip explaining the function (e.g., 'Triggers when lead stays in Pre-Sales 1 for > 24hrs')."
-  },
-  "node_design": {
-    "container": "Border-radius: 6px (crisp, slightly rounded). Background: var(--node-bg). Border: 1px solid var(--node-border). Left border is 4px solid matching the category color.",
-    "header": "Padding: 8px 12px. Border-bottom: 1px solid var(--panel-border). Displays Category Icon (FA/Lucide) + Node Title. Font: JetBrains Mono, 12px, Uppercase.",
-    "body": "Padding: 12px. Displays key configurations as a mini-summary. E.g., 'Delay: 2 Days' or 'Template: Welcome_v1'.",
-    "ports": "Inputs/Outputs (drawflow endpoints). Size: 12px circle. Border: 2px solid white. Background: category color. Hover state: scale(1.2) + box-shadow glow.",
-    "types": {
-      "trigger": "Emerald left-border. Icon: flash/bolt.",
-      "action_wa": "Green left-border. Icon: whatsapp. Displays template name.",
-      "condition": "Amber left-border. Icon: code-branch. Has multiple output ports (True/False).",
-      "fallback": "Red left-border. Icon: shield/alert. Handles failures."
-    }
-  },
-  "live_lead_tracker_view": {
-    "concept": "Train-Tracking Board. The exact same Drawflow canvas is switched to 'Read-Only' mode. It tracks a specific lead's journey.",
-    "top_progress_rail": "A linear horizontal timeline across the top showing the 5 root stages: Lead Entry → Pre-Sales 1 → Pre-Sales 2 → Post-Sales → Customer. The current stage pulses.",
-    "node_states": {
-      "completed": "Grayscale, opacity 0.6. A green checkmark badge overlaps the top-right corner. Borders turn solid light gray.",
-      "active": "Full opacity. Heavy box-shadow glow (`0 0 15px var(--primary-blue)`). Left color bar pulses brightly. A 'CURRENT' badge is attached to the top.",
-      "pending": "Opacity 0.8. Border becomes dashed (`border: 1px dashed var(--text-muted)`). Background slightly dimmed. Text is muted."
+    "spacing": {
+      "scale": {
+        "1": "4px",
+        "2": "8px",
+        "3": "12px",
+        "4": "16px",
+        "6": "24px",
+        "8": "32px",
+        "12": "48px",
+        "16": "64px",
+        "24": "96px"
+      },
+      "card_padding": "24px to 32px",
+      "grid_gap": "16px to 24px"
     },
-    "edge_animations": {
-      "completed_path": "Solid green line (`stroke: #10B981; stroke-width: 3px;`).",
-      "active_path": "Blue line with SVG stroke-dasharray animation ('ants marching' effect) moving TOWARDS the active node. `animation: dash 1s linear infinite`.",
-      "pending_path": "Dashed gray line (`stroke: #CBD5E1; stroke-dasharray: 5,5;`)."
+    "radii": {
+      "sm": "4px",
+      "md": "8px",
+      "lg": "16px",
+      "xl": "24px",
+      "pill": "9999px"
+    },
+    "shadows": {
+      "none": "none",
+      "subtle_hover": "0 10px 40px -10px rgba(17,17,17,0.06)",
+      "drawer": "-10px 0 40px rgba(17,17,17,0.08)",
+      "modal": "0 20px 60px -10px rgba(17,17,17,0.12)"
+    },
+    "motion": {
+      "fast": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+      "base": "250ms cubic-bezier(0.4, 0, 0.2, 1)",
+      "slow": "350ms cubic-bezier(0.4, 0, 0.2, 1)",
+      "chart_draw": "800ms cubic-bezier(0.22, 1, 0.36, 1)"
+    },
+    "z_index": {
+      "base": 0,
+      "dropdown": 40,
+      "sticky": 50,
+      "overlay": 60,
+      "modal": 70,
+      "toast": 80
     }
   },
-  "onboarding_checklist": {
-    "location": "Bottom half of the Right Config Panel, or a dedicated floating toggle.",
-    "design": "A 'Mission Requirements' tally board. As the user drags a 'Send WhatsApp' node to the canvas, the tally dynamically updates: 'WhatsApp Templates Required: 1/15'. Uses progress bars (Shadcn-style) to show completion state. Font: JetBrains Mono."
+  "component_specs": {
+    "sidebar_nav": {
+      "background": "#F5F5F2",
+      "border": "none",
+      "selected_state": "White rounded pill (radius: 9999px), subtle shadow, black text",
+      "unselected_state": "Muted grey text (#737373), quiet/no background",
+      "icons": "Phosphor Icons via CDN (e.g., `<script src=\"https://unpkg.com/@phosphor-icons/web\"></script>`). Use thin-stroke weight (`ph-thin`) to optically balance with Manrope Light. Preferred over FontAwesome for this precise editorial feel."
+    },
+    "top_contextual_bar": {
+      "background": "rgba(245, 245, 242, 0.8)",
+      "backdrop_filter": "blur(12px)",
+      "border_bottom": "1px solid #E5E5DF",
+      "typography": "Small, muted labels, clear breadcrumbs."
+    },
+    "kpi_hero_panel": {
+      "background": "#FFFFFF",
+      "radius": "24px",
+      "border": "1px solid #E5E5DF",
+      "padding": "32px",
+      "value_typography": "text-6xl or text-7xl, font-light, tracking-tighter, color #111111",
+      "label_typography": "text-sm, uppercase tracking-[0.2em], font-bold, color #737373",
+      "accent": "Lime #DFFF00 used ONLY for the delta indicator (e.g., +14%) or a tiny 4px status dot."
+    },
+    "analytical_chart_card": {
+      "background": "#FFFFFF",
+      "border": "1px solid #E5E5DF",
+      "radius": "24px",
+      "charts": "Native SVG via Vanilla JS. Thin lines (1px stroke), completely hidden Y-axis grid lines, muted X-axis lines (#F5F5F2). Plot line color: #111111. Highlighted/hover point: #DFFF00 with a subtle white halo. Floating tooltip with smooth interpolation on hover."
+    },
+    "data_table": {
+      "container": "Background #FFFFFF, no heavy borders, generous whitespace.",
+      "headers": "Lightweight, text-xs uppercase tracking-[0.1em], text-tertiary.",
+      "rows": "Generous height (64px minimum), very subtle bottom border (#FAFAF7), row hover bg #FAFAF7.",
+      "status_pills": "Rounded pill, soft powder blue bg (#E3EEF4) with dark text, or lime bg (#DFFF00) with black text for 'critical/live'.",
+      "actions": "Contextual, appear on hover, thin outline icons. No spreadsheet clutter."
+    },
+    "buttons": {
+      "primary": "Black #111111 bg, White text, pill shape, hover scale 1.02.",
+      "secondary": "White bg, 1px #E5E5DF border, Black text, pill shape, hover bg #FAFAF7.",
+      "ghost": "Transparent bg, #737373 text, hover bg #F5F5F2.",
+      "danger": "Soft red bg (or #FF3B30 text on ghost) to maintain calm UI."
+    },
+    "inputs_selects": {
+      "background": "#FAFAF7",
+      "border": "1px solid transparent",
+      "focus": "Border #111111, no thick rings.",
+      "radius": "8px",
+      "padding": "12px 16px"
+    },
+    "drawer_side_panel": {
+      "background": "#FFFFFF",
+      "shadow": "-10px 0 40px rgba(17,17,17,0.08)",
+      "border_left": "1px solid #E5E5DF",
+      "overlay": "rgba(17,17,17,0.2) backdrop-blur-sm",
+      "note": "CRITICAL: Never use transparent background. Must be fully opaque."
+    },
+    "modal": {
+      "background": "#FFFFFF",
+      "radius": "24px",
+      "shadow": "0 20px 60px -10px rgba(17,17,17,0.12)",
+      "overlay": "rgba(245,245,242,0.8) backdrop-blur-md"
+    },
+    "skeleton_loaders": {
+      "background": "linear-gradient(90deg, #F5F5F2 25%, #E5E5DF 50%, #F5F5F2 75%)",
+      "animation": "shimmer 1.5s infinite"
+    },
+    "command_palette": {
+      "background": "#FFFFFF",
+      "border": "1px solid #E5E5DF",
+      "typography": "Large input text (text-2xl), subtle search icon.",
+      "selected_item": "Bg #FAFAF7, border-left 2px solid #DFFF00."
+    },
+    "toast": {
+      "background": "#111111",
+      "color": "#FFFFFF",
+      "radius": "9999px",
+      "padding": "12px 24px",
+      "typography": "text-sm font-medium"
+    }
   },
-  "motion_and_microinteractions": {
-    "node_drag": "Cursor turns to grabbing. Node receives a larger drop-shadow (`shadow-2xl`) and scales up by 1.02x to feel detached from the canvas.",
-    "edge_connect": "Drawing a connection line snaps to the target port with a magnetic feel. The line turns vibrant blue when a valid connection is hovered.",
-    "active_pulse": "CSS keyframe `pulse-glow`: `0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); } 70% { box-shadow: 0 0 0 10px rgba(37,99,235,0); }` applied to the active node in Live Tracker mode."
+  "layouts_and_compositions": {
+    "executive_dashboard": {
+      "concept": "The Hero Screen. Asymmetric, breathing room, editorial hierarchy. Avoids standard 4-KPI blocks.",
+      "grid": "12-column responsive layout.",
+      "hero_column": "col-span-4. A massive 'One-Number' KPI hero (e.g., Total Revenue / Collections). Typography scales to text-7xl. Almost empty card, just the massive number, a tiny lime delta, and an overarching label.",
+      "signature_visualization": "col-span-8. 'Operational Pulse'. A live, interpolating SVG chart showing SLA heat and activity density over the day. No standard axes. Looks like scientific instrumentation. Hovering reveals data points.",
+      "supporting_insights": "A seamless powder-blue panel (#E3EEF4) stretching col-span-12 underneath, containing 3 distinct insight data points without interior dividers.",
+      "tables": "Pushed to the bottom or secondary tabs. Do not clutter the initial viewport."
+    },
+    "onboarding_wizard": {
+      "concept": "Immersive, distraction-free, high-end editorial.",
+      "layout": "Full screen. No sidebar. Deeply generous padding (e.g., p-24).",
+      "visuals": "Massive greeting typography (text-6xl, light weight). Form fields are oversized and bare-minimum (e.g., just a single underline or large soft input).",
+      "progress": "Tiny subtle pills at the top. Smooth 350ms transitions between steps."
+    },
+    "leads_pipeline": {
+      "concept": "Calm Kanban. High density without looking crowded.",
+      "cards": "White surface, 1px border. Drag-and-drop utilizes subtle tilt and shadow lift.",
+      "drawer": "Lead Detail Drawer opens from right. Tabbed interface (Activity, Qualify, Comm) with a 'Live Workflow Journey train-tracker' spanning the top as a subtle timeline."
+    },
+    "inventory": {
+      "concept": "Spatial Availability Map.",
+      "visuals": "Instead of a spreadsheet of plots, display a geometric, minimalist map/grid of projects/phases/plots. Available = Outline, Sold = Solid Black, Hold = Soft Blue, Selected = Electric Lime."
+    },
+    "workflow_builder": {
+      "concept": "Mission-Control. Technical Instrumentation.",
+      "theme": "DARK MODE EXCEPTION. Background #0A0A0A.",
+      "nodes": "Subtle border #333, text #FFF. Connections are neon/lime thin strokes (#DFFF00). Emphasizes power, precision, and control."
+    },
+    "messaging": {
+      "concept": "Unified Inbox (WhatsApp + Email).",
+      "layout": "Split pane (List on left, Thread on right). Bubble borders are 16px radius, flat. WhatsApp uses subtle green indicator, Email uses blue. Very quiet UI."
+    },
+    "profiles_settings": {
+      "concept": "Functional, detailed, combined.",
+      "layout": "Sidebar within the view for sub-nav. Clean key-value pairs for info. Edit states are inline. Handles massive 12-role hierarchy cleanly."
+    }
   },
-  "universal_guidelines_for_main_agent": [
-    "You tend to converge toward generic outputs. Avoid this: make creative, distinctive frontends that surprise and delight.",
-    "NEVER use generic fonts like Inter, Roboto, Lato for headings.",
-    "DO NOT apply universal transitions (e.g., `transition: all`). Target specific properties to avoid breaking transforms like zoom/pan in the canvas.",
-    "Use 2-3x more spacing in the configuration panels than feels comfortable. Cramped forms look cheap.",
-    "All interactive elements MUST have micro-animations (hover, focus, active states).",
-    "In Blade/Vanilla JS, implement tooltips using data-attributes and a tiny vanilla JS class, or pure CSS pseudo-elements to avoid external dependencies where possible.",
-    "Always ensure high contrast ratios (APCA preferred) for node data. Light text on dark nodes or dark text on light nodes must be highly legible.",
-    "Ensure the zoom and pan controls of Drawflow are smooth and not hindered by overlapping absolute UI elements."
-  ]
+  "instructions_to_main_agent": {
+    "tech_stack_enforcement": "You are writing Laravel Blade templates and Vanilla JS. NO React. NO Shadcn. Use utility classes (Tailwind) extensively.",
+    "testing_attributes": "CRITICAL: All interactive and key informational elements MUST include a `data-testid` attribute (kebab-case, role-based).",
+    "charting": "Charts MUST be native SVG + Vanilla JS to maintain the ultra-custom editorial aesthetic. DO NOT use Chart.js or standard libraries.",
+    "icons": "Use Phosphor Icons via CDN (`ph-thin` or `ph-light` classes). Do not use generic emoji or thick SVG icons.",
+    "transparency": "DO NOT use complete `transparent` backgrounds on headers, overlays, or any surface with content underneath. Use opaque or heavy backdrop-blur.",
+    "motion_js": "Handle transitions via Tailwind classes (`transition-all duration-250 ease-out`). Use Vanilla JS to toggle state classes (e.g., `.is-active`).",
+    "html_structure": "Ensure semantic HTML. Use grid spans effectively."
+  },
+  "universal_guidelines": {
+    "design_philosophy": "Behave like an elite product design team. Enterprise software must be desirable. Emotional target: 'What software is this? I want this for my company.'",
+    "tension": "Use tension: very large + very small type, dense info + empty space, quiet UI + one electric accent, strict grid + deliberate asymmetry.",
+    "reduction": "REDUCE UI. Collapse controls, remove obvious labels/icons, merge cards. Premium = proportion+typography+motion+detail+restraint+intelligence, NOT decoration.",
+    "typography_as_architecture": "Numbers have presence, labels are quiet, dramatic controlled scale.",
+    "motion_meaning": "Motion communicates relationship/hierarchy/causality/state. Numbers roll, graphs interpolate, panels expand from source. Nothing bounces meaninglessly.",
+    "micro_details": "Obsess over alignment, baselines, icon optical size, border opacity, radius consistency, empty/loading states, keyboard nav, tooltips.",
+    "speed": "Design for speed: keyboard shortcuts, command search, contextual actions, smart defaults."
+  }
 }
