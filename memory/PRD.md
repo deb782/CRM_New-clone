@@ -50,9 +50,16 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 
 - **L Cost sheets & proposals**: cost-sheet generator (base/GST/registration/maintenance/other) with live totals, payment-plan selection (seeded CLP/DP/Flexi), discount bands (≤5% auto, >5% & >10% require manager approval), approval workflow (approve/reject/counter) with RBAC (`discounts.approve`), one-click proposal generation with unique reference number, share via WhatsApp+email, and consent capture. New Quote tab in lead drawer + Discount Approvals & Payment Plans config pages.
 
+## Implemented — Phase C start · Section M (2026-06, verified 7/7 + regression)
+- **Deal Won/Lost**: one-click close from the lead drawer. Won → auto-initiates a booking, holds/marks the unit booked, sends the booking form (WhatsApp+email), hands over to Post-Sales and **locks the lead record**. Lost → captures loss reason, releases held inventory, pauses nurturing and schedules 30-day re-engagement.
+- **Booking form**: unique token link (public GET/POST, no auth) for buyer to submit applicant/KYC/nominee details → internal verification.
+- **Token/EOI payment**: mock payment link + record-token action (Razorpay slots in next); booking auto-**confirmed** once verified + paid.
+- **Record lock (RBAC)**: locked leads return 423 on pre-sales edit/qualify; only Post-Sales/CS (new `post_sales` role, `postsales.manage`) or Admin can edit. New `cs@crm.local` user seeded.
+- **UI**: Won/Lost actions + lock banner + Booking tab in the lead drawer, and a Bookings list page.
+
 ## Backlog (prioritized)
-- **P0 (Phase C — M–N)**: deal Won/Lost, auto booking form (email+WhatsApp), Razorpay token/EOI payment link, post-sales handover + record lock, payment verification + receipts, accounts reconciliation, welcome letter, document checklist.
-- **P1 (Phase C cont. — O–Q)**: allotment letter + RERA-style AFS + mock e-sign, milestone schedule + staged reminders, demand letters with serial + late interest.
+- **P0 (Phase C — N)**: Razorpay token/EOI live integration + payment verification/receipts, accounts reconciliation, welcome letter, initial document checklist + reminders.
+- **P1 (Phase C — O–Q)**: allotment letter + RERA-style AFS + mock e-sign, milestone schedule + staged reminders (30/15/7/1-day), demand letters with serial + late interest.
 - **P2 (Phase D — R–T)**: Channel Partner portal + commission, full automation trigger engine + ~40 edge cases, audit/error dashboards, performance hardening (<2s search @100K), QA against A–T.
 
 ## Next tasks

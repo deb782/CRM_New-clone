@@ -17,6 +17,12 @@ class TaskController extends Controller
         if ($status = $request->query('status')) {
             $q->where('status', $status);
         }
+        if ($leadId = $request->query('lead_id')) {
+            $q->where('lead_id', $leadId);
+        }
+        if ($type = $request->query('type')) {
+            $q->where('type', $type);
+        }
         if ($request->boolean('overdue')) {
             $q->where('status', 'open')->where('due_at', '<', now());
         }
