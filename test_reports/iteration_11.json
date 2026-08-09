@@ -1,0 +1,36 @@
+{
+  "summary": "Batch 3 (SLA Heat-Board + Role Home Screens + Partner Referral Links) full acceptance. Backend 21/21 PASS in /app/backend/tests/test_section_batch3_sla_role_referral.py. Frontend: all 5 flows verified via Playwright — priya lands on dashboard and SLA Board renders (4 buckets: Breached=1, <1h=1, 1-4h=3, On track=163; 168 rows), one-click reassign via [data-testid=sla-reassign-{id}] triggered PUT /tasks/{id} and showed 'Reassigned' toast; cs@crm.local auto-lands on #/collections; rahul@crm.local auto-lands on #/callList; partner@crm.local auto-lands on #/portal with referral-link + referral-copy testids visible (link = http://127.0.0.1:8000/refer/ORCIGCZE); public /refer/{code} page renders with data-testids refer-form/refer-name/refer-phone/refer-submit and submission returns Thank-you card [data-testid=refer-success] with partner-branded message. Cross-partner isolation verified (portal.leads all have channel_partner_id = own id) and partner is still 403 on /leads and /leads/board (iter_8 regression re-checked).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_section_batch3_sla_role_referral.py",
+    "/app/test_reports/pytest/batch3.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "TaskController::slaBoard uses now()->diffInMinutes($deadline, false) which returns a signed float — cast to int via round() so bucket boundaries at exactly 60/240 are handled by strict <; verified rules exactly match spec.",
+    "TaskController::slaBoard fallback deadlines: if due_at is null, verify tasks use created_at+config('integrations.sla.verify_hours', 2)h else +24h. Fine — but consider surfacing 'is_synthetic_deadline' flag for UI so managers understand tasks without explicit due_at.",
+    "ChannelPartnerController::refer forces source='Partner Referral' AFTER LeadService::capture; this correctly overrides any duplicate/generic source assignment. Attribution via forceFill([channel_partner_id]) writes even if guarded — good.",
+    "Public referral endpoint has throttle:60,1 and validates name+phone required (max:150/20) — solid anti-spam baseline. Consider a honeypot field + captcha for stronger anti-spam if this is exposed on real domains.",
+    "app.js role-home routing uses sessionStorage('crm_homed') sentinel so users can navigate back to Dashboard after landing — correct one-shot semantics. sales_manager not in home map (falls through to Dashboard), which matches spec ('managers -> funnel/dashboard').",
+    "Web route /refer/{code} correctly aborts 404 when partner missing OR inactive. Referral blade uses inline JS with data-testids and posts JSON to /api/v1/public/refer/{code} — CSRF-safe since api routes are stateless.",
+    "Login form in app.js hardcodes default values 'admin@crm.local' / 'Admin@12345' in input[value]. For prod this should be removed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_section_batch3_sla_role_referral.py (new — 21 tests)"
+  ],
+  "success_rate": {"backend": "100% (21/21)", "frontend": "100% (5/5 UI flows)"},
+  "test_credentials": "test_credentials.md is current — all 5 accounts (admin, priya, rahul, cs, partner) authenticated successfully.",
+  "seed_data_creation": "Used existing seed data. Test also creates one TEST_ref_<uuid> lead via public /refer/{code} and one UI Public TestLead via the blade form — attributed to Prime Realty Partners.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Batch 3 suite at /app/backend/tests/test_section_batch3_sla_role_referral.py (21 tests, ~4.4s parallel). Login flow subtlety: app.js pre-fills login-email/password with admin defaults; when using Playwright, overwrite via page.evaluate setting .value directly (fill() sometimes triggered but sessionStorage 'crm_homed' from prior session persists — always run localStorage.clear() + sessionStorage.clear() BEFORE each hard_login to reset the one-shot role-home redirect). SLA Board testids: sla-cards, sla-count-{breached|red|amber|green}, sla-tbody, sla-row-{id}, sla-reassign-{id}. Partner portal: referral-link (input readonly), referral-copy button. Public page: refer-form, refer-name, refer-phone, refer-email, refer-message, refer-submit, refer-success.",
+  "rca of the issue": "N/A — all Batch 3 acceptance passes."
+}
