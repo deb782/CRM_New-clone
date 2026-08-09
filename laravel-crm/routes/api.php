@@ -80,6 +80,9 @@ Route::prefix('v1')->group(function () {
             Route::get('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowController::class, 'show']);
             Route::put('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowController::class, 'update']);
             Route::post('workflows/{workflow}/activate', [\App\Http\Controllers\Api\WorkflowController::class, 'activate']);
+            Route::post('workflows/{workflow}/simulate', [\App\Http\Controllers\Api\WorkflowController::class, 'simulate']);
+            Route::get('workflows/{workflow}/runs', [\App\Http\Controllers\Api\WorkflowController::class, 'runs']);
+            Route::get('workflows/{workflow}/checklist', [\App\Http\Controllers\Api\WorkflowController::class, 'checklist']);
             Route::delete('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowController::class, 'destroy']);
         });
 

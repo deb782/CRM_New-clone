@@ -43,6 +43,54 @@ class WorkflowController extends Controller
         return response()->json(['workflow' => $workflow->fresh()]);
     }
 
+    /** Run the flow against a lead so the process admin can see it work (demo/test). */
+    public function simulate(Request $request, Workflow $workflow, \App\Services\FlowEngine $engine)
+    {
+        $leadId = $request->input('lead_id');
+        $lead = $leadId ? \App\Models\Lead::find($leadId) : \App\Models\Lead::latest('id')->first();
+        if (! $lead) {
+            return response()->json(['message' => 'No lead available to simulate against.'], 422);
+        }
+        $run = $engine->simulate($workflow, $lead);
+
+        return response()->json(['run' => $run, 'lead' => ['id' => $lead->id, 'name' => $lead->name]]);
+    }
+
+    /** Recent execution runs for this workflow. */
+    public function runs(Workflow $workflow)
+    {
+        $runs = \App\Models\WorkflowRun::where('workflow_id', $workflow->id)
+            ->with('lead:id,name')
+            ->latest('id')->limit(30)->get();
+
+        return response()->json(['runs' => $runs]);
+    }
+
+    /** Template checklist derived from the flow's comms nodes. */
+    public function checklist(Workflow $workflow)
+    {
+        $nodes = (array) data_get($workflow->graph, 'drawflow.Home.data', []);
+        $wa = [];
+        $email = [];
+        foreach ($nodes as $n) {
+            $t = data_get($n, 'data.node_type');
+            $tpl = trim((string) data_get($n, 'data.template'));
+            if ($t === 'send_whatsapp' && $tpl) { $wa[$tpl] = true; }
+            if ($t === 'send_email' && $tpl) { $email[$tpl] = true; }
+        }
+        $waExists = \App\Models\WhatsappTemplate::pluck('name')->map(fn ($s) => strtolower($s))->all();
+        $emExists = \App\Models\EmailTemplate::pluck('name')->map(fn ($s) => strtolower($s))->all();
+
+        $map = fn ($names, $existing) => array_values(array_map(fn ($name) => [
+            'name' => $name, 'exists' => in_array(strtolower($name), $existing, true),
+        ], array_keys($names)));
+
+        return response()->json([
+            'whatsapp' => $map($wa, $waExists),
+            'email' => $map($email, $emExists),
+        ]);
+    }
+
     public function destroy(Workflow $workflow)
     {
         $workflow->delete();

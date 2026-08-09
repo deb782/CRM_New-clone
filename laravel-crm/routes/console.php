@@ -13,3 +13,6 @@ Schedule::command('crm:webhooks')->everyTenMinutes()->withoutOverlapping();
 
 // crm:email-scheduled — dispatch email campaigns whose scheduled time has arrived
 Schedule::command('crm:email-scheduled')->everyMinute()->withoutOverlapping();
+
+// crm:flow-run — resume workflow runs whose wait timers elapsed
+Schedule::command('crm:flow-run')->everyMinute()->withoutOverlapping();

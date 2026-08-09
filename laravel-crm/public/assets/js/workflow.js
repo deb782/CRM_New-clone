@@ -69,6 +69,7 @@
     editor.on('nodeCreated', () => { toggleEmpty(); recomputeTally(); });
     editor.on('connectionCreated', () => {});
     recomputeTally();
+    refreshChecklist();
   };
 
   function buildShell() {
@@ -81,6 +82,8 @@
       el('span', { class: 'wf-title' }, el('i', { class: 'fa-solid fa-diagram-project', style: 'margin-right:8px' }), 'FLOW BUILDER'),
       nameInput, statusBadge,
       el('span', { class: 'wf-spacer' }),
+      el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-templates', onclick: openStarterPicker }, el('i', { class: 'fa-solid fa-layer-group' }), 'Starter flows'),
+      el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-testrun', onclick: testRun }, el('i', { class: 'fa-solid fa-play' }), 'Test run'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-validate', onclick: validate }, el('i', { class: 'fa-solid fa-circle-check' }), 'Validate'),
       el('button', { class: 'wf-btn', 'data-testid': 'wf-activate', onclick: activate }, el('i', { class: 'fa-solid fa-rocket' }), 'Activate'),
       el('button', { class: 'wf-btn wf-btn--primary', 'data-testid': 'wf-save', onclick: save }, el('i', { class: 'fa-solid fa-floppy-disk' }), 'Save flow'),
@@ -115,7 +118,8 @@
     const config = el('div', { class: 'wf-config', 'data-testid': 'wf-config' },
       el('div', { class: 'wf-config__head' }, el('h3', {}, 'Node settings'), el('p', {}, 'Select a node to configure it')),
       el('div', { class: 'wf-config__body', id: 'wf-config-body' }),
-      el('div', { class: 'wf-tally', id: 'wf-tally' }));
+      el('div', { class: 'wf-tally', id: 'wf-tally' }),
+      el('div', { class: 'wf-tally', id: 'wf-checklist', style: 'border-top:1px solid var(--wf-border)' }));
 
     root.appendChild(el('div', { class: 'wf-body' }, palette, canvasWrap, config));
     renderConfigEmpty();
@@ -284,6 +288,7 @@
       if (current) { const r = await api.put('/workflows/' + current.id, { name, graph, status: current.status }); current = r.workflow; }
       else { const r = await api.post('/workflows', { name, graph }); current = r.workflow; }
       if (silent !== true) toast('Flow saved', 'success');
+      refreshChecklist();
       return true;
     } catch (e) { toast(e.message || 'Save failed', 'error'); return false; }
   }
@@ -298,5 +303,119 @@
       badge.textContent = 'active'; badge.classList.add('active');
       toast('Flow activated 🚀 — the system will now run it', 'success');
     } catch (e) { toast(e.message || 'Activation failed', 'error'); }
+  }
+
+  // ---- Test run (execution engine) ----
+  async function testRun() {
+    if (!(await save(true))) return;
+    let res;
+    try { res = await api.post('/workflows/' + current.id + '/simulate', {}); }
+    catch (e) { toast(e.message || 'Simulation failed', 'error'); return; }
+    showRunPanel(res.lead, res.run);
+  }
+
+  function showRunPanel(lead, run) {
+    document.getElementById('wf-runpanel')?.remove();
+    const iconFor = { trigger: 'fa-bolt', status_change: 'fa-flag', task: 'fa-list-check', send_whatsapp: 'fa-whatsapp', send_email: 'fa-envelope', wait: 'fa-hourglass-half', condition: 'fa-code-branch', fallback: 'fa-shield-halved' };
+    const steps = (run.log || []).map((s, i) => el('div', { style: 'display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--wf-border)', 'data-testid': 'wf-run-step-' + i },
+      el('div', { style: 'width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:grid;place-items:center;background:#0F172A;color:#fff' }, el('i', { class: 'fa-solid ' + (iconFor[s.type] || 'fa-circle') })),
+      el('div', { style: 'flex:1' }, el('div', { style: 'font-size:13px;color:#0F172A' }, s.detail), el('div', { style: 'font-size:11px;color:#94A3B8;font-family:monospace' }, s.at))));
+    const badgeColor = run.status === 'completed' ? '#22C55E' : run.status === 'waiting' ? '#8B5CF6' : '#EF4444';
+    const panel = el('div', { id: 'wf-runpanel', 'data-testid': 'wf-run-panel',
+      style: 'position:absolute;top:0;right:0;bottom:0;width:400px;background:#fff;border-left:1px solid var(--wf-border);box-shadow:-12px 0 40px -12px rgba(15,23,42,.25);z-index:12;display:flex;flex-direction:column' },
+      el('div', { style: 'padding:16px 18px;background:#0F172A;color:#fff;display:flex;align-items:center;gap:10px' },
+        el('i', { class: 'fa-solid fa-play' }), el('b', {}, 'Test Run'),
+        el('span', { style: 'margin-left:auto;font-family:monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;padding:3px 8px;border-radius:4px;background:' + badgeColor + '22;color:' + badgeColor }, run.status),
+        el('button', { style: 'background:none;border:none;color:#94A3B8;cursor:pointer;font-size:16px', 'data-testid': 'wf-run-close', onclick: () => panel.remove() }, el('i', { class: 'fa-solid fa-xmark' }))),
+      el('div', { style: 'padding:14px 18px;background:#F8FAFC;border-bottom:1px solid var(--wf-border);font-size:13px' },
+        'Simulated against lead ', el('b', {}, lead.name), run.status === 'waiting' ? el('div', { style: 'color:#8B5CF6;font-size:12px;margin-top:4px' }, '⏳ Paused at a wait step — the scheduler will resume it automatically.') : null),
+      el('div', { style: 'flex:1;overflow-y:auto;padding:6px 18px 18px' }, steps.length ? el('div', {}, ...steps) : el('div', { style: 'padding:30px;text-align:center;color:#94A3B8' }, 'No steps executed — connect nodes from a Trigger.')));
+    document.querySelector('.wf-root').appendChild(panel);
+  }
+
+  // ---- Template checklist (deep-links to builders) ----
+  async function refreshChecklist() {
+    const host = document.getElementById('wf-checklist');
+    if (!host || !current) return;
+    let cl; try { cl = await api.get('/workflows/' + current.id + '/checklist'); } catch (e) { return; }
+    const all = [...cl.whatsapp.map(t => ({ ...t, kind: 'wa' })), ...cl.email.map(t => ({ ...t, kind: 'email' }))];
+    host.innerHTML = '';
+    if (!all.length) return;
+    host.appendChild(el('h4', {}, el('i', { class: 'fa-solid fa-clipboard-check', style: 'margin-right:6px' }), 'Templates to create'));
+    host.appendChild(el('p', {}, 'Build these so your flow can send them.'));
+    all.forEach(t => host.appendChild(el('div', { class: 'wf-tally__row', 'data-testid': 'wf-checklist-' + t.name },
+      el('i', { class: t.kind === 'wa' ? 'fa-brands fa-whatsapp' : 'fa-solid fa-envelope', style: 'background:' + (t.kind === 'wa' ? '#22C55E' : '#3B82F6') }),
+      el('span', { class: 't-label' }, t.name),
+      t.exists
+        ? el('span', { class: 'chip', style: 'color:#22C55E;font-size:11px' }, '✓ ready')
+        : el('a', { href: '#/' + (t.kind === 'wa' ? 'waTemplates' : 'emailDesign'), class: 'wf-btn wf-btn--primary', style: 'height:26px;padding:0 10px;font-size:11px', 'data-testid': 'wf-create-' + t.name,
+            onclick: () => { location.hash = '#/' + (t.kind === 'wa' ? 'waTemplates' : 'emailDesign'); CRM.render(); } }, 'Create'))));
+  }
+
+  // ---- Starter flow library ----
+  const STARTERS = [
+    { id: 'lead5', name: '5-Stage Lead Journey', desc: 'Entry to Processing to Handover to Conversion to Customer with WhatsApp + email touchpoints.',
+      build: [
+        { k: 'trigger', x: 40, y: 60, d: { node_type: 'trigger', trigger_type: 'new_lead' } },
+        { k: 'send_whatsapp', x: 300, y: 60, d: { node_type: 'send_whatsapp', template: 'welcome_wa', attach_pdf: false }, from: 0 },
+        { k: 'send_email', x: 560, y: 60, d: { node_type: 'send_email', template: 'enquiry_ack_email', attach_pdf: true }, from: 1 },
+        { k: 'task', x: 820, y: 60, d: { node_type: 'task', task_type: 'call', title: 'Profiling & first call', due_hours: 2 }, from: 2 },
+        { k: 'condition', x: 1080, y: 60, d: { node_type: 'condition', field: 'temperature', operator: '=', value: 'Hot' }, from: 3 },
+        { k: 'status_change', x: 1340, y: 0, d: { node_type: 'status_change', status: 'Positive' }, from: 4, port: 'output_1' },
+        { k: 'wait', x: 1340, y: 180, d: { node_type: 'wait', amount: 2, unit: 'days' }, from: 4, port: 'output_2' },
+        { k: 'send_whatsapp', x: 1600, y: 180, d: { node_type: 'send_whatsapp', template: 'nurture_wa_1' }, from: 6 },
+      ] },
+    { id: 'nrty', name: 'NRTY Re-engagement', desc: 'Not-reachable leads get a 3-touch email + WhatsApp win-back sequence.',
+      build: [
+        { k: 'trigger', x: 40, y: 80, d: { node_type: 'trigger', trigger_type: 'status_enter', status: 'NRTY' } },
+        { k: 'send_whatsapp', x: 300, y: 80, d: { node_type: 'send_whatsapp', template: 'nrty_wa_1' }, from: 0 },
+        { k: 'wait', x: 560, y: 80, d: { node_type: 'wait', amount: 2, unit: 'days' }, from: 1 },
+        { k: 'send_email', x: 820, y: 80, d: { node_type: 'send_email', template: 'nrty_email_1' }, from: 2 },
+        { k: 'wait', x: 1080, y: 80, d: { node_type: 'wait', amount: 3, unit: 'days' }, from: 3 },
+        { k: 'send_email', x: 1340, y: 80, d: { node_type: 'send_email', template: 'nrty_last_email' }, from: 4 },
+      ] },
+    { id: 'booking', name: 'Booking & Payment', desc: 'On booking paid, notify accounts, welcome email, and create a KYC task.',
+      build: [
+        { k: 'trigger', x: 40, y: 80, d: { node_type: 'trigger', trigger_type: 'status_enter', status: 'Booking Paid' } },
+        { k: 'send_email', x: 300, y: 80, d: { node_type: 'send_email', template: 'booking_ack_email', attach_pdf: true }, from: 0 },
+        { k: 'send_whatsapp', x: 560, y: 80, d: { node_type: 'send_whatsapp', template: 'booking_wa' }, from: 1 },
+        { k: 'task', x: 820, y: 80, d: { node_type: 'task', task_type: 'document', title: 'Collect KYC & docs', due_hours: 24, assignee: 'crm_head' }, from: 2 },
+      ] },
+  ];
+
+  function openStarterPicker() {
+    document.getElementById('wf-starter')?.remove();
+    const cards = STARTERS.map(s => el('div', { class: 'card', style: 'padding:16px;cursor:pointer;border:2px solid var(--wf-border);transition:border-color .15s', 'data-testid': 'wf-starter-' + s.id,
+      onmouseover: e => e.currentTarget.style.borderColor = '#2563EB', onmouseout: e => e.currentTarget.style.borderColor = 'var(--wf-border)',
+      onclick: () => { loadStarter(s); ov.remove(); } },
+      el('div', { style: 'font-weight:700;font-size:15px;color:#0F172A;margin-bottom:6px' }, el('i', { class: 'fa-solid fa-diagram-project', style: 'color:#2563EB;margin-right:8px' }), s.name),
+      el('div', { style: 'font-size:12px;color:#64748B;line-height:1.5' }, s.desc),
+      el('div', { style: 'margin-top:10px;font-size:11px;color:#94A3B8' }, s.build.length + ' nodes')));
+    const ov = el('div', { id: 'wf-starter', 'data-testid': 'wf-starter-picker',
+      style: 'position:absolute;inset:0;z-index:20;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);display:grid;place-items:center' },
+      el('div', { style: 'background:#fff;border-radius:14px;width:min(760px,92%);max-height:80%;overflow:auto;padding:24px', onclick: e => e.stopPropagation() },
+        el('div', { style: 'display:flex;align-items:center;margin-bottom:6px' }, el('h2', { style: 'margin:0;font-size:18px' }, 'Start from a proven flow'),
+          el('button', { style: 'margin-left:auto;background:none;border:none;font-size:18px;color:#94A3B8;cursor:pointer', onclick: () => ov.remove() }, el('i', { class: 'fa-solid fa-xmark' }))),
+        el('p', { style: 'color:#64748B;font-size:13px;margin-top:0' }, 'Pick a template — it drops onto the canvas fully wired, ready to tweak. This replaces the current canvas.'),
+        el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px' }, ...cards)));
+    ov.addEventListener('click', () => ov.remove());
+    document.querySelector('.wf-root').appendChild(ov);
+  }
+
+  function loadStarter(s) {
+    editor.clear();
+    const ids = [];
+    s.build.forEach(n => { ids.push(addNode(n.k, n.x, n.y)); });
+    s.build.forEach((n, i) => {
+      const data = JSON.parse(JSON.stringify(n.d));
+      editor.updateNodeDataFromId(ids[i], data);
+      refreshNodeBody(ids[i]);
+      if (n.from !== undefined) {
+        try { editor.addConnection(ids[n.from], ids[i], n.port || 'output_1', 'input_1'); } catch (e) { /* ignore */ }
+      }
+    });
+    toggleEmpty(); recomputeTally();
+    document.getElementById('wf-name').value = s.name;
+    toast('Loaded "' + s.name + '" — customise & save', 'success');
   }
 })();

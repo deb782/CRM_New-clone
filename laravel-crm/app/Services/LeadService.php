@@ -76,6 +76,7 @@ class LeadService
         ]);
 
         $this->automation->fire('lead.created', $lead);
+        try { app(\App\Services\FlowEngine::class)->trigger('new_lead', $lead->fresh()); } catch (\Throwable $e) { \Log::warning('FlowEngine new_lead: '.$e->getMessage()); }
 
         return ['status' => 'created', 'lead' => $lead->fresh()];
     }
@@ -142,6 +143,7 @@ class LeadService
         }
 
         $this->automation->fire('status.changed', $lead, ['from' => $oldSlug, 'to' => $to->slug, 'status' => $to->slug]);
+        try { app(\App\Services\FlowEngine::class)->trigger('status_enter', $lead->fresh(), ['status' => $to->slug]); } catch (\Throwable $e) { \Log::warning('FlowEngine status_enter: '.$e->getMessage()); }
 
         return $lead->fresh();
     }

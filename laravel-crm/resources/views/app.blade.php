@@ -29,7 +29,7 @@
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=14"></script>
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
     <script src="{{ asset('assets/js/onboarding.js') }}?v=22"></script>
-    <script src="{{ asset('assets/js/workflow.js') }}?v=1"></script>
+    <script src="{{ asset('assets/js/workflow.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/app.js') }}?v=22"></script>
 </body>
 </html>
