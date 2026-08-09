@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Integrations\WhatsApp;
+
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class WatiDriver implements Contract
+{
+    public function send(string $phone, string $body, ?string $template = null): array
+    {
+        $base = config('integrations.whatsapp.wati.base_url');
+        $token = config('integrations.whatsapp.wati.token');
+        if (! $base || ! $token) {
+            Log::warning('WATI credentials missing; message not sent.');
+            return ['provider_id' => null, 'status' => 'failed'];
+        }
+
+        try {
+            $res = Http::withToken($token)->post(rtrim($base, '/').'/api/v1/sendSessionMessage/'.$phone, [
+                'messageText' => $body,
+            ]);
+            return [
+                'provider_id' => $res->json('id') ?? null,
+                'status' => $res->successful() ? 'sent' : 'failed',
+            ];
+        } catch (\Throwable $e) {
+            Log::error('WATI send failed: '.$e->getMessage());
+            return ['provider_id' => null, 'status' => 'failed'];
+        }
+    }
+}

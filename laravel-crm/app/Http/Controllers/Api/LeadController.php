@@ -1,0 +1,193 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Lead;
+use App\Models\PipelineStage;
+use App\Services\DuplicateService;
+use App\Services\LeadService;
+use Illuminate\Http\Request;
+
+class LeadController extends Controller
+{
+    public function __construct(private LeadService $leads, private DuplicateService $duplicates) {}
+
+    public function index(Request $request)
+    {
+        $q = Lead::query()->with(['stage', 'owner', 'project']);
+
+        if ($s = $request->query('search')) {
+            $q->where(function ($w) use ($s) {
+                $w->where('name', 'like', "%{$s}%")
+                    ->orWhere('email', 'like', "%{$s}%")
+                    ->orWhere('phone', 'like', "%{$s}%");
+            });
+        }
+        if ($status = $request->query('status')) {
+            $q->where('status', $status);
+        }
+        if ($temp = $request->query('temperature')) {
+            $q->where('temperature', $temp);
+        }
+        if ($source = $request->query('source')) {
+            $q->where('source', $source);
+        }
+        if ($owner = $request->query('owner_id')) {
+            $q->where('owner_id', $owner);
+        }
+
+        $sort = $request->query('sort', 'created_at');
+        $dir = $request->query('dir', 'desc');
+        $q->orderBy(in_array($sort, ['created_at', 'score', 'last_contacted_at', 'name']) ? $sort : 'created_at', $dir === 'asc' ? 'asc' : 'desc');
+
+        return response()->json($q->paginate((int) $request->query('per_page', 25)));
+    }
+
+    public function board()
+    {
+        $stages = PipelineStage::orderBy('sort_order')->get();
+        $leads = Lead::with('owner')->orderByDesc('score')->get()->groupBy('pipeline_stage_id');
+        return response()->json([
+            'stages' => $stages,
+            'leads' => $leads,
+        ]);
+    }
+
+    public function callList(Request $request)
+    {
+        // Prioritized list (H1.3): hot first, recent first, exclude invalid/DNC
+        $leads = Lead::with(['owner', 'stage'])
+            ->where('is_invalid', false)
+            ->where('do_not_contact', false)
+            ->when($request->query('owner_id'), fn ($q, $o) => $q->where('owner_id', $o))
+            ->orderByRaw("FIELD(temperature,'hot','warm','cold')")
+            ->orderByDesc('score')
+            ->orderByRaw('last_contacted_at IS NULL, last_contacted_at ASC')
+            ->limit(100)
+            ->get();
+        return response()->json(['leads' => $leads]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email',
+            'phone' => 'nullable|string|max:30',
+            'source' => 'nullable|string',
+            'city' => 'nullable|string',
+            'project_id' => 'nullable|exists:projects,id',
+            'campaign' => 'nullable|string',
+        ]);
+        if (empty($data['email']) && empty($data['phone'])) {
+            return response()->json(['message' => 'Phone or email is required.'], 422);
+        }
+
+        $result = $this->leads->capture($data, (bool) $request->boolean('force'));
+        if ($result['status'] === 'duplicate') {
+            return response()->json([
+                'message' => 'Potential duplicate detected.',
+                'duplicate' => $result['duplicate'],
+            ], 409);
+        }
+        return response()->json(['lead' => $result['lead']], 201);
+    }
+
+    public function show(Lead $lead)
+    {
+        $lead->load(['stage', 'owner', 'project', 'contact', 'tasks.assignee', 'calls', 'whatsappMessages', 'emails', 'enrollments.sequence']);
+        return response()->json([
+            'lead' => $lead,
+            'timeline' => $lead->activities()->with('user')->limit(100)->get(),
+        ]);
+    }
+
+    public function update(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'nullable|email',
+            'phone' => 'nullable|string|max:30',
+            'city' => 'nullable|string',
+            'project_id' => 'nullable|exists:projects,id',
+            'owner_id' => 'nullable|exists:users,id',
+            'comm_preference' => 'nullable|in:any,call,whatsapp,email',
+            'whatsapp_opt_out' => 'nullable|boolean',
+            'do_not_contact' => 'nullable|boolean',
+        ]);
+        $original = $lead->getOriginal();
+        $lead->fill($data)->save();
+        app(\App\Services\AuditService::class)->recordChanges($lead, $original, array_keys($data));
+        return response()->json(['lead' => $lead->fresh()]);
+    }
+
+    public function qualify(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'interest_level' => 'nullable|in:very_high,high,medium,low',
+            'budget_min' => 'nullable|integer',
+            'budget_max' => 'nullable|integer',
+            'preferred_location' => 'nullable|string',
+            'property_type' => 'nullable|string',
+            'timeline' => 'nullable|in:immediate,1-3m,3-6m,6-12m,later',
+            'financing' => 'nullable|in:cash,loan,mixed',
+            'decision_maker' => 'nullable|in:self,spouse,family,advisor',
+            'primary_objection' => 'nullable|string',
+            'objection_severity' => 'nullable|in:blocking,manageable,minor',
+            'intent_notes' => 'nullable|string',
+        ]);
+        return response()->json(['lead' => $this->leads->qualify($lead, $data)]);
+    }
+
+    public function transition(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'stage' => 'required|string|exists:pipeline_stages,slug',
+            'reason' => 'nullable|string',
+        ]);
+        $user = $request->user();
+        $force = $user && $user->hasPermission('leads.override');
+        return response()->json(['lead' => $this->leads->transition($lead, $data['stage'], $data['reason'] ?? null, $force)]);
+    }
+
+    public function verify(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'phone' => 'nullable|string|max:30',
+            'email' => 'nullable|email',
+            'alt_phone' => 'nullable|string|max:30',
+            'alt_email' => 'nullable|email',
+        ]);
+        return response()->json(['lead' => $this->leads->verifyContact($lead, $data)]);
+    }
+
+    public function recalculate(Lead $lead)
+    {
+        $result = app(\App\Services\ScoringService::class)->apply($lead);
+        return response()->json(['lead' => $lead->fresh(), 'result' => $result]);
+    }
+
+    public function merge(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'duplicate_id' => 'required|exists:leads,id|different:id',
+            'reason' => 'nullable|string',
+        ]);
+        $dup = Lead::findOrFail($data['duplicate_id']);
+        $master = $this->duplicates->merge($lead, $dup, $data['reason'] ?? null);
+        return response()->json(['lead' => $master]);
+    }
+
+    public function checkDuplicate(Request $request)
+    {
+        $result = $this->duplicates->detect($request->query('email'), $request->query('phone'), $request->query('name'));
+        return response()->json($result);
+    }
+
+    public function destroy(Lead $lead)
+    {
+        $lead->delete();
+        return response()->json(['message' => 'deleted']);
+    }
+}
