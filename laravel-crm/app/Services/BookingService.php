@@ -20,6 +20,8 @@ class BookingService
         private WhatsAppService $whatsapp,
         private SequenceService $sequences,
         private RazorpayService $razorpay,
+        private PostSalesService $postSales,
+        private PaymentService $payments,
     ) {}
 
     /** Deal Won -> booking initiation + booking form + post-sales handover + record lock (M1.1, M1.2, M1.4). */
@@ -128,23 +130,23 @@ class BookingService
     {
         $booking->verified_at = now();
         $booking->verified_by = Auth::id();
-        $booking->status = $booking->token_status === 'paid' ? 'confirmed' : 'verified';
-        $booking->save();
-        $this->activity->log($booking->lead, 'system', 'Booking form verified'.($booking->status === 'confirmed' ? ' — booking confirmed' : ''));
-        return $booking->fresh();
-    }
-
-    /** Mock token/EOI payment (Razorpay integration replaces this later). */
-    public function payToken(Booking $booking): Booking
-    {
-        $booking->token_status = 'paid';
-        $booking->token_paid_at = now();
-        $booking->payment_ref = 'MOCK-'.strtoupper(Str::random(10));
-        if ($booking->verified_at) {
-            $booking->status = 'confirmed';
+        if ($booking->status !== 'confirmed') {
+            $booking->status = 'verified';
         }
         $booking->save();
-        $this->activity->log($booking->lead, 'system', 'Token/EOI payment received (mock)', '₹'.number_format($booking->token_amount));
+        $this->activity->log($booking->lead, 'system', 'Booking form verified');
+        return $this->postSales->confirmBooking($booking->fresh());
+    }
+
+    /** Token/EOI payment -> records a receipt via PaymentService (Razorpay when live, else mock). */
+    public function payToken(Booking $booking): Booking
+    {
+        $this->payments->record($booking, [
+            'type' => 'token',
+            'amount' => $booking->token_amount,
+            'method' => $this->razorpay->enabled() ? 'razorpay' : 'online',
+            'gateway' => $this->razorpay->enabled() ? 'razorpay' : 'mock',
+        ]);
         return $booking->fresh();
     }
 }

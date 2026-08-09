@@ -188,6 +188,7 @@
       if (activeTab === 'comms') return commsPanel();
       if (activeTab === 'quote') return CRM.leadQuoteTab(lead, reload);
       if (activeTab === 'booking') return CRM.leadBookingTab(lead, reload);
+      if (activeTab === 'postsales') return CRM.leadPostSalesTab(lead, reload);
     }
 
     function qualifyForm() {
@@ -281,7 +282,7 @@
 
     const tabsBar = el('div', { class: 'tabs' });
     const content = el('div', { 'data-testid': 'tab-content' });
-    [['timeline', 'Activity'], ['qualify', 'Qualify'], ['comms', 'Communicate'], ['quote', 'Quote'], ['booking', 'Booking']].forEach(([key, label]) => {
+    [['timeline', 'Activity'], ['qualify', 'Qualify'], ['comms', 'Communicate'], ['quote', 'Quote'], ['booking', 'Booking'], ['postsales', 'Post-Sales']].forEach(([key, label]) => {
       const t = el('div', { class: 'tab ' + (activeTab === key ? 'active' : ''), 'data-testid': 'tab-' + key, onclick: () => { activeTab = key; [...tabsBar.children].forEach(c => c.classList.remove('active')); t.classList.add('active'); content.innerHTML = ''; content.appendChild(tabContent()); } }, label);
       tabsBar.appendChild(t);
     });

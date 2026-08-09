@@ -217,6 +217,108 @@
       btns);
   }
 
+  // ===== Post-Sales tab in the lead drawer (Section N) =====
+  CRM.leadPostSalesTab = function (lead, reload) {
+    const wrap = el('div', { 'data-testid': 'postsales-tab' }, el('div', { class: 'spinner' }));
+    (async () => {
+      const full = await api.get('/leads/' + lead.id);
+      const bookings = full.lead.bookings || [];
+      wrap.innerHTML = '';
+      if (!bookings.length) {
+        wrap.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-box-open' }), el('div', {}, 'No booking yet — post-sales begins once a deal is Won')));
+        return;
+      }
+      const booking = bookings.find(b => b.status === 'confirmed') || bookings[bookings.length - 1];
+      await renderPostSales(wrap, booking, () => CRM.reopenPostSales(lead, reload));
+    })();
+    return wrap;
+  };
+
+  CRM.reopenPostSales = function (lead, reload) {
+    const content = document.querySelector('[data-testid="tab-content"]');
+    if (content) { content.innerHTML = ''; content.appendChild(CRM.leadPostSalesTab(lead, reload)); }
+  };
+
+  async function renderPostSales(wrap, booking, refresh) {
+    const bid = booking.id;
+    const canManage = can('postsales.manage');
+    const [ps, pays] = await Promise.all([
+      api.get('/bookings/' + bid + '/post-sales'),
+      api.get('/payments?booking_id=' + bid).then(r => r.data).catch(() => []),
+    ]);
+    wrap.innerHTML = '';
+    wrap.appendChild(el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:6px' },
+      el('b', { class: 'mono' }, booking.booking_ref),
+      el('span', { class: 'chip', style: 'color:var(--won)' }, CRM.stageName(booking.status))));
+
+    // --- Payments & receipts ---
+    const payHead = el('div', { class: 'section-title', style: 'display:flex;justify-content:space-between;align-items:center' }, el('span', {}, 'Payments & Receipts'));
+    if (canManage) payHead.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'ps-record-payment', onclick: () => recordPaymentModal(booking, refresh) }, el('i', { class: 'fa-solid fa-plus' }), 'Record Payment'));
+    wrap.appendChild(payHead);
+    if (!pays.length) wrap.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:12px' }, 'No payments recorded yet'));
+    pays.forEach(p => wrap.appendChild(paymentRow(p, canManage, refresh)));
+
+    // --- Document checklist ---
+    wrap.appendChild(el('div', { class: 'section-title' }, 'Document Checklist'));
+    const grid = el('div', { 'data-testid': 'ps-doc-list' });
+    ps.documents.forEach(d => grid.appendChild(docRow(d, canManage, refresh)));
+    wrap.appendChild(grid);
+
+    // --- Letters ---
+    const letHead = el('div', { class: 'section-title', style: 'display:flex;justify-content:space-between;align-items:center' }, el('span', {}, 'Letters'));
+    if (canManage && !ps.letters.some(l => l.type === 'welcome')) letHead.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'ps-gen-welcome', onclick: async () => { await api.post('/bookings/' + bid + '/welcome-letter'); toast('Welcome letter generated', 'success'); refresh(); } }, el('i', { class: 'fa-solid fa-envelope-open-text' }), 'Generate Welcome'));
+    wrap.appendChild(letHead);
+    if (!ps.letters.length) wrap.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px' }, 'No letters yet'));
+    ps.letters.forEach(l => wrap.appendChild(el('div', { class: 'card', 'data-testid': 'ps-letter-' + l.id, style: 'padding:12px' },
+      el('div', { style: 'display:flex;justify-content:space-between;align-items:center' }, el('b', {}, l.title), el('span', { class: 'chip mono' }, l.serial_no)),
+      el('div', { style: 'white-space:pre-line;font-size:12.5px;color:var(--text-2);margin-top:8px' }, l.body),
+      el('div', { class: 'help', style: 'margin-top:6px' }, l.status === 'sent' ? ('Sent · ' + (l.sent_via || '')) : 'Generated'))));
+  }
+
+  function paymentRow(p, canManage, refresh) {
+    const colors = { received: 'var(--warm)', verified: 'var(--accent)', reconciled: 'var(--won)', discrepancy: 'var(--hot)', failed: 'var(--hot)' };
+    const btns = el('div', { style: 'display:flex;gap:6px;margin-top:8px;flex-wrap:wrap' });
+    if (canManage && p.status === 'received') btns.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'pay-verify-' + p.id, onclick: async () => { await api.post('/payments/' + p.id + '/verify'); toast('Payment verified', 'success'); refresh(); } }, 'Verify'));
+    if (canManage && ['received', 'verified'].includes(p.status)) {
+      btns.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'pay-match-' + p.id, onclick: async () => { await api.post('/payments/' + p.id + '/reconcile', { result: 'matched' }); toast('Reconciled', 'success'); refresh(); } }, 'Match'));
+      btns.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'pay-disc-' + p.id, onclick: async () => { const note = prompt('Discrepancy note'); if (note === null) return; await api.post('/payments/' + p.id + '/reconcile', { result: 'discrepancy', note }); toast('Flagged discrepancy', 'warning'); refresh(); } }, 'Discrepancy'));
+    }
+    return el('div', { class: 'card', 'data-testid': 'payment-' + p.id, style: 'padding:12px;margin-bottom:8px' },
+      el('div', { style: 'display:flex;justify-content:space-between;align-items:center' },
+        el('div', {}, el('b', { class: 'mono' }, p.receipt_no || '—'), el('span', { style: 'color:var(--text-3);font-size:12px;margin-left:8px' }, p.type + ' · ' + p.method)),
+        el('div', { style: 'display:flex;gap:10px;align-items:center' }, el('b', {}, money(p.amount)), el('span', { class: 'chip', style: 'color:' + (colors[p.status] || 'var(--text-2)') }, p.status))),
+      p.reconcile_note ? el('div', { class: 'help', style: 'margin-top:4px;color:var(--hot)' }, p.reconcile_note) : null,
+      btns);
+  }
+
+  function docRow(d, canManage, refresh) {
+    const colors = { pending: 'var(--text-3)', received: 'var(--warm)', verified: 'var(--won)', rejected: 'var(--hot)' };
+    const actions = el('div', { style: 'display:flex;gap:6px' });
+    if (canManage && d.status === 'pending') actions.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'doc-recv-' + d.id, onclick: async () => { await api.put('/documents/' + d.id, { status: 'received' }); toast('Marked received', 'success'); refresh(); } }, 'Received'));
+    if (canManage && ['received', 'pending'].includes(d.status)) actions.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'doc-verify-' + d.id, onclick: async () => { await api.put('/documents/' + d.id, { status: 'verified' }); toast('Verified', 'success'); refresh(); } }, 'Verify'));
+    return el('div', { class: 'row', 'data-testid': 'doc-' + d.id, style: 'display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)' },
+      el('div', {}, el('div', {}, d.name, d.required ? el('span', { style: 'color:var(--hot);margin-left:4px' }, '*') : null),
+        el('div', { style: 'font-size:11px;color:var(--text-3)' }, d.category)),
+      el('div', { style: 'display:flex;gap:10px;align-items:center' }, el('span', { class: 'chip', style: 'color:' + (colors[d.status] || 'var(--text-2)') }, d.status), actions));
+  }
+
+  function recordPaymentModal(booking, refresh) {
+    const f = { type: 'milestone', method: 'neft' };
+    const typeSel = el('select', { class: 'select', 'data-testid': 'pay-type' }, ...['token', 'eoi', 'milestone', 'registration', 'other'].map(t => el('option', { value: t, selected: t === f.type ? 'selected' : null }, t)));
+    typeSel.addEventListener('change', () => f.type = typeSel.value);
+    const methodSel = el('select', { class: 'select', 'data-testid': 'pay-method' }, ...['neft', 'upi', 'cheque', 'cash', 'razorpay', 'online'].map(m => el('option', { value: m, selected: m === f.method ? 'selected' : null }, m)));
+    methodSel.addEventListener('change', () => f.method = methodSel.value);
+    const amt = el('input', { class: 'input', type: 'number', placeholder: 'Amount (₹)', 'data-testid': 'pay-amount' }); amt.addEventListener('input', () => f.amount = amt.value);
+    const ref = el('input', { class: 'input', placeholder: 'Bank / txn / cheque reference', 'data-testid': 'pay-ref' }); ref.addEventListener('input', () => f.reference = ref.value);
+    const save = el('button', { class: 'btn btn--primary', 'data-testid': 'pay-save' }, 'Record & Issue Receipt');
+    const m = modal({ title: 'Record Payment', bodyNode: el('div', {},
+      el('div', { class: 'field' }, el('label', {}, 'Type'), typeSel),
+      el('div', { class: 'field' }, el('label', {}, 'Method'), methodSel),
+      el('div', { class: 'field' }, el('label', {}, 'Amount (₹)'), amt),
+      el('div', { class: 'field' }, el('label', {}, 'Reference'), ref)), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+    save.addEventListener('click', async () => { if (!f.amount) { toast('Enter an amount', 'error'); return; } try { await api.post('/bookings/' + booking.id + '/payments', { type: f.type, amount: Number(f.amount), method: f.method, reference: f.reference }); toast('Payment recorded — receipt issued', 'success'); m.close(); refresh(); } catch (e) { toast(e.message, 'error'); } });
+  }
+
   // ===== Bookings page =====
   CRM.pages.bookings = async function (view) {
     CRM.setActions(null);

@@ -32,4 +32,19 @@ class Booking extends Model
     {
         return $this->belongsTo(CostSheet::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(DocumentChecklistItem::class);
+    }
+
+    public function letters()
+    {
+        return $this->hasMany(Letter::class);
+    }
 }

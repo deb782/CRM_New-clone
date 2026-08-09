@@ -11,7 +11,9 @@ use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentPlanController;
+use App\Http\Controllers\Api\PostSalesController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ScoringController;
 use App\Http\Controllers\Api\SequenceController;
@@ -136,6 +138,18 @@ Route::prefix('v1')->group(function () {
         Route::get('bookings/{booking}', [DealBookingController::class, 'show']);
         Route::post('bookings/{booking}/verify', [DealBookingController::class, 'verify']);
         Route::post('bookings/{booking}/pay-token', [DealBookingController::class, 'payToken']);
+
+        // Post-sales: payments, receipts, reconciliation, documents & letters (Section N)
+        Route::get('payments', [PaymentController::class, 'index']);
+        Route::get('payments/reconciliation', [PaymentController::class, 'reconciliation']);
+        Route::post('bookings/{booking}/payments', [PaymentController::class, 'store'])->middleware('permission:postsales.manage');
+        Route::post('payments/{payment}/verify', [PaymentController::class, 'verify'])->middleware('permission:postsales.manage');
+        Route::post('payments/{payment}/reconcile', [PaymentController::class, 'reconcile'])->middleware('permission:postsales.manage');
+
+        Route::get('bookings/{booking}/post-sales', [PostSalesController::class, 'show']);
+        Route::post('bookings/{booking}/checklist', [PostSalesController::class, 'seedChecklist'])->middleware('permission:postsales.manage');
+        Route::post('bookings/{booking}/welcome-letter', [PostSalesController::class, 'welcome'])->middleware('permission:postsales.manage');
+        Route::put('documents/{item}', [PostSalesController::class, 'updateDoc'])->middleware('permission:postsales.manage');
 
         // Config (admin)
         Route::get('scoring-rules', [ScoringController::class, 'index']);

@@ -124,7 +124,7 @@ class WebhookController extends Controller
     }
 
     /** Razorpay webhook — payment.captured / payment_link.paid -> confirm booking token. */
-    public function razorpay(Request $request, \App\Services\RazorpayService $razorpay, \App\Services\BookingService $bookings)
+    public function razorpay(Request $request, \App\Services\RazorpayService $razorpay, \App\Services\PaymentService $payments)
     {
         $body = $request->getContent();
         $sig = $request->header('X-Razorpay-Signature', '');
@@ -142,12 +142,18 @@ class WebhookController extends Controller
             ->latest()->first();
 
         if ($booking && in_array($event, ['payment.captured', 'payment_link.paid', 'order.paid'])) {
-            $booking->update([
-                'token_status' => 'paid',
-                'token_paid_at' => now(),
-                'payment_ref' => data_get($payload, 'payload.payment.entity.id'),
-                'status' => $booking->verified_at ? 'confirmed' : $booking->status,
-            ]);
+            // Idempotency: skip if this gateway payment was already recorded.
+            $gwRef = data_get($payload, 'payload.payment.entity.id');
+            $already = $gwRef && \App\Models\Payment::where('gateway_ref', $gwRef)->exists();
+            if (! $already && $booking->token_status !== 'paid') {
+                $payments->record($booking, [
+                    'type' => 'token',
+                    'amount' => (int) (data_get($payload, 'payload.payment.entity.amount', $booking->token_amount * 100) / 100),
+                    'method' => 'razorpay',
+                    'gateway' => 'razorpay',
+                    'gateway_ref' => $gwRef,
+                ]);
+            }
         }
         return response()->json(['message' => 'ok']);
     }

@@ -75,6 +75,21 @@ class RunReminders extends Command
         }
         $this->info("Processed {$noShows->count()} no-show(s).");
 
+        // N — Document checklist reminders for pending required docs past due
+        $pendingDocs = \App\Models\DocumentChecklistItem::where('required', true)
+            ->where('status', 'pending')
+            ->where('reminded', false)
+            ->where('due_at', '<', now())
+            ->with('lead')->get();
+        foreach ($pendingDocs as $doc) {
+            if ($doc->lead) {
+                $whatsapp->send($doc->lead, "Reminder: please share your {$doc->name} to complete your booking documentation.");
+                $activity->log($doc->lead, 'system', 'Document reminder sent', $doc->name);
+            }
+            $doc->update(['reminded' => true]);
+        }
+        $this->info("Sent {$pendingDocs->count()} document reminder(s).");
+
         return self::SUCCESS;
     }
 }
