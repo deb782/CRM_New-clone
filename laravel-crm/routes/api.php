@@ -93,6 +93,7 @@ Route::prefix('v1')->group(function () {
         Route::get('leads/check-duplicate', [LeadController::class, 'checkDuplicate'])->middleware('permission:leads.view');
         Route::post('leads', [LeadController::class, 'store'])->middleware('permission:leads.create');
         Route::get('leads/{lead}', [LeadController::class, 'show'])->middleware('permission:leads.view');
+        Route::get('leads/{lead}/journey', [\App\Http\Controllers\Api\WorkflowController::class, 'leadJourney'])->middleware('permission:leads.view');
         Route::put('leads/{lead}', [LeadController::class, 'update'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/qualify', [LeadController::class, 'qualify'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/transition', [LeadController::class, 'transition'])->middleware('permission:leads.edit');

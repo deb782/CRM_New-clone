@@ -5,6 +5,128 @@
   const STAGES = ['new_lead','contacted','interested','opportunity','site_visit_scheduled','site_visit_completed','negotiation','won','lost','not_interested','no_response'];
   const SOURCES = ['Website Form','Meta','Facebook','Instagram','Chatbot','Walk-in','Phone','Referral','Bulk Import','Other'];
 
+  // ---- Live lead train-tracker (read-only journey) ----
+  let journeyTimer = null;
+  function stopJourneyPoll() { if (journeyTimer) { clearInterval(journeyTimer); journeyTimer = null; } }
+
+  const NODE_META = {
+    trigger: { c: '#10B981', i: 'fa-solid fa-bolt', l: 'Trigger' },
+    status_change: { c: '#475569', i: 'fa-solid fa-arrow-right-arrow-left', l: 'Set Status' },
+    task: { c: '#0EA5E9', i: 'fa-solid fa-list-check', l: 'Task' },
+    send_whatsapp: { c: '#22C55E', i: 'fa-brands fa-whatsapp', l: 'WhatsApp' },
+    send_email: { c: '#3B82F6', i: 'fa-solid fa-envelope', l: 'Email' },
+    wait: { c: '#8B5CF6', i: 'fa-solid fa-hourglass-half', l: 'Wait' },
+    condition: { c: '#F59E0B', i: 'fa-solid fa-code-branch', l: 'Condition' },
+    fallback: { c: '#EF4444', i: 'fa-solid fa-shield-halved', l: 'Fallback' },
+    system: { c: '#94A3B8', i: 'fa-solid fa-gear', l: 'System' },
+  };
+  function nodeMeta(t) { return NODE_META[t] || { c: '#94A3B8', i: 'fa-solid fa-circle', l: t || 'Step' }; }
+  function nodeTitle(t, d) {
+    d = d || {};
+    if (t === 'trigger') return (d.trigger_type || 'new lead').replace(/_/g, ' ');
+    if (t === 'status_change') return 'to ' + (d.status || '?');
+    if (t === 'task') return d.title || 'Task';
+    if (t === 'send_whatsapp' || t === 'send_email') return d.template || 'template';
+    if (t === 'wait') return (d.amount || 1) + ' ' + (d.unit || 'days');
+    if (t === 'condition') return (d.field || '?') + ' ' + (d.operator || '=') + ' ' + (d.value || '?');
+    if (t === 'fallback') return d.action || 'fallback';
+    return '';
+  }
+  function stStateLabel(st) { return { done: 'Done', current: 'Here now', waiting: 'Waiting', failed: 'Stopped', pending: 'Upcoming', skipped: 'Skipped' }[st] || st; }
+  function journeyBadge(status, run) {
+    if (!run) return el('span', { class: 'jt-pill jt-pill--idle' }, 'Not started');
+    const map = { running: ['On track', 'jt-pill--run'], waiting: ['Waiting', 'jt-pill--wait'], completed: ['Completed', 'jt-pill--done'], failed: ['Stopped', 'jt-pill--fail'] };
+    const m = map[status] || [status || 'idle', 'jt-pill--idle'];
+    return el('span', { class: 'jt-pill ' + m[1] }, m[0]);
+  }
+  // Order Drawflow nodes left-to-right by longest path from the trigger.
+  function orderStations(nodesObj) {
+    const nodes = Object.keys(nodesObj || {}).map(k => Object.assign({ id: String(k) }, nodesObj[k]));
+    const outs = {};
+    nodes.forEach(n => {
+      outs[n.id] = [];
+      const o = n.outputs || {};
+      Object.keys(o).forEach(key => (((o[key] || {}).connections) || []).forEach(c => outs[n.id].push(String(c.node))));
+    });
+    const depth = {}; nodes.forEach(n => depth[n.id] = 0);
+    for (let iter = 0; iter <= nodes.length; iter++) {
+      let changed = false;
+      nodes.forEach(n => outs[n.id].forEach(t => { if (depth[t] !== undefined && depth[t] < depth[n.id] + 1) { depth[t] = depth[n.id] + 1; changed = true; } }));
+      if (!changed) break;
+    }
+    return nodes.sort((a, b) => (depth[a.id] - depth[b.id]) || (Number(a.id) - Number(b.id)));
+  }
+
+  function renderJourney(wrap, data) {
+    wrap.innerHTML = '';
+    if (!data.workflow) {
+      wrap.appendChild(el('div', { class: 'jt-empty', 'data-testid': 'journey-none' },
+        el('i', { class: 'fa-solid fa-diagram-project' }),
+        el('div', {}, 'No active lead-flow yet.'),
+        el('div', { class: 'jt-sub' }, 'Once a Process Admin activates a workflow, this lead\u2019s live position will appear here.')));
+      return;
+    }
+    const nodesObj = (((data.workflow.graph || {}).drawflow || {}).Home || {}).data || {};
+    const stations = orderStations(nodesObj);
+    const run = data.run;
+    const done = new Set((run && run.done) || []);
+    const current = run && run.current_node ? String(run.current_node) : null;
+    const status = run ? run.status : null;
+    const total = (data.progress && data.progress.total) || stations.length;
+    const doneCount = (data.progress && data.progress.done) || 0;
+
+    wrap.appendChild(el('div', { class: 'jt-head' },
+      el('div', {},
+        el('div', { class: 'jt-wf', 'data-testid': 'journey-wf-name' }, el('i', { class: 'fa-solid fa-route' }), data.workflow.name),
+        el('div', { class: 'jt-status', 'data-testid': 'journey-status' }, journeyBadge(status, run))),
+      el('div', { class: 'jt-progress' },
+        el('div', { class: 'jt-progress__bar' }, el('span', { style: 'width:' + (total ? Math.round(doneCount / total * 100) : 0) + '%' })),
+        el('div', { class: 'jt-progress__label' }, doneCount + ' / ' + total + ' stops'))));
+
+    if (!run) {
+      wrap.appendChild(el('div', { class: 'jt-hint', 'data-testid': 'journey-notstarted' },
+        el('i', { class: 'fa-solid fa-circle-info' }), 'This lead hasn\u2019t entered the flow yet \u2014 here\u2019s the route it will follow.'));
+    }
+
+    const track = el('div', { class: 'jt-track', 'data-testid': 'journey-track' });
+    stations.forEach((s, i) => {
+      const sid = s.id;
+      let st = 'pending';
+      if (current && String(sid) === current) st = (status === 'failed') ? 'failed' : (status === 'waiting' ? 'waiting' : 'current');
+      else if (done.has(sid) || done.has(String(sid)) || done.has(Number(sid))) st = 'done';
+      else if (run && status === 'completed') st = 'skipped';
+      const type = (s.data && s.data.node_type) || 'unknown';
+      const meta = nodeMeta(type);
+      const nextOn = i < stations.length - 1 && (done.has(stations[i + 1].id) || done.has(String(stations[i + 1].id)) || current === String(stations[i + 1].id));
+      track.appendChild(el('div', { class: 'jt-stop jt-stop--' + st, 'data-testid': 'journey-stop-' + sid },
+        i < stations.length - 1 ? el('span', { class: 'jt-rail' + (nextOn ? ' jt-rail--on' : '') }) : null,
+        el('span', { class: 'jt-dot', style: '--sc:' + meta.c }, el('i', { class: meta.i })),
+        el('div', { class: 'jt-card' },
+          el('div', { class: 'jt-type' }, meta.l),
+          el('div', { class: 'jt-title' }, nodeTitle(type, s.data)),
+          (st === 'waiting' && run && run.resume_at) ? el('div', { class: 'jt-when' }, 'Resumes ' + new Date(run.resume_at).toLocaleString()) : null,
+          el('div', { class: 'jt-badge jt-badge--' + st }, stStateLabel(st)))));
+    });
+    wrap.appendChild(track);
+
+    const focus = track.querySelector('.jt-stop--current, .jt-stop--waiting, .jt-stop--failed');
+    if (focus) requestAnimationFrame(() => { try { focus.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (e) {} });
+
+    if (run && run.log && run.log.length) {
+      const log = el('div', { class: 'jt-log', 'data-testid': 'journey-log' });
+      log.appendChild(el('div', { class: 'jt-log__h' }, 'Activity trail'));
+      run.log.forEach(le => {
+        const meta = nodeMeta(le.type);
+        log.appendChild(el('div', { class: 'jt-log__row' },
+          el('i', { class: meta.i, style: 'color:' + meta.c }),
+          el('span', { class: 'jt-log__d' }, le.detail),
+          el('span', { class: 'jt-log__t' }, le.at)));
+      });
+      wrap.appendChild(log);
+    }
+  }
+
+
   function scoreBar(score) {
     return el('span', { class: 'score-bar' },
       el('span', { class: 'track' }, el('span', { class: 'fill', style: 'width:' + Math.min(100, score) + '%' })),
@@ -123,7 +245,7 @@
     const drawer = el('div', { class: 'drawer', 'data-testid': 'lead-drawer' }, el('div', { class: 'spinner' }));
     overlay.appendChild(drawer);
     document.body.appendChild(overlay);
-    function close() { overlay.remove(); if (location.hash.startsWith('#/leads/')) history.replaceState(null, '', '#/leads'); }
+    function close() { stopJourneyPoll(); overlay.remove(); if (location.hash.startsWith('#/leads/')) history.replaceState(null, '', '#/leads'); }
 
     const res = await api.get('/leads/' + id);
     const lead = res.lead;
@@ -185,6 +307,7 @@
         return el('div', {}, composer, tl);
       }
       if (activeTab === 'qualify') return qualifyForm();
+      if (activeTab === 'journey') return journeyTab();
       if (activeTab === 'comms') return commsPanel();
       if (activeTab === 'quote') return CRM.leadQuoteTab(lead, reload);
       if (activeTab === 'booking') return CRM.leadBookingTab(lead, reload);
@@ -254,8 +377,24 @@
       return wrap;
     }
 
-    function commsPanel() {
-      const waBody = el('textarea', { class: 'input', rows: 2, placeholder: 'WhatsApp message…', 'data-testid': 'wa-body' });
+    function journeyTab() {
+      const wrap = el('div', { 'data-testid': 'lead-journey' });
+      wrap.appendChild(el('div', { class: 'jt-loading' }, el('span', { class: 'spinner' })));
+      async function load() {
+        let data;
+        try { data = await api.get('/leads/' + id + '/journey'); }
+        catch (e) { stopJourneyPoll(); wrap.innerHTML = ''; wrap.appendChild(el('div', { class: 'jt-empty', 'data-testid': 'journey-error' }, el('i', { class: 'fa-solid fa-triangle-exclamation' }), el('div', {}, e.message || 'Unable to load journey'))); return; }
+        if (activeTab !== 'journey') { stopJourneyPoll(); return; }
+        renderJourney(wrap, data);
+        if (!data.run || data.run.status === 'completed' || data.run.status === 'failed') stopJourneyPoll();
+      }
+      stopJourneyPoll();
+      load();
+      journeyTimer = setInterval(load, 4000);
+      return wrap;
+    }
+
+    function commsPanel() {      const waBody = el('textarea', { class: 'input', rows: 2, placeholder: 'WhatsApp message…', 'data-testid': 'wa-body' });
       const waSend = el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'wa-send' }, el('i', { class: 'fa-brands fa-whatsapp' }), 'Send WhatsApp');
       waSend.addEventListener('click', async () => { if (!waBody.value.trim()) return; await api.post('/leads/' + id + '/whatsapp', { body: waBody.value }); toast('WhatsApp sent', 'success'); reload(); });
 
@@ -324,8 +463,8 @@
 
     const tabsBar = el('div', { class: 'tabs' });
     const content = el('div', { 'data-testid': 'tab-content' });
-    [['timeline', 'Activity'], ['qualify', 'Qualify'], ['comms', 'Communicate'], ['quote', 'Quote'], ['booking', 'Booking'], ['postsales', 'Post-Sales']].forEach(([key, label]) => {
-      const t = el('div', { class: 'tab ' + (activeTab === key ? 'active' : ''), 'data-testid': 'tab-' + key, onclick: () => { activeTab = key; [...tabsBar.children].forEach(c => c.classList.remove('active')); t.classList.add('active'); content.innerHTML = ''; content.appendChild(tabContent()); } }, label);
+    [['timeline', 'Activity'], ['qualify', 'Qualify'], ['journey', 'Journey'], ['comms', 'Communicate'], ['quote', 'Quote'], ['booking', 'Booking'], ['postsales', 'Post-Sales']].forEach(([key, label]) => {
+      const t = el('div', { class: 'tab ' + (activeTab === key ? 'active' : ''), 'data-testid': 'tab-' + key, onclick: () => { stopJourneyPoll(); activeTab = key; [...tabsBar.children].forEach(c => c.classList.remove('active')); t.classList.add('active'); content.innerHTML = ''; content.appendChild(tabContent()); } }, label);
       tabsBar.appendChild(t);
     });
     main.appendChild(tabsBar);

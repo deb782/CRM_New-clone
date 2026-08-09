@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Chivo:wght@700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/vendor/drawflow.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/workflow.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=4">
 </head>
 <body>
@@ -22,7 +23,7 @@
     <script>window.CRM = { API: '/api/v1', asset: '{{ asset('assets') }}' };</script>
     <script src="{{ asset('assets/js/api.js') }}?v=10"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v=10"></script>
-    <script src="{{ asset('assets/js/leads.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/leads.js') }}?v=13"></script>
     <script src="{{ asset('assets/js/inventory.js') }}?v=10"></script>
     <script src="{{ asset('assets/js/deals.js') }}?v=10"></script>
     <script src="{{ asset('assets/js/config.js') }}?v=10"></script>

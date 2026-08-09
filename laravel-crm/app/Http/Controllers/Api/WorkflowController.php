@@ -36,19 +36,30 @@ class WorkflowController extends Controller
         return response()->json(['workflow' => $workflow->fresh()]);
     }
 
-    /** Read-only journey of a lead along the active flow (train-tracker for reps). */
+    /** Read-only journey of a lead along its flow (train-tracker for reps). */
     public function leadJourney(\App\Models\Lead $lead)
     {
-        $wf = Workflow::where('status', 'active')->latest('id')->first() ?: Workflow::latest('id')->first();
+        // The lead's latest real (non-simulated) run drives the live position.
+        $run = \App\Models\WorkflowRun::where('lead_id', $lead->id)
+            ->where('simulated', false)
+            ->latest('id')->first();
+
+        $wf = $run ? Workflow::find($run->workflow_id) : null;
+        // No run yet — show the active flow map so the rep sees the route ahead.
         if (! $wf) {
-            return response()->json(['workflow' => null]);
+            $wf = Workflow::where('status', 'active')->latest('id')->first();
         }
-        $run = \App\Models\WorkflowRun::where('workflow_id', $wf->id)->where('lead_id', $lead->id)->latest('id')->first();
+        if (! $wf) {
+            return response()->json(['workflow' => null, 'run' => null]);
+        }
+
         $done = [];
-        if ($run) {
+        if ($run && $wf && $run->workflow_id == $wf->id) {
             foreach (($run->log ?? []) as $s) {
                 if (! empty($s['node'])) { $done[(string) $s['node']] = true; }
             }
+        } else {
+            $run = null; // active-flow preview only, no position on this map
         }
         $nodeCount = count((array) data_get($wf->graph, 'drawflow.Home.data', []));
 
@@ -56,11 +67,13 @@ class WorkflowController extends Controller
             'workflow' => ['id' => $wf->id, 'name' => $wf->name, 'status' => $wf->status, 'graph' => $wf->graph],
             'lead' => ['id' => $lead->id, 'name' => $lead->name, 'status' => $lead->status, 'temperature' => $lead->temperature],
             'run' => $run ? [
+                'id' => $run->id,
                 'status' => $run->status,
                 'current_node' => $run->current_node,
                 'done' => array_keys($done),
                 'resume_at' => $run->resume_at,
                 'updated_at' => $run->updated_at,
+                'completed_at' => $run->completed_at,
                 'log' => $run->log,
             ] : null,
             'progress' => ['done' => count($done), 'total' => $nodeCount],

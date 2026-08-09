@@ -1,0 +1,80 @@
+/* ===== Phase 5: Live Lead Train-Tracker (read-only journey view) ===== */
+.jt-loading { display: grid; place-items: center; padding: 48px; }
+
+.jt-empty { text-align: center; padding: 46px 20px; color: #64748B; }
+.jt-empty i { font-size: 38px; color: #CBD5E1; display: block; margin-bottom: 14px; }
+.jt-empty .jt-sub { font-size: 12.5px; color: #94A3B8; margin-top: 6px; }
+
+/* ---- header ---- */
+.jt-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 18px; border-radius: 12px; margin-bottom: 4px;
+  background: linear-gradient(120deg, #0F172A 0%, #1E293B 100%); color: #E2E8F0;
+}
+.jt-wf { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 15px; letter-spacing: .01em; }
+.jt-wf i { color: #38BDF8; }
+.jt-status { margin-top: 7px; }
+.jt-progress { min-width: 150px; text-align: right; }
+.jt-progress__bar { height: 6px; border-radius: 99px; background: rgba(148,163,184,.25); overflow: hidden; }
+.jt-progress__bar span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#22C55E,#38BDF8); transition: width .5s ease; }
+.jt-progress__label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: #94A3B8; margin-top: 6px; }
+
+.jt-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 4px 10px; border-radius: 99px; }
+.jt-pill::before { content: ''; width: 7px; height: 7px; border-radius: 99px; background: currentColor; }
+.jt-pill--idle { background: rgba(148,163,184,.18); color: #94A3B8; }
+.jt-pill--run  { background: rgba(56,189,248,.16); color: #38BDF8; }
+.jt-pill--wait { background: rgba(139,92,246,.18); color: #A78BFA; }
+.jt-pill--done { background: rgba(34,197,94,.18); color: #4ADE80; }
+.jt-pill--fail { background: rgba(239,68,68,.18); color: #F87171; }
+.jt-pill--run::before { animation: jt-blink 1.1s ease-in-out infinite; }
+
+.jt-hint { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: #64748B; background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 13px; margin: 12px 0 4px; }
+.jt-hint i { color: #94A3B8; }
+
+/* ---- the railway track ---- */
+.jt-track { display: flex; align-items: flex-start; overflow-x: auto; padding: 34px 6px 12px; margin-top: 6px; scrollbar-width: thin; }
+.jt-stop { position: relative; flex: 0 0 176px; display: flex; flex-direction: column; align-items: center; }
+
+/* rail segment connecting this dot to the next */
+.jt-rail { position: absolute; top: 20px; left: 50%; width: 100%; height: 4px; border-radius: 4px;
+  background: repeating-linear-gradient(90deg,#CBD5E1 0 8px, transparent 8px 15px); z-index: 0; }
+.jt-rail--on { background: linear-gradient(90deg,#22C55E,#38BDF8); }
+
+.jt-dot { position: relative; z-index: 1; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; font-size: 16px;
+  background: #94A3B8; box-shadow: 0 4px 12px -2px rgba(15,23,42,.25); border: 3px solid #fff; }
+
+.jt-card { margin-top: 12px; width: 156px; background: #fff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 11px; text-align: center; transition: box-shadow .2s, transform .2s, border-color .2s; }
+.jt-type { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .14em; color: #94A3B8; }
+.jt-title { font-size: 12.5px; font-weight: 600; color: #0F172A; margin: 3px 0 6px; word-break: break-word; text-transform: capitalize; }
+.jt-when { font-size: 11px; color: #8B5CF6; margin-bottom: 6px; }
+.jt-badge { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 99px; }
+.jt-badge--pending { background: #F1F5F9; color: #94A3B8; }
+.jt-badge--skipped { background: #F1F5F9; color: #CBD5E1; }
+.jt-badge--done    { background: #DCFCE7; color: #16A34A; }
+.jt-badge--current { background: #E0F2FE; color: #0284C7; }
+.jt-badge--waiting { background: #EDE9FE; color: #7C3AED; }
+.jt-badge--failed  { background: #FEE2E2; color: #DC2626; }
+
+/* per-state dot */
+.jt-stop--done    .jt-dot { background: #22C55E; }
+.jt-stop--current .jt-dot { background: #0284C7; animation: jt-pulse 1.6s ease-out infinite; }
+.jt-stop--waiting .jt-dot { background: #8B5CF6; animation: jt-pulse-v 1.6s ease-out infinite; }
+.jt-stop--failed  .jt-dot { background: #DC2626; }
+.jt-stop--pending .jt-dot,
+.jt-stop--skipped .jt-dot { background: #CBD5E1; }
+.jt-stop--current .jt-card { border-color: #38BDF8; box-shadow: 0 8px 22px -6px rgba(2,132,199,.35); transform: translateY(-2px); }
+.jt-stop--skipped .jt-card,
+.jt-stop--pending .jt-card { opacity: .7; }
+
+@keyframes jt-pulse { 0% { box-shadow: 0 0 0 0 rgba(2,132,199,.5);} 70% { box-shadow: 0 0 0 12px rgba(2,132,199,0);} 100% { box-shadow: 0 0 0 0 rgba(2,132,199,0);} }
+@keyframes jt-pulse-v { 0% { box-shadow: 0 0 0 0 rgba(139,92,246,.5);} 70% { box-shadow: 0 0 0 12px rgba(139,92,246,0);} 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0);} }
+@keyframes jt-blink { 0%,100% { opacity: 1;} 50% { opacity: .35;} }
+
+/* ---- activity trail ---- */
+.jt-log { margin-top: 18px; border-top: 1px solid #E2E8F0; padding-top: 14px; }
+.jt-log__h { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .16em; color: #94A3B8; margin-bottom: 10px; }
+.jt-log__row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #F1F5F9; font-size: 12.5px; }
+.jt-log__row i { width: 16px; text-align: center; }
+.jt-log__d { flex: 1; color: #334155; }
+.jt-log__t { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; color: #94A3B8; white-space: nowrap; }

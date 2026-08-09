@@ -1,0 +1,40 @@
+{
+  "summary": "Phase 5 Lead Journey (live train-tracker) tested end-to-end. Backend endpoint GET /api/v1/leads/{id}/journey verified for shape, waiting/completed/no-run states, and RBAC (BDE/Sales Head/Admin allowed, Channel Partner 403). UI drawer 'Journey' tab renders mission-control header, metro track, station cards, activity trail, and cleans up its 4s polling on tab switch/drawer close. Found and fixed one real bug: type-mismatch in comparison caused the current/waiting station to never be highlighted; frontend fixed. All 8 backend tests + full UI flow pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/v1/leads/{id}/journey", "issue": "Unauthenticated requests return HTTP 500 'Route [login] not defined' instead of 401 (pre-existing app-wide Laravel API behaviour, not Phase-5 specific)"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "leads.js renderJourney()", "issue": "FIXED by testing agent: `sid === current` compared integer node id (from graph JSON) against string `run.current_node`, so the waiting/current station was never highlighted and instead fell through to 'done'. Now normalized to String() on both sides; also normalized done.has() lookup to accept both string and int keys.", "selector": "[data-testid='journey-stop-<id>']", "priority": "HIGH (was)"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase5_lead_journey.py",
+    "/app/test_reports/pytest/phase5_journey.xml"
+  ],
+  "action_items": [
+    "Consider adding a global api.php exception handler so unauthenticated API calls return 401 JSON instead of 500 'Route [login] not defined' (affects all API endpoints, not just Phase 5)."
+  ],
+  "critical_code_review_comments": [
+    "WorkflowController::leadJourney returns the whole workflow.graph blob including drawflow HTML/positions on every 4s poll — payload could be trimmed for the tracker (only need per-node id + data.node_type + data + outputs). Minor perf/bandwidth concern.",
+    "The `done` array in the API response includes node ids as integers while `current_node` is a string — inconsistent typing produced the fixed frontend bug. Consider normalizing both to strings in the API response for defensive consistency.",
+    "leads.js is now ~610 lines; the journey feature (~130 lines at top of the IIFE) could be split into its own module for maintainability."
+  ],
+  "updated_files": [
+    "/app/laravel-crm/public/assets/js/leads.js (fixed sid vs current_node type comparison + done.has normalization)",
+    "/app/laravel-crm/resources/views/app.blade.php (bumped leads.js cache-buster v=12 -> v=13)",
+    "/app/backend/tests/test_phase5_lead_journey.py (new test file)"
+  ],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "100% after fix"},
+  "test_credentials": "admin@crm.local/Admin@12345, rahul@crm.local/Demo@12345, priya@crm.local/Demo@12345, partner@crm.local/Demo@12345",
+  "seed_data_creation": "Two chatbot-posted leads created during backend tests (TEST_p5_norun_*, TEST_p5_hot_*). No modification to existing seeded workflow (id 5) or lead 20's waiting run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 5 journey UI + API is now green. The unauth->500 behaviour is app-wide and predates Phase 5; do not treat as Phase-5 regression. If touching leads.js again keep the String()-normalization in renderJourney() otherwise waiting stations will silently show as 'done'.",
+  "rca of the issue": "Bug: waiting/current station not highlighted. RCA: PHP JSON-encodes numeric array keys as ints so run.done arrived as [13,14,...] while run.current_node is a string. renderJourney compared s.id (integer, taken from graph node's own id field via Object.assign) with `current` (String(run.current_node)) using ===; since 19 !== '19', the current-node branch never executed and the node fell through to done.has(sid) which matched. Repro: open lead 20 -> Journey tab; before fix the wait node showed the green 'Done' badge; after fix it shows the violet 'Waiting' badge with 'Resumes ...' timestamp. Mitigation applied: String() both sides in the equality check and accept both string and int keys in done.has() lookups."
+}
