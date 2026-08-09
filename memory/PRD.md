@@ -113,6 +113,11 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **Live demo page**: `GET /chat-demo` (public Blade) with widget installed + install instructions.
 - **In-CRM embed/config page**: new **Chat Widget** nav under Configuration (config.manage gated — sales exec can't see it) showing copy-paste embed snippet, partner-attributed snippet, live-demo link, and a live preview bubble.
 
+## Implemented — Partner Widget Branding (2026-06, verified 100% backend + frontend, iteration_13)
+- **Per-partner chat-widget branding**: each channel partner can set the widget **title, accent colour and greeting** from a "Chat widget branding" card in their portal (`PUT /api/v1/partner/branding`, partner.portal scoped; validates hex accent, title≤60, greeting≤300). Portal also shows their ready-to-paste `data-ref` embed snippet with copy.
+- **Public config**: `GET /api/v1/public/widget-config/{code}` returns the partner's title/accent/greeting (defaults for missing/inactive code — no 404, so codes can't be enumerated). The embeddable widget (`/widget/chat.js`) fetches this when loaded with `data-ref`; explicit `data-title`/`data-accent` attributes still override.
+- New: migration `2026_01_11_...partner_widget_branding` (widget_title/accent/greeting on channel_partners), ChannelPartnerController.widgetConfig + updateBranding.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.

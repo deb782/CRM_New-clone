@@ -382,7 +382,7 @@
         el('div', { style: 'margin-top:12px' }, save),
         el('div', { style: 'font-size:12px;color:var(--text-3);margin:18px 0 6px' }, 'Embed this snippet on your website (auto-attributes captured leads & commission to you):'),
         el('div', { style: 'display:flex;gap:8px;align-items:flex-start' },
-          el('pre', { style: 'flex:1;margin:0;padding:10px 12px;background:var(--bg-2,#0e1428);border:1px solid var(--line);border-radius:8px;font-family:var(--mono,monospace);font-size:12px;white-space:pre-wrap;word-break:break-all' }, snippet), snipCopy)));
+          el('pre', { class: 'card', style: 'flex:1;margin:0;padding:10px 12px;overflow-x:auto;font-family:var(--mono,monospace);font-size:12px;white-space:pre-wrap;word-break:break-all;color:var(--text-2)' }, snippet), snipCopy)));
     }
     const card = (k, v, color) => el('div', { class: 'card stat' }, el('div', { class: 'k' }, k), el('div', { class: 'v', style: color ? ('color:' + color) : '' }, String(v)));
     view.appendChild(el('div', { class: 'cards', style: 'margin-bottom:20px', 'data-testid': 'portal-cards' },
