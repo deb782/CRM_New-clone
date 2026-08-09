@@ -222,6 +222,11 @@ Route::prefix('v1')->group(function () {
             Route::post('whatsapp/media/upload', [WhatsAppInboxController::class, 'uploadMedia']);
             Route::get('whatsapp/analytics', [WhatsAppInboxController::class, 'analytics']);
             Route::get('whatsapp/templates', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'index']);
+            Route::get('whatsapp/canned-replies', [\App\Http\Controllers\Api\WhatsAppCannedReplyController::class, 'index']);
+            Route::post('whatsapp/canned-replies', [\App\Http\Controllers\Api\WhatsAppCannedReplyController::class, 'store']);
+            Route::put('whatsapp/canned-replies/{canned_reply}', [\App\Http\Controllers\Api\WhatsAppCannedReplyController::class, 'update']);
+            Route::delete('whatsapp/canned-replies/{canned_reply}', [\App\Http\Controllers\Api\WhatsAppCannedReplyController::class, 'destroy']);
+            Route::get('whatsapp/settings', [WhatsAppInboxController::class, 'settings']);
             Route::post('whatsapp/conversations/{conversation}/assign', [WhatsAppInboxController::class, 'assign']);
             Route::post('whatsapp/conversations/{conversation}/read', [WhatsAppInboxController::class, 'read']);
             Route::post('whatsapp/conversations/{conversation}/toggle', [WhatsAppInboxController::class, 'toggle']);
@@ -237,6 +242,7 @@ Route::prefix('v1')->group(function () {
             Route::put('whatsapp/auto-replies/{auto_reply}', [WhatsAppAutoReplyController::class, 'update']);
             Route::delete('whatsapp/auto-replies/{auto_reply}', [WhatsAppAutoReplyController::class, 'destroy']);
             Route::post('whatsapp/templates/sync', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'sync']);
+            Route::put('whatsapp/settings', [WhatsAppInboxController::class, 'updateSettings']);
         });
         Route::get('partners', [ChannelPartnerController::class, 'index'])->middleware('permission:config.manage');
         Route::post('partners', [ChannelPartnerController::class, 'store'])->middleware('permission:config.manage');

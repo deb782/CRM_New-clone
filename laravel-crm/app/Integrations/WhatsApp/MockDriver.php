@@ -16,6 +16,11 @@ class MockDriver implements Contract
         return $this->ok();
     }
 
+    public function sendTemplate(string $phone, string $name, array $variables = [], string $language = 'en_US'): array
+    {
+        return $this->ok();
+    }
+
     public function sendMedia(string $phone, string $type, string $link, ?string $caption = null): array
     {
         return $this->ok();

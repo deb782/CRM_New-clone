@@ -1,0 +1,32 @@
+{
+  "summary": "Iteration 16: Tested Canned Replies CRUD, Template Variables filling, and Assignment Routing (backend + frontend). Backend pytest 16/16 pass. Frontend: canned button in composer inserts body into wa-reply-input, template modal renders wa-tpl-var-1/2 with live preview, waCanned page CRUD works, wa-autoassign-toggle flips and toasts 'Saved', RBAC hides Configuration nav items for Sales Exec (rahul) while keeping inbox composer canned button available.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/whatsapp_canned_variables_routing_test.py",
+    "/app/test_reports/pytest/iter16.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Canned Replies CRUD API works with wrapper key 'reply' (create returns {reply:{id,title,body,shortcut,created_by,...}}); list wraps as {replies:[...]} — consistent naming.",
+    "Template variables: welcome_message with variables:['Ravi'] stored body 'Hi Ravi, welcome!...' and meta.variables=['Ravi']. payment_due with two vars fills {{1}} and {{2}} in correct order. Templates send OUTSIDE 24h window (verified with last_inbound_at back-dated 30h).",
+    "Settings RBAC correct: GET /whatsapp/settings gated leads.view (rahul 200); PUT gated config.manage (rahul 403, priya 200).",
+    "Assignment routing: with auto_assign=true, webhook-created conversations from brand-new phones get assigned_to a sales_exec/sales_manager. With auto_assign=false, new conversations remain unassigned. Balancing across agents verified across 4 sequential webhooks — assignments distributed across >=2 active sales agents (least-loaded).",
+    "Frontend template modal uses double-brace regex /\\{\\{(\\d+)\\}\\}/g which matches DB template body format (backend fillVariables replaces both {N} and {{N}} — verified via API).",
+    "Auto-assign was reset to TRUE at end of tests as instructed (verified by GET settings and by test_zzz_reset)."
+  ],
+  "updated_files": [
+    "/app/tests/whatsapp_canned_variables_routing_test.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "priya@crm.local/Demo@12345 (Sales Manager), rahul@crm.local/Demo@12345 (Sales Exec), partner@crm.local/Demo@12345 (Channel Partner)",
+  "seed_data_creation": "Created TEST_ prefixed canned replies (all deleted at end of tests). Created ~6 test WhatsApp conversations via webhook + simulate-inbound; some new leads created for brand-new phones (99xxx range) as required for routing tests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All three iteration-16 features are green. Test file at /app/tests/whatsapp_canned_variables_routing_test.py runs in ~3s (16 tests). auto_assign left ON as instructed. Response wrapper for canned replies uses key 'reply' (create/update) and 'replies' (list). Template variables can be sent as {type:'template', template:'<name>', variables:['v1','v2']}; body auto-derived from template body with placeholders filled. For routing tests use distinct phones per webhook (dedupe by phone). Frontend template preview uses {{N}} double-brace syntax; backend supports both {N} and {{N}}.",
+  "rca of the issue": "N/A — no functional failures. Test setup fixes: (a) canned CRUD response wrapper key is 'reply' not 'canned_reply'; (b) tinker closure cannot use 'use(&$q)' when the closure parameter is also $q — used $ql with use($p) instead; (c) User->role is a Role model (JSON serialized when echoed), assertion loosened to substring match of 'sales_exec' or 'sales_manager'."
+}

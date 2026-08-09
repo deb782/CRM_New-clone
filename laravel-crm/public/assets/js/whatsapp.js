@@ -134,12 +134,26 @@
       });
       const attachBtn = el('button', { class: 'btn', 'data-testid': 'wa-attach', disabled: !d.within_window ? 'disabled' : null, onclick: () => fileInput.click() }, el('i', { class: 'fa-solid fa-paperclip' }));
       const btnsBtn = el('button', { class: 'btn', 'data-testid': 'wa-buttons', disabled: !d.within_window ? 'disabled' : null, onclick: () => buttonsModal(c) }, el('i', { class: 'fa-solid fa-list-check' }));
+      const cannedBtn = el('button', { class: 'btn', 'data-testid': 'wa-canned', disabled: !d.within_window ? 'disabled' : null, onclick: () => cannedModal(ta) }, el('i', { class: 'fa-solid fa-bolt' }));
 
       composer.appendChild(fileInput);
       composer.appendChild(el('div', { style: 'display:flex;gap:8px;align-items:flex-end' },
         ta,
-        el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, sendBtn, el('div', { style: 'display:flex;gap:6px' }, tplBtn, attachBtn, btnsBtn))));
+        el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, sendBtn, el('div', { style: 'display:flex;gap:6px' }, tplBtn, cannedBtn, attachBtn, btnsBtn))));
       threadPane.appendChild(composer);
+    }
+
+    async function cannedModal(ta) {
+      let replies = [];
+      try { replies = (await api.get('/whatsapp/canned-replies')).replies || []; } catch (e) { /* ignore */ }
+      const list = el('div', { style: 'display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto' });
+      if (!replies.length) list.appendChild(el('div', { class: 'empty' }, el('div', {}, 'No canned replies yet — add them on the WA Canned Replies page')));
+      const m = modal({ title: 'Canned replies', bodyNode: list, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Close')] });
+      replies.forEach(r => {
+        list.appendChild(el('div', { class: 'card', 'data-testid': 'wa-canned-' + r.id, style: 'padding:10px 12px;cursor:pointer', onclick: () => { ta.value = ta.value ? (ta.value + ' ' + r.body) : r.body; ta.focus(); m.close(); } },
+          el('b', { style: 'font-size:13px' }, r.title + (r.shortcut ? (' · ' + r.shortcut) : '')),
+          el('div', { style: 'font-size:12px;color:var(--text-3)' }, (r.body || '').slice(0, 90))));
+      });
     }
 
     function buttonsModal(c) {
@@ -203,13 +217,38 @@
       const sel = el('select', { class: 'input', 'data-testid': 'wa-tpl-select' },
         el('option', { value: '' }, templates.length ? 'Select a template…' : 'No templates — sync from WA Templates page'),
         ...templates.map(t => el('option', { value: t.name }, t.name + ' (' + t.language + ')')));
+      const varsWrap = el('div', { 'data-testid': 'wa-tpl-vars' });
       const bodyI = el('textarea', { class: 'input', rows: '2', placeholder: 'Preview text stored in the thread', 'data-testid': 'wa-tpl-body' });
-      sel.addEventListener('change', () => { const t = templates.find(x => x.name === sel.value); bodyI.value = t?.body || ''; });
+      const nums = (t) => t && t.body ? [...new Set((t.body.match(/\{\{(\d+)\}\}/g) || []).map(s => parseInt(s.replace(/\D/g, ''))))].sort((a, b) => a - b) : [];
+      const store = {};
+      function currentVars() {
+        const t = templates.find(x => x.name === sel.value); const ns = nums(t);
+        if (!ns.length) return [];
+        const max = Math.max(...ns); const arr = [];
+        for (let i = 1; i <= max; i++) arr.push(store[i] || '');
+        return arr;
+      }
+      function updatePreview() {
+        const t = templates.find(x => x.name === sel.value);
+        bodyI.value = (t?.body || '').replace(/\{\{(\d+)\}\}/g, (mm, d) => store[parseInt(d)] || mm);
+      }
+      function renderVars() {
+        varsWrap.innerHTML = ''; Object.keys(store).forEach(k => delete store[k]);
+        const t = templates.find(x => x.name === sel.value);
+        nums(t).forEach(n => {
+          store[n] = '';
+          const i = el('input', { class: 'input', 'data-testid': 'wa-tpl-var-' + n, placeholder: '{{' + n + '}}' });
+          i.addEventListener('input', () => { store[n] = i.value; updatePreview(); });
+          varsWrap.appendChild(el('div', { class: 'field' }, el('label', {}, 'Variable {{' + n + '}}'), i));
+        });
+        updatePreview();
+      }
+      sel.addEventListener('change', renderVars);
       const save = el('button', { class: 'btn btn--primary', 'data-testid': 'wa-tpl-send' }, 'Send template');
-      const m = modal({ title: 'Send template message', bodyNode: el('div', {}, el('div', { class: 'field' }, el('label', {}, 'Template'), sel), el('div', { class: 'field' }, el('label', {}, 'Preview text'), bodyI)), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+      const m = modal({ title: 'Send template message', bodyNode: el('div', {}, el('div', { class: 'field' }, el('label', {}, 'Template'), sel), varsWrap, el('div', { class: 'field' }, el('label', {}, 'Preview'), bodyI)), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
       save.addEventListener('click', async () => {
         if (!sel.value) { toast('Select a template', 'error'); return; }
-        try { await api.post('/whatsapp/conversations/' + c.id + '/reply', { type: 'template', template: sel.value, body: bodyI.value.trim() || ('[Template: ' + sel.value + ']') }); m.close(); await loadThread(); loadList(); }
+        try { await api.post('/whatsapp/conversations/' + c.id + '/reply', { type: 'template', template: sel.value, variables: currentVars(), body: bodyI.value.trim() || ('[Template: ' + sel.value + ']') }); m.close(); await loadThread(); loadList(); }
         catch (e) { toast(e.message, 'error'); }
       });
     }
@@ -348,5 +387,53 @@
     view.appendChild(el('div', { class: 'section-title' }, 'Messages per agent'));
     if (!a.per_agent.length) view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px' }, 'No outbound messages yet'));
     else view.appendChild(tableWrap(['Agent', 'Sent'], a.per_agent.map(x => el('tr', { 'data-testid': 'wa-agent-row' }, el('td', {}, x.sender_name || 'Broadcasts / System'), el('td', {}, String(x.sent))))));
+
+    // Auto-assignment routing toggle
+    try {
+      const s = (await api.get('/whatsapp/settings')).settings;
+      const toggle = el('input', { type: 'checkbox', 'data-testid': 'wa-autoassign-toggle' }); toggle.checked = !!s.auto_assign;
+      toggle.addEventListener('change', async () => { try { await api.put('/whatsapp/settings', { auto_assign: toggle.checked }); toast('Saved', 'success'); } catch (e) { toast(e.message, 'error'); toggle.checked = !toggle.checked; } });
+      view.appendChild(el('div', { class: 'card', style: 'padding:14px 16px;margin-top:22px' },
+        el('label', { style: 'display:flex;gap:10px;align-items:center;font-size:14px;cursor:pointer' }, toggle,
+          el('div', {}, el('b', {}, 'Auto-assign new WhatsApp chats'), el('div', { style: 'font-size:12px;color:var(--text-3)' }, 'New conversations are routed to the least-busy available sales agent, so nothing sits unclaimed.')))));
+    } catch (e) { /* settings gated to managers */ }
+  };
+
+  // ========================= WA CANNED REPLIES =========================
+  CRM.pages.waCanned = async function (view) {
+    const addBtn = el('button', { class: 'btn btn--primary', 'data-testid': 'wa-canned-new', onclick: () => cannedForm() }, el('i', { class: 'fa-solid fa-bolt' }), 'New Canned Reply');
+    CRM.setActions(addBtn);
+    view.innerHTML = '<div class="spinner"></div>';
+    const { replies } = await api.get('/whatsapp/canned-replies');
+    view.innerHTML = '';
+    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:14px' }, 'Saved snippets agents insert with one click in the inbox to answer common questions faster.'));
+    if (!replies.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-bolt' }), el('div', {}, 'No canned replies yet'))); return; }
+    const rows = replies.map(r => el('tr', { 'data-testid': 'wa-canned-row-' + r.id },
+      el('td', {}, r.title), el('td', { class: 'mono' }, r.shortcut || '—'),
+      el('td', { style: 'color:var(--text-3);font-size:13px' }, (r.body || '').slice(0, 70)),
+      el('td', {}, el('div', { style: 'display:flex;gap:6px' },
+        el('button', { class: 'btn btn--sm', 'data-testid': 'wa-canned-edit-' + r.id, onclick: () => cannedForm(r) }, 'Edit'),
+        el('button', { class: 'btn btn--sm', 'data-testid': 'wa-canned-del-' + r.id, onclick: async () => { await api.del('/whatsapp/canned-replies/' + r.id); toast('Deleted', 'success'); CRM.render(); } }, 'Delete')))));
+    view.appendChild(tableWrap(['Title', 'Shortcut', 'Body', ''], rows));
+
+    function cannedForm(r) {
+      const f = { title: r?.title || '', shortcut: r?.shortcut || '', body: r?.body || '' };
+      const titleI = el('input', { class: 'input', value: f.title, 'data-testid': 'wa-canned-title' }); titleI.addEventListener('input', () => f.title = titleI.value);
+      const scI = el('input', { class: 'input', value: f.shortcut, placeholder: '/hours', 'data-testid': 'wa-canned-shortcut' }); scI.addEventListener('input', () => f.shortcut = scI.value);
+      const bodyI = el('textarea', { class: 'input', rows: '3', 'data-testid': 'wa-canned-body' }); bodyI.value = f.body; bodyI.addEventListener('input', () => f.body = bodyI.value);
+      const save = el('button', { class: 'btn btn--primary', 'data-testid': 'wa-canned-save' }, 'Save');
+      const m = modal({ title: r ? 'Edit Canned Reply' : 'New Canned Reply', bodyNode: el('div', {},
+        el('div', { class: 'field' }, el('label', {}, 'Title'), titleI),
+        el('div', { class: 'field' }, el('label', {}, 'Shortcut (optional)'), scI),
+        el('div', { class: 'field' }, el('label', {}, 'Message'), bodyI)), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+      save.addEventListener('click', async () => {
+        if (!f.title || !f.body) { toast('Title & message required', 'error'); return; }
+        try {
+          const body = { title: f.title, shortcut: f.shortcut || null, body: f.body };
+          if (r) await api.put('/whatsapp/canned-replies/' + r.id, body); else await api.post('/whatsapp/canned-replies', body);
+          toast('Saved', 'success'); m.close(); CRM.render();
+        } catch (e) { toast(e.message, 'error'); }
+      });
+    }
   };
 })();

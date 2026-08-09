@@ -78,6 +78,19 @@ class CloudApiDriver implements Contract
         ]);
     }
 
+    public function sendTemplate(string $phone, string $name, array $variables = [], string $language = 'en_US'): array
+    {
+        $template = ['name' => $name, 'language' => ['code' => $language]];
+        if (! empty($variables)) {
+            $template['components'] = [[
+                'type' => 'body',
+                'parameters' => array_map(fn ($v) => ['type' => 'text', 'text' => (string) $v], array_values($variables)),
+            ]];
+        }
+
+        return $this->post(['messaging_product' => 'whatsapp', 'to' => $phone, 'type' => 'template', 'template' => $template]);
+    }
+
     public function markRead(string $messageId): void
     {
         $token = config('integrations.whatsapp.cloud.token');

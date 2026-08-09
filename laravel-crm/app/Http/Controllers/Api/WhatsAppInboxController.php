@@ -57,6 +57,8 @@ class WhatsAppInboxController extends Controller
             'media_url' => 'nullable|string|max:2048',
             'buttons' => 'nullable|array|max:3',
             'buttons.*.title' => 'required_with:buttons|string|max:20',
+            'variables' => 'nullable|array|max:20',
+            'variables.*' => 'nullable|string|max:500',
         ]);
         $type = $data['type'] ?? 'text';
         if ($type === 'text' && empty($data['body'])) {
@@ -181,6 +183,21 @@ class WhatsAppInboxController extends Controller
             'per_agent' => $perAgent,
             'trend' => $trend,
         ]);
+    }
+
+    /** Auto-assignment settings (managers). */
+    public function settings()
+    {
+        return response()->json(['settings' => \App\Models\WhatsappSetting::current()]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $data = $request->validate(['auto_assign' => 'required|boolean']);
+        $s = \App\Models\WhatsappSetting::current();
+        $s->update($data);
+
+        return response()->json(['settings' => $s->fresh()]);
     }
 
     private function present(WhatsappConversation $c): array

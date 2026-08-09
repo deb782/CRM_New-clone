@@ -29,7 +29,37 @@ class InboxService
             'lead_id' => $lead->id,
             'contact_phone' => $lead->phone,
             'contact_name' => $lead->name,
+            'assigned_to' => $this->pickAgent(),
         ]);
+    }
+
+    /** Least-loaded auto-assignment across active sales agents (balanced round-robin). */
+    private function pickAgent(): ?int
+    {
+        if (! \App\Models\WhatsappSetting::current()->auto_assign) {
+            return null;
+        }
+        $roleIds = \App\Models\Role::whereIn('slug', ['sales_exec', 'sales_manager'])->pluck('id');
+        if ($roleIds->isEmpty()) {
+            return null;
+        }
+        $agents = User::where('is_active', true)->whereIn('role_id', $roleIds)->pluck('id');
+        if ($agents->isEmpty()) {
+            return null;
+        }
+        $counts = WhatsappConversation::where('status', 'open')->whereIn('assigned_to', $agents)
+            ->selectRaw('assigned_to, count(*) as c')->groupBy('assigned_to')->pluck('c', 'assigned_to');
+
+        return $agents->sortBy(fn ($id) => $counts[$id] ?? 0)->values()->first();
+    }
+
+    private function fillVariables(string $body, array $vars): string
+    {
+        return preg_replace_callback('/\{\{(\d+)\}\}/', function ($m) use ($vars) {
+            $i = (int) $m[1] - 1;
+
+            return $vars[$i] ?? $m[0];
+        }, $body);
     }
 
     public function recordInbound(WhatsappConversation $conv, string $body, string $type = 'text', ?string $mediaUrl = null, ?string $providerId = null): WhatsappMessage
@@ -85,15 +115,26 @@ class InboxService
         $mediaUrl = $data['media_url'] ?? null;
         $buttons = $data['buttons'] ?? null;
         $body = $data['body'] ?? '';
+        $variables = array_values($data['variables'] ?? []);
 
-        $res = match ($type) {
-            'template' => $this->driver->send($phone, $body ?: "[Template: {$template}]", $template),
-            'image', 'document', 'video' => $this->driver->sendMedia($phone, $type, (string) $mediaUrl, $body ?: null),
-            'interactive' => $this->driver->sendInteractive($phone, $body, $buttons ?: []),
-            default => $this->driver->send($phone, $body),
-        };
-        if ($type === 'template' && ! $body) {
-            $body = "[Template: {$template}]";
+        if ($type === 'template') {
+            $tpl = \App\Models\WhatsappTemplate::where('name', $template)->first();
+            $body = $tpl && $tpl->body ? $this->fillVariables($tpl->body, $variables) : ($body ?: "[Template: {$template}]");
+            $res = $this->driver->sendTemplate($phone, (string) $template, $variables, $tpl->language ?? 'en_US');
+        } else {
+            $res = match ($type) {
+                'image', 'document', 'video' => $this->driver->sendMedia($phone, $type, (string) $mediaUrl, $body ?: null),
+                'interactive' => $this->driver->sendInteractive($phone, $body, $buttons ?: []),
+                default => $this->driver->send($phone, $body),
+            };
+        }
+
+        $meta = [];
+        if ($buttons) {
+            $meta['buttons'] = $buttons;
+        }
+        if ($type === 'template' && $variables) {
+            $meta['variables'] = $variables;
         }
 
         $msg = WhatsappMessage::create([
@@ -105,7 +146,7 @@ class InboxService
             'template' => $template,
             'body' => $body,
             'media_url' => $mediaUrl,
-            'meta' => $buttons ? ['buttons' => $buttons] : null,
+            'meta' => $meta ?: null,
             'sender_name' => $agent?->name ?? 'Agent',
             'status' => $res['status'],
             'provider_id' => $res['provider_id'],

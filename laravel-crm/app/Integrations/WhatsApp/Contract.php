@@ -12,6 +12,14 @@ interface Contract
     public function send(string $phone, string $body, ?string $template = null): array;
 
     /**
+     * Send an approved template with body variables ({{1}}, {{2}}, ...).
+     *
+     * @param  array<int, string>  $variables
+     * @return array{provider_id:?string, status:string}
+     */
+    public function sendTemplate(string $phone, string $name, array $variables = [], string $language = 'en_US'): array;
+
+    /**
      * Send a media message (image|document|video) via a public link.
      *
      * @return array{provider_id:?string, status:string}

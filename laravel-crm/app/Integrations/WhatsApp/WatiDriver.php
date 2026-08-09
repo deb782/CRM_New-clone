@@ -52,4 +52,9 @@ class WatiDriver implements Contract
     {
         return [];
     }
+
+    public function sendTemplate(string $phone, string $name, array $variables = [], string $language = 'en_US'): array
+    {
+        return $this->send($phone, '[Template: '.$name.'] '.implode(' ', $variables), $name);
+    }
 }
