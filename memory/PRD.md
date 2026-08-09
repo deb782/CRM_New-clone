@@ -212,7 +212,14 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - **RBAC/isolation verified**: BDE/Sales Head/Admin → 200; Channel Partner → 403 (lacks `leads.view`). No mutation of workflow/run data.
 - Bug fixed during testing: integer node-id vs string `current_node` type-mismatch stopped the current/waiting station highlighting — normalized to String() both sides.
 
-## Implemented — Pipeline / Deals / Messaging / Access Presets (2026-06, tested iteration_25 100%)
+## A–T RE-CERTIFICATION after UI overhaul (2026-06, iteration_27 — 100% GREEN)
+Full backend acceptance suite re-run fresh after the UI/UX overhaul. **203/203 executed pass** (1 mocked-integration skip), 0 code regressions:
+- Sections: L 14/14, M 7/7, N 12/12, O·P·Q 15/15, R 19/19, R2/S automation 12+10, T 8/8, Phase B site-visits 18/18, Phase 2 onboarding RBAC 10/10, Phase 3 workflow RBAC 17/17, Phase 4 flow engine 19/19, batch3 SLA/role/referral 21/21, widget branding 13/13(+1 skip), Phase 5 journey 8/8.
+- Overhaul endpoints re-confirmed: PUT /auth/profile (200), GET /permissions (200), POST /roles/1/reset-permissions (422 admin-locked), GET /leads/{id}/journey (partner 403).
+- Test-only fixes made (no app code changed): stale fixtures referencing removed legacy accounts/role slugs updated to the 12-role hierarchy; `test_phase5_lead_journey.py` now resolves a waiting-run lead dynamically instead of hard-coding lead #20.
+- Caveats: all integrations remain MOCKED (not live-delivery verified); MySQL data not durable across container resets; login throttle (60/min) requires per-module runs.
+
+
 - **Pipeline Polish** (`leads.js` v=14): Kanban restyled to the new language (rounded surface-2 columns, uppercase headers with count pills, temp-dot cards) + **HTML5 drag-and-drop** to move a lead between stages (`POST /leads/{id}/transition {stage}`); respects pipeline transition rules (shows a toast + reloads on block). Plain click still opens the lead drawer.
 - **Deals Editorial** (`deals.js` v=11): Collections (money hero Collected/Scheduled/Outstanding + 5-bucket ageing strip), Bookings (hero: total deal value / confirmed / token collected), Demand Letters (hero: total due / escalated / settled) — all with big editorial numbers + calm tables.
 - **Messaging split-view** (`whatsapp.js` v=15): WhatsApp Inbox reimagined as a 3-pane workspace — conversation list | live thread | **contextual lead panel** (avatar, score, temp, stage, tags, "Open full lead"). Fixed stale CSS vars via legacy aliases (`--line/--bg-2/--accent-weak/--text-1`) so the inbox renders correctly.
