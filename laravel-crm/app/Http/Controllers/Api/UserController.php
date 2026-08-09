@@ -17,12 +17,31 @@ class UserController extends Controller
 
     public function roles()
     {
-        return response()->json(['data' => Role::withCount('users')->with('permissions:id,key,label,group')->get()]);
+        $defaults = config('role_defaults', []);
+        $roles = Role::withCount('users')->with('permissions:id,key,label,group')->get();
+        $roles->each(function ($r) use ($defaults) {
+            $r->setAttribute('default_keys', $r->slug === 'admin' ? ['*'] : ($defaults[$r->slug] ?? []));
+        });
+
+        return response()->json(['data' => $roles]);
     }
 
     public function permissions()
     {
         return response()->json(['data' => Permission::orderBy('group')->orderBy('id')->get(['id', 'key', 'label', 'group'])]);
+    }
+
+    public function resetPermissions(Request $request, Role $role)
+    {
+        if ($role->slug === 'admin') {
+            return response()->json(['message' => 'Super Admin always has full access.'], 422);
+        }
+        $keys = config('role_defaults.'.$role->slug, []);
+        $ids = Permission::whereIn('key', $keys)->pluck('id')->all();
+        $role->permissions()->sync($ids);
+        \Illuminate\Support\Facades\Log::info('[RBAC] role "'.$role->slug.'" reset to default by '.($request->user()->email ?? 'system'));
+
+        return response()->json(['role' => $role->fresh()->loadCount('users')->load('permissions:id,key,label,group')]);
     }
 
     public function updateRolePermissions(Request $request, Role $role)

@@ -480,16 +480,38 @@
     CRM.setActions(null);
     const res = await api.get('/leads/board');
     view.innerHTML = '';
+    const canMove = CRM.can('leads.edit');
     const board = el('div', { class: 'kanban', 'data-testid': 'kanban' });
+    const dotColor = { hot: 'var(--hot)', warm: 'var(--warm)', cold: 'var(--cold)' };
+
     res.stages.forEach(stage => {
       const leads = res.leads[stage.id] || [];
       const col = el('div', { class: 'kcol', 'data-testid': 'kcol-' + stage.slug });
+      col.dataset.stage = stage.slug;
       col.appendChild(el('div', { class: 'kcol__head' }, el('span', {}, stage.name), el('span', { class: 'count' }, leads.length)));
       const bodyEl = el('div', { class: 'kcol__body' });
-      leads.forEach(l => bodyEl.appendChild(el('div', { class: 'kcard', 'data-testid': 'kcard-' + l.id, onclick: () => location.hash = '#/leads/' + l.id },
-        el('div', { class: 'kn' }, l.name),
-        el('div', { class: 'ks' }, l.email || l.phone || ''),
-        el('div', { class: 'kf' }, tempBadge(l.temperature), el('b', { class: 'mono', style: 'font-size:12px' }, String(l.score))))));
+      leads.forEach(l => {
+        const card = el('div', { class: 'kcard', 'data-testid': 'kcard-' + l.id, draggable: canMove ? 'true' : null, onclick: () => location.hash = '#/leads/' + l.id },
+          el('div', { class: 'kn' }, el('span', { class: 'kdot', style: 'background:' + (dotColor[l.temperature] || 'var(--text-3)') }), l.name),
+          el('div', { class: 'ks' }, l.email || l.phone || ''),
+          el('div', { class: 'kf' }, tempBadge(l.temperature), el('b', { class: 'mono', style: 'font-size:12px' }, String(l.score))));
+        if (canMove) {
+          card.addEventListener('dragstart', (e) => { card.classList.add('dragging'); e.dataTransfer.setData('text/plain', JSON.stringify({ id: l.id, from: stage.slug })); e.dataTransfer.effectAllowed = 'move'; });
+          card.addEventListener('dragend', () => card.classList.remove('dragging'));
+        }
+        bodyEl.appendChild(card);
+      });
+      if (canMove) {
+        col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('drop-target'); });
+        col.addEventListener('dragleave', () => col.classList.remove('drop-target'));
+        col.addEventListener('drop', async (e) => {
+          e.preventDefault(); col.classList.remove('drop-target');
+          let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (_) { return; }
+          if (!payload || payload.from === stage.slug) return;
+          try { await api.post('/leads/' + payload.id + '/transition', { stage: stage.slug }); toast('Moved to ' + stage.name, 'success'); CRM.render(); }
+          catch (err) { toast(err.message || 'Transition not allowed', 'error'); CRM.render(); }
+        });
+      }
       col.appendChild(bodyEl);
       board.appendChild(col);
     });

@@ -1,0 +1,26 @@
+{
+  "summary": "Frontend verification of iteration 25 (Pipeline drag/drop, Deals editorial, WhatsApp 3-pane split-view, Access Presets reset). All 5 requested scenarios PASS with 0 console errors. Seed data restored (lead 4 back in new_lead; legal_head reset to 3 default perms).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Pipeline kanban: 11 stage columns render with data-testid='kcol-<slug>' and count pills. 9 lead cards render with temperature dot + score. HTML5 drag from kcol-new_lead (kcard-4) to kcol-contacted fires POST /api/v1/leads/4/transition {stage:'contacted'} -> 200 and toast 'Moved to Contacted'. Reverse drag back to new_lead also succeeds ('Moved to New Lead'). Plain click on kcard-4 (no drag) navigates to #/leads/4 and opens the lead drawer (Divya Iyer) — drag vs click disambiguation works cleanly.",
+    "Deals editorial: #/collections shows [data-testid=collections-cards] (Collected/Scheduled/Outstanding) + [data-testid=aging-buckets] with exactly 5 bucket children. #/bookings shows [data-testid=bookings-hero] (bookings-tbody count=0 — table structure present but no rows because no bookings seeded, acceptable). #/demands shows [data-testid=demands-hero]. No console errors.",
+    "WhatsApp Inbox 3-pane split-view (#/inbox): [data-testid=wa-shell], wa-conv-list, wa-thread, wa-context all present. wa-filter-all|mine|unread pills all present. 0 seeded conversations — empty states 'Select a conversation' and 'Lead details appear here' both render (matches spec). No inbound simulator available; skipped conversation-populated leg per spec.",
+    "Access Presets: Super Admin (access-role-admin) shows 'Full access' and 0 access-reset buttons — correctly locked. Selecting legal_head shows access-reset next to Save (visible even before change, backend gates it — non-blocking). No diff badge initially. Toggling access-perm-crm-view ON + Save -> PUT /api/v1/roles/14/permissions -> toast 'Access updated for Legal Head' -> reselect shows access-diff-legal_head 'Customised' badge (1). Clicking access-reset -> confirm dialog accepted -> toast 'Reset to default access' -> reselect shows diff badge count=0 and exactly 3 enabled perm toggles (leads.view, legal.view, legal.manage). Full lifecycle verified end-to-end.",
+    "Regression: #/dashboard, #/inventory, #/users, #/profile all navigate cleanly with substantive content. Cmd+K opens command palette (Dashboard/SLA/Tasks/Leads/Pipeline/... listed). Toast replacement: consecutive save+reset toasts each replace the prior — no visible stacking during the RBAC flow this iteration.",
+    "MINOR observation: access-reset button appears immediately when legal_head is selected (even before any change). Since backend endpoint is idempotent and reset always restores defaults, this is harmless — but arguably it could be hidden while the row already matches defaults for cleaner UX (mirror the 'Customised' badge logic)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (5/5 scenarios)"},
+  "test_credentials": "admin@crm.local / Admin@12345 (used)",
+  "seed_data_creation": "Mutations made and REVERTED: (1) Lead 4 dragged new_lead->contacted then back to new_lead (verified via activity log 'contacted -> new_lead'). (2) legal_head granted crm.view then reset — final 3 perms (leads.view, legal.view, legal.manage) restored (verified via toggle count=3 and diff badge cleared).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "1) Laravel app at http://localhost:8000, hash router. Login: admin@crm.local / Admin@12345 via 'Sign in' button then force location.hash='#/dashboard' as admin may redirect to #/onboarding. 2) Pipeline drag uses HTML5 native events but page.mouse.down/move/up with steps=10 works. 3) legal_head role id=14 defaults = leads.view + legal.view + legal.manage. 4) No seeded WhatsApp conversations — empty state is the expected path. 5) Bookings table [data-testid=bookings-tbody] renders empty (0 rows) since no bookings seeded. 6) access-reset shows even when already at defaults (see minor observation)."
+}

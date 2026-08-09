@@ -107,6 +107,13 @@
     let selected = roles.find(r => r.slug !== 'admin' && r.slug !== 'channel_partner') || roles[0];
     let enabled = new Set(); let dirty = false;
 
+    function isCustomised(r) {
+      if (r.slug === 'admin') return false;
+      const cur = (r.permissions || []).map(p => p.key).sort().join(',');
+      const def = (r.default_keys || []).slice().sort().join(',');
+      return cur !== def;
+    }
+
     const roleList = el('div', { class: 'access-roles', 'data-testid': 'access-roles' });
     const panel = el('div', { class: 'access-panel card', 'data-testid': 'access-panel' });
 
@@ -125,7 +132,7 @@
         rs.forEach(r => {
           const locked = r.slug === 'admin';
           const item = el('button', { class: 'access-role' + (selected && selected.id === r.id ? ' active' : '') + (locked ? ' locked' : ''), 'data-testid': 'access-role-' + r.slug, onclick: () => selectRole(r) },
-            el('div', {}, el('div', { class: 'access-role__name' }, r.name), el('div', { class: 'access-role__meta' }, locked ? 'Full access' : (r.permissions ? r.permissions.length : 0) + ' features · ' + r.users_count + ' users')),
+            el('div', {}, el('div', { class: 'access-role__name' }, r.name, isCustomised(r) ? el('span', { class: 'access-role__diff', 'data-testid': 'access-diff-' + r.slug }, 'Customised') : null), el('div', { class: 'access-role__meta' }, locked ? 'Full access' : (r.permissions ? r.permissions.length : 0) + ' features · ' + r.users_count + ' users')),
             locked ? el('i', { class: 'fa-solid fa-lock' }) : el('i', { class: 'fa-solid fa-chevron-right' }));
           roleList.appendChild(item);
         });
@@ -144,11 +151,22 @@
       const locked = selected.slug === 'admin';
       const searchInput = el('input', { class: 'input', placeholder: 'Search a feature…', 'data-testid': 'access-search', style: 'max-width:320px' });
       const saveBtn = el('button', { class: 'btn btn--primary', 'data-testid': 'access-save', disabled: 'disabled' }, 'Save access');
+      const resetBtn = el('button', { class: 'btn', 'data-testid': 'access-reset' }, el('i', { class: 'fa-solid fa-rotate-left' }), 'Reset to default');
+      resetBtn.addEventListener('click', async () => {
+        if (!confirm('Reset ' + selected.name + ' to its default (KRA) access?')) return;
+        resetBtn.disabled = true;
+        try {
+          const r = await api.post('/roles/' + selected.id + '/reset-permissions', {});
+          const idx = roles.findIndex(x => x.id === selected.id);
+          if (idx >= 0) { roles[idx].permissions = r.role.permissions; selected = roles[idx]; }
+          dirty = false; toast('Reset to default access', 'success'); paintRoles(); paintPanel();
+        } catch (e) { toast(e.message, 'error'); resetBtn.disabled = false; }
+      });
 
       panel.appendChild(el('div', { class: 'access-panel__head' },
         el('div', {}, el('div', { class: 'access-panel__role' }, selected.name),
-          el('div', { class: 'access-panel__sub' }, locked ? 'Super Admin has unrestricted access to every feature.' : (DEPT[selected.department] || selected.department) + ' · ' + selected.users_count + ' user(s)')),
-        locked ? null : saveBtn));
+          el('div', { class: 'access-panel__sub' }, locked ? 'Super Admin has unrestricted access to every feature.' : (DEPT[selected.department] || selected.department) + ' · ' + selected.users_count + ' user(s)' + (isCustomised(selected) ? ' · customised' : ' · default access'))),
+        locked ? null : el('div', { class: 'access-panel__actions' }, resetBtn, saveBtn)));
 
       if (locked) { panel.appendChild(el('div', { class: 'empty', style: 'padding:40px' }, el('i', { class: 'fa-solid fa-shield-halved' }), el('div', {}, 'Full access — nothing to configure'))); return; }
       panel.appendChild(el('div', { style: 'margin:4px 0 20px' }, searchInput));

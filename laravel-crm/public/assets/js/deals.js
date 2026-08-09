@@ -404,18 +404,19 @@
     CRM.setActions(null);
     const d = await api.get('/collections');
     view.innerHTML = '';
-    const card = (label, val, color) => el('div', { class: 'card', style: 'padding:16px;flex:1' }, el('div', { style: 'font-size:12px;color:var(--text-3)' }, label), el('div', { style: 'font-size:22px;font-weight:700;margin-top:4px;color:' + (color || 'var(--text-1)') }, money(val)));
-    view.appendChild(el('div', { style: 'display:flex;gap:14px;margin-bottom:18px', 'data-testid': 'collections-cards' },
-      card('Collected', d.collected, 'var(--won)'), card('Scheduled', d.scheduled), card('Outstanding', d.outstanding, 'var(--warm)')));
-    view.appendChild(el('div', { class: 'section-title' }, 'Aging'));
+    view.appendChild(el('div', { class: 'deal-hero', 'data-testid': 'collections-cards' },
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Collected'), el('div', { class: 'deal-hero__v', style: 'color:var(--won)' }, money(d.collected))),
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Scheduled'), el('div', { class: 'deal-hero__v' }, money(d.scheduled))),
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Outstanding'), el('div', { class: 'deal-hero__v', style: 'color:var(--warm)' }, money(d.outstanding)))));
+    view.appendChild(el('div', { class: 'section-title' }, 'Ageing of receivables'));
     const ag = d.aging || {};
-    view.appendChild(el('div', { style: 'display:flex;gap:12px;margin-bottom:18px', 'data-testid': 'aging-buckets' },
-      ...[['Current', 'current'], ['0–30d', '0_30'], ['31–60d', '31_60'], ['61–90d', '61_90'], ['90d+', '90_plus']].map(([l, k]) =>
-        el('div', { class: 'card', style: 'padding:12px;flex:1;text-align:center' }, el('div', { style: 'font-size:11px;color:var(--text-3)' }, l), el('div', { style: 'font-weight:600;margin-top:4px' }, money(ag[k] || 0))))));
+    view.appendChild(el('div', { class: 'aging-strip', 'data-testid': 'aging-buckets' },
+      ...[['Current', 'current', 0], ['0–30 days', '0_30', 0], ['31–60 days', '31_60', 0], ['61–90 days', '61_90', 1], ['90 days+', '90_plus', 1]].map(([l, k, hot]) =>
+        el('div', { class: 'aging-cell' + (hot && (ag[k] || 0) > 0 ? ' aging-cell--hot' : '') }, el('div', { class: 'l' }, l), el('div', { class: 'v' }, money(ag[k] || 0))))));
     view.appendChild(el('div', { class: 'section-title' }, 'Overdue milestones'));
     if (!(d.overdue_milestones || []).length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-circle-check' }), el('div', {}, 'Nothing overdue'))); return; }
     const tbody = el('tbody', { 'data-testid': 'collections-overdue' });
-    d.overdue_milestones.forEach(m => tbody.appendChild(el('tr', {}, el('td', { class: 'mono' }, m.booking_ref || '—'), el('td', {}, m.label), el('td', {}, money(m.outstanding)), el('td', {}, m.days_overdue + 'd'))));
+    d.overdue_milestones.forEach(m => tbody.appendChild(el('tr', {}, el('td', { class: 'mono' }, m.booking_ref || '—'), el('td', {}, m.label), el('td', {}, money(m.outstanding)), el('td', {}, el('span', { class: 'chip', style: 'color:var(--hot)' }, m.days_overdue + 'd overdue')))));
     view.appendChild(el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Booking'), el('th', {}, 'Milestone'), el('th', {}, 'Outstanding'), el('th', {}, 'Overdue'))), tbody)));
   };
 
@@ -424,16 +425,24 @@
     CRM.setActions(null);
     const res = await api.get('/demand-letters');
     view.innerHTML = '';
-    if (!res.data.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-invoice-dollar' }), el('div', {}, 'No demand letters yet'))); return; }
+    const rows = res.data || [];
+    const totalDue = rows.reduce((a, d) => a + Number(d.total_due || 0), 0);
+    const escalated = rows.filter(d => d.status === 'escalated').length;
+    const paid = rows.filter(d => d.status === 'paid').length;
+    view.appendChild(el('div', { class: 'deal-hero', 'data-testid': 'demands-hero' },
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Total due'), el('div', { class: 'deal-hero__v', style: 'color:var(--warm)' }, money(totalDue))),
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Escalated'), el('div', { class: 'deal-hero__v', style: escalated ? 'color:var(--hot)' : '' }, String(escalated))),
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Settled'), el('div', { class: 'deal-hero__v', style: 'color:var(--won)' }, paid + ' / ' + rows.length)))); 
+    if (!rows.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-invoice-dollar' }), el('div', {}, 'No demand letters yet'))); return; }
     const colors = { issued: 'var(--warm)', paid: 'var(--won)', escalated: 'var(--hot)' };
     const tbody = el('tbody', { 'data-testid': 'demands-tbody' });
-    res.data.forEach(d => tbody.appendChild(el('tr', { 'data-testid': 'demand-row-' + d.id, onclick: () => d.lead && (location.hash = '#/leads/' + d.lead.id) },
+    rows.forEach(d => tbody.appendChild(el('tr', { 'data-testid': 'demand-row-' + d.id, onclick: () => d.lead && (location.hash = '#/leads/' + d.lead.id) },
       el('td', { class: 'mono' }, d.serial_no),
       el('td', {}, d.lead ? d.lead.name : '—'),
       el('td', {}, d.booking ? d.booking.booking_ref : '—'),
       el('td', {}, money(d.total_due)),
-      el('td', {}, d.days_overdue + 'd'),
-      el('td', {}, el('span', { class: 'chip', style: 'color:' + (colors[d.status] || 'var(--text-2)') }, d.status)))));
+      el('td', {}, el('span', { class: 'chip', style: d.days_overdue > 0 ? 'color:var(--hot)' : '' }, d.days_overdue + 'd')),
+      el('td', {}, el('span', { class: 'stage-pill', style: 'color:' + (colors[d.status] || 'var(--text-2)') }, d.status)))));
     view.appendChild(el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Ref'), el('th', {}, 'Customer'), el('th', {}, 'Booking'), el('th', {}, 'Total Due'), el('th', {}, 'Overdue'), el('th', {}, 'Status'))), tbody)));
   };
 
@@ -474,9 +483,17 @@
     CRM.setActions(null);
     const res = await api.get('/bookings');
     view.innerHTML = '';
-    if (!res.data.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-contract' }), el('div', {}, 'No bookings yet'))); return; }
+    const rows = res.data || [];
+    const totalValue = rows.reduce((a, b) => a + Number(b.deal_value || 0), 0);
+    const confirmed = rows.filter(b => b.status === 'confirmed').length;
+    const tokenCollected = rows.reduce((a, b) => a + Number(b.token_amount || 0), 0);
+    view.appendChild(el('div', { class: 'deal-hero', 'data-testid': 'bookings-hero' },
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Total deal value'), el('div', { class: 'deal-hero__v' }, money(totalValue))),
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Confirmed bookings'), el('div', { class: 'deal-hero__v' }, confirmed + ' / ' + rows.length)),
+      el('div', { class: 'deal-hero__cell' }, el('div', { class: 'deal-hero__l' }, 'Token collected'), el('div', { class: 'deal-hero__v', style: 'color:var(--won)' }, money(tokenCollected)))));
+    if (!rows.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-contract' }), el('div', {}, 'No bookings yet'))); return; }
     const tbody = el('tbody', { 'data-testid': 'bookings-tbody' });
-    res.data.forEach(b => {
+    rows.forEach(b => {
       const statusColor = { initiated: 'var(--text-3)', form_sent: 'var(--accent)', form_submitted: 'var(--warm)', verified: 'var(--accent)', confirmed: 'var(--won)', cancelled: 'var(--hot)' }[b.status] || 'var(--text-2)';
       tbody.appendChild(el('tr', { 'data-testid': 'booking-row-' + b.id, onclick: () => b.lead && (location.hash = '#/leads/' + b.lead.id) },
         el('td', { class: 'mono' }, b.booking_ref),
@@ -484,7 +501,7 @@
         el('td', {}, b.project ? b.project.name : '—', b.plot ? el('div', { style: 'font-size:12px;color:var(--text-3)' }, 'Unit ' + b.plot.number) : null),
         el('td', {}, money(b.deal_value)),
         el('td', {}, money(b.token_amount) + ' · ' + b.token_status),
-        el('td', {}, el('span', { class: 'chip', style: 'color:' + statusColor }, CRM.stageName(b.status)))));
+        el('td', {}, el('span', { class: 'stage-pill', style: 'color:' + statusColor }, CRM.stageName(b.status)))));
     });
     view.appendChild(el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Ref'), el('th', {}, 'Customer'), el('th', {}, 'Project / Unit'), el('th', {}, 'Deal Value'), el('th', {}, 'Token'), el('th', {}, 'Status'))), tbody)));
   };

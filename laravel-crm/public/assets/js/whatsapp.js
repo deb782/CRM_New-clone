@@ -1,6 +1,6 @@
 // ---- WhatsApp Business: Team Inbox, Broadcasts, Auto-Replies ----
 (function () {
-  const { el, api, toast, modal, timeAgo, can } = CRM;
+  const { el, api, toast, modal, timeAgo, can, initials } = CRM;
 
   function tableWrap(headers, rows) {
     return el('div', { class: 'table-wrap' }, el('table', {},
@@ -22,24 +22,46 @@
     stopPoll();
     view.innerHTML = '';
 
-    const listPane = el('div', { class: 'card', style: 'width:320px;min-width:280px;max-height:calc(100vh - 190px);overflow-y:auto;padding:0', 'data-testid': 'wa-conv-list' });
-    const threadPane = el('div', { class: 'card', style: 'flex:1;display:flex;flex-direction:column;min-width:0;max-height:calc(100vh - 190px);padding:0', 'data-testid': 'wa-thread' });
+    const listBody = el('div', { class: 'wa-list__body' });
+    const filterBar = el('div', { class: 'wa-list__filters' });
+    const listPane = el('div', { class: 'wa-pane', 'data-testid': 'wa-conv-list' }, filterBar, listBody);
+    const threadPane = el('div', { class: 'wa-pane', 'data-testid': 'wa-thread' });
+    const contextPane = el('div', { class: 'wa-pane wa-lead', 'data-testid': 'wa-context' });
 
     const mkFilter = (k, label) => el('button', {
       class: 'btn btn--sm' + (filter === k ? ' btn--primary' : ''), 'data-testid': 'wa-filter-' + k,
       onclick: () => { filter = k; renderFilters(); loadList(); }
     }, label);
-    const filterBar = el('div', { style: 'display:flex;gap:6px;margin-bottom:12px' });
     function renderFilters() { filterBar.innerHTML = ''; [['all', 'All'], ['mine', 'Mine'], ['unread', 'Unread']].forEach(([k, l]) => filterBar.appendChild(mkFilter(k, l))); }
     renderFilters();
 
-    view.appendChild(el('div', {}, filterBar,
-      el('div', { style: 'display:flex;gap:16px;align-items:flex-start' }, listPane, threadPane)));
-    emptyThread();
+    view.appendChild(el('div', { class: 'wa-shell', 'data-testid': 'wa-shell' }, listPane, threadPane, contextPane));
+    emptyThread(); emptyContext();
 
     function emptyThread() {
       threadPane.innerHTML = '';
       threadPane.appendChild(el('div', { class: 'empty', style: 'margin:auto' }, el('i', { class: 'fa-brands fa-whatsapp', style: 'color:#25D366' }), el('div', {}, 'Select a conversation')));
+    }
+    function emptyContext() {
+      contextPane.innerHTML = '';
+      contextPane.appendChild(el('div', { class: 'empty', style: 'margin:auto;padding:20px;text-align:center' }, el('i', { class: 'fa-solid fa-address-card' }), el('div', {}, 'Lead details appear here')));
+    }
+    function renderContext(c) {
+      contextPane.innerHTML = '';
+      if (!c.lead) { emptyContext(); return; }
+      const L = c.lead;
+      contextPane.appendChild(el('div', {},
+        el('div', { class: 'wa-lead__avatar' }, initials(L.name)),
+        el('div', { class: 'wa-lead__name' }, L.name),
+        el('div', { class: 'wa-lead__phone' }, c.contact_phone || L.phone || ''),
+        el('div', { class: 'wa-lead__stats' },
+          el('div', { class: 'wa-lead__stat' }, el('div', { class: 'l' }, 'Score'), el('div', { class: 'v' }, String(L.score != null ? L.score : '—'))),
+          el('div', { class: 'wa-lead__stat' }, el('div', { class: 'l' }, 'Temp'), el('div', { class: 'v', style: 'text-transform:capitalize' }, L.temperature || '—'))),
+        el('div', {},
+          L.status ? el('div', { class: 'wa-lead__row' }, el('span', { class: 'k' }, 'Stage'), el('span', {}, CRM.stageName(L.status))) : null,
+          L.email ? el('div', { class: 'wa-lead__row' }, el('span', { class: 'k' }, 'Email'), el('span', { style: 'max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, L.email)) : null,
+          (c.tags && c.tags.length) ? el('div', { class: 'wa-lead__row' }, el('span', { class: 'k' }, 'Tags'), el('span', {}, c.tags.join(', '))) : null),
+        el('a', { class: 'btn btn--primary btn--sm', href: '#/leads/' + L.id, style: 'margin-top:18px;width:100%;justify-content:center', 'data-testid': 'wa-open-lead' }, el('i', { class: 'fa-solid fa-arrow-up-right-from-square' }), 'Open full lead')));
     }
 
     async function loadList() {
@@ -51,20 +73,20 @@
       const res = await api.get(path);
       agents = res.agents || [];
       const convs = res.conversations || [];
-      listPane.innerHTML = '';
-      if (!convs.length) { listPane.appendChild(el('div', { class: 'empty', style: 'padding:30px 12px' }, el('div', {}, 'No conversations'))); return; }
+      listBody.innerHTML = '';
+      if (!convs.length) { listBody.appendChild(el('div', { class: 'empty', style: 'padding:30px 12px' }, el('div', {}, 'No conversations'))); return; }
       convs.forEach(c => {
-        listPane.appendChild(el('div', {
+        listBody.appendChild(el('div', {
+          class: 'wa-conv' + (c.id === activeId ? ' active' : ''),
           'data-testid': 'wa-conv-' + c.id,
-          style: 'padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;' + (c.id === activeId ? 'background:var(--accent-weak,#eef2ff)' : ''),
           onclick: () => openThread(c.id)
         },
-          el('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px' },
-            el('b', { style: 'font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis' }, c.contact_name),
-            c.unread_count ? el('span', { 'data-testid': 'wa-unread-' + c.id, style: 'background:#25D366;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600' }, String(c.unread_count)) : null),
-          el('div', { style: 'font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px' }, c.last_message_preview || '—'),
-          (c.tags && c.tags.length) ? el('div', { style: 'display:flex;gap:4px;flex-wrap:wrap;margin-top:4px' }, ...c.tags.slice(0, 3).map(t => el('span', { class: 'chip', style: 'font-size:10px;padding:0 6px' }, t))) : null,
-          el('div', { style: 'font-size:11px;color:var(--text-3);margin-top:3px' }, c.contact_phone + ' · ' + (c.last_message_at ? timeAgo(c.last_message_at) : ''))));
+          el('div', { class: 'wa-conv__top' },
+            el('div', { class: 'wa-conv__name' }, c.contact_name),
+            c.unread_count ? el('span', { class: 'wa-conv__badge', 'data-testid': 'wa-unread-' + c.id }, String(c.unread_count)) : null),
+          el('div', { class: 'wa-conv__preview' }, c.last_message_preview || '—'),
+          (c.tags && c.tags.length) ? el('div', { style: 'display:flex;gap:4px;flex-wrap:wrap;margin-top:6px' }, ...c.tags.slice(0, 3).map(t => el('span', { class: 'chip', style: 'font-size:10px;padding:0 6px' }, t))) : null,
+          el('div', { class: 'wa-conv__meta' }, c.contact_phone + ' · ' + (c.last_message_at ? timeAgo(c.last_message_at) : ''))));
       });
     }
 
@@ -80,6 +102,7 @@
     function buildThread(d) {
       const c = d.conversation;
       threadPane.innerHTML = '';
+      renderContext(c);
 
       // Header
       const assignSel = el('select', { class: 'input', style: 'width:auto;height:32px;font-size:13px', 'data-testid': 'wa-assign' },

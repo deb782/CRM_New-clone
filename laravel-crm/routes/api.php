@@ -313,6 +313,7 @@ Route::prefix('v1')->group(function () {
         Route::get('roles', [UserController::class, 'roles']);
         Route::get('permissions', [UserController::class, 'permissions'])->middleware('permission:users.manage');
         Route::put('roles/{role}/permissions', [UserController::class, 'updateRolePermissions'])->middleware('permission:users.manage');
+        Route::post('roles/{role}/reset-permissions', [UserController::class, 'resetPermissions'])->middleware('permission:users.manage');
         }); // end force_pw group
     });
 });
