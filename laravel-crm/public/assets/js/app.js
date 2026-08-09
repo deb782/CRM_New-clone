@@ -93,8 +93,8 @@
     app.appendChild(el('div', { class: 'auth' },
       el('div', { class: 'auth__brand' },
         el('div', {},
-          el('div', { class: 'nav__logo', style: 'width:40px;height:40px;font-size:18px;border-radius:11px' }, 'RE'),
-          el('h1', { style: 'margin-top:28px' }, 'Real Estate CRM'),
+          el('img', { src: '/assets/img/agrocorp-mark.png', alt: 'Agrocorp', style: 'height:56px;width:auto;display:block' }),
+          el('h1', { style: 'margin-top:24px' }, 'Agrocorp CRM'),
           el('p', {}, 'Pre-Sales to Post-Sales, one workspace. Capture, qualify, nurture and convert leads with automated scoring and workflows.')
         ),
         el('div', { class: 'auth__badges' },
@@ -118,7 +118,7 @@
   function renderShell(active) {
     const app = document.getElementById('app');
     const nav = el('nav', { class: 'nav', id: 'nav' });
-    nav.appendChild(el('div', { class: 'nav__brand' }, el('div', { class: 'nav__logo' }, 'RE'), 'Real Estate CRM'));
+    nav.appendChild(el('div', { class: 'nav__brand' }, el('img', { src: '/assets/img/agrocorp-mark.png', alt: 'Agrocorp', class: 'nav__logo-img' }), 'Agrocorp CRM'));
 
     NAV.forEach(group => {
       if (group.perm && !can(group.perm)) return;

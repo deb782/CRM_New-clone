@@ -30,8 +30,8 @@
     app.innerHTML = '';
     app.appendChild(el('div', { class: 'auth', 'data-testid': 'force-change-password' },
       el('div', { class: 'auth__brand' }, el('div', {},
-        el('div', { class: 'nav__logo', style: 'width:40px;height:40px;font-size:18px;border-radius:11px' }, 'RE'),
-        el('h1', { style: 'margin-top:28px' }, 'Secure your account'),
+        el('img', { src: '/assets/img/agrocorp-mark.png', alt: 'Agrocorp', style: 'height:52px;width:auto;display:block' }),
+        el('h1', { style: 'margin-top:24px' }, 'Secure your account'),
         el('p', {}, 'For your security, please set a new password before you start. Your temporary password can no longer be used.'))),
       el('div', { class: 'auth__form' }, el('form', { class: 'auth__card', onsubmit: submit },
         el('h2', {}, 'Create a new password'),
@@ -318,7 +318,7 @@
       const msgs = ['Preparing your dashboard…', 'Loading your projects…', 'Wiring up your team…', 'Almost ready…'];
       const line = el('div', { style: 'font-size:15px;color:var(--text-2);margin-top:18px', 'data-testid': 'ob-launch-msg' }, msgs[0]);
       host.appendChild(el('div', { 'data-testid': 'ob-launch', style: 'text-align:center;padding:60px 20px' },
-        el('div', { class: 'nav__logo', style: 'width:64px;height:64px;font-size:26px;border-radius:18px;margin:0 auto;animation:pulse 1.4s infinite' }, 'RE'),
+        el('img', { src: '/assets/img/agrocorp-mark.png', alt: 'Agrocorp', style: 'height:76px;width:auto;margin:0 auto;display:block;animation:pulse 1.4s infinite' }),
         el('h2', { style: 'margin-top:24px' }, 'Setting things up 🚀'), line,
         el('div', { style: 'height:6px;border-radius:6px;background:var(--surface-2);overflow:hidden;max-width:360px;margin:26px auto 0' },
           el('div', { id: 'ob-launch-bar', style: 'height:100%;width:0;background:var(--primary);transition:width .6s' }))));

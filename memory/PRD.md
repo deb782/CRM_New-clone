@@ -261,3 +261,13 @@ Full backend acceptance suite re-run fresh after the UI/UX overhaul. **203/203 e
 1. Phase B site-visit scheduling + inventory board.
 2. Razorpay integration playbook + token/EOI links (Phase C kickoff).
 3. Wire real WATI/SMTP drivers when keys provided.
+
+
+## 2026-06 — Rebrand + Documentation (Agrocorp CRM)
+- **Rebrand**: App renamed "Real Estate CRM" → **Agrocorp CRM**. Logo (arch mark) applied to sidebar, login, onboarding, browser tab/favicon. Assets: `public/assets/img/agrocorp-logo.webp`, `agrocorp-mark.png`. Brand olive `#4F5823`. Cache versions bumped (app.js v27, onboarding.js v23, app.css v11).
+- **Integrations Hub**: Passed testing (iteration_28, 100% BE 12/12 + FE). Applied polish: card status pill refreshes after in-modal Test connection (`integrations.js` v2). Shipped/test-agent-tested, live use pending user credentials.
+- **Documentation (in `/app/laravel-crm/docs/`)**:
+  - Stakeholder Overview + 6 department manuals (Admin, Sales, Accounts, Legal, CRM, Channel Partner) as branded HTML.
+  - Screenshots captured per role via Playwright (`docs/screenshots/`, `docs/capture.py`).
+  - Generated branded PDFs in `docs/pdf/`: `overview.pdf`, `manual_admin.pdf`, `manual_sales.pdf`, `manual_accounts.pdf`, `manual_legal.pdf`, `manual_crm.pdf`, `manual_partner.pdf`.
+  - Plain-English task playbooks (rock-bottom step detail), noting Head vs Support differences. Also earlier markdown drafts `USER_MANUAL.md` + `CRM_STAKEHOLDER_OVERVIEW.md`.

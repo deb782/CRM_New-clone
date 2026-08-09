@@ -1,0 +1,161 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="pdf.css">
+<title>Agrocorp CRM — Admin Manual</title></head>
+<body>
+
+<section class="cover">
+  <div class="top-mark"><img src="agrocorp-mark.png"><span>Agrocorp&trade;</span></div>
+  <div class="center">
+    <img src="agrocorp-logo.webp">
+    <div class="kicker">Department Playbook</div>
+    <h1>Admin &amp; Process Admin</h1>
+    <div class="sub">Your step-by-step guide to setting up and running Agrocorp CRM &mdash; company setup, users, roles, integrations and system health.</div>
+    <div class="pill-row"><span class="pill">Super Admin</span><span class="pill">Process Admin</span></div>
+  </div>
+  <div class="foot"><b>User Manual</b> &nbsp;&middot;&nbsp; If you get stuck, find your task in the contents and follow the numbered steps.</div>
+</section>
+
+<div class="rh"><div class="l"><img src="agrocorp-mark.png"><b>Agrocorp CRM</b></div><div class="r">Admin Playbook</div></div>
+
+<h2>Who this guide is for</h2>
+<p class="lead">The two administration roles that keep the whole CRM running.</p>
+<table>
+  <tr><th>Role</th><th>What you do</th><th>What only you can do</th></tr>
+  <tr><td><strong>Super Admin</strong></td><td>Owns the entire system</td><td>Everything, incl. "Preview Roles" and locking the Super Admin role</td></tr>
+  <tr><td><strong>Process Admin</strong></td><td>Runs day-to-day setup</td><td>Users, projects, automations, integrations (cannot override the Super Admin lock)</td></tr>
+</table>
+<div class="note"><b>Difference in one line:</b> Super Admin can do <b>everything</b>; Process Admin does everyday setup and configuration but a few owner-only controls stay with the Super Admin.</div>
+
+<h2 class="sec">Your home screen</h2>
+<p>After you log in you land on the <strong>Dashboard</strong>. The left menu is grouped into Overview, Sales, Deals &amp; Finance, Messaging, Automation &amp; Setup, Partners and <strong>Administration</strong> (the section you'll use most).</p>
+<figure><img src="screenshots/admin_dashboard.png"><figcaption>Admin dashboard &mdash; setup progress banner on top, live pipeline numbers below.</figcaption></figure>
+<div class="note"><b>Tip:</b> Press <b>Ctrl&nbsp;+&nbsp;K</b> (Windows) or <b>Cmd&nbsp;+&nbsp;K</b> (Mac) anywhere to search a lead or jump to any page instantly.</div>
+
+<h2 class="sec">Logging in for the first time</h2>
+<ol class="rock">
+  <li>Open the CRM link in your browser (Chrome or Edge recommended).</li>
+  <li>On the sign-in screen, type your <strong>email</strong> in the Email box.</li>
+  <li>Type your <strong>password</strong> in the Password box.</li>
+  <li>Click the black <strong>Sign in</strong> button.</li>
+  <li>If it's your very first login, the system asks you to <strong>set a new password</strong> &mdash; type it twice and confirm.</li>
+  <li>You now land on the Dashboard.</li>
+</ol>
+
+<h2 class="sec newpage">TASK 1 &mdash; Complete the first-time company setup</h2>
+<p>The very first Admin is guided through a short wizard. The side menu stays hidden while the wizard runs so you can focus; it reappears when you finish or skip to the dashboard.</p>
+<div class="step"><div class="t">1. Set up your profile</div>
+<ol class="rock"><li>Confirm your name and phone number.</li><li>Pick an avatar colour (optional).</li><li>Click <strong>Continue / Next</strong>.</li></ol></div>
+<div class="step"><div class="t">2. Set up your first project</div>
+<ol class="rock"><li>Enter the project <strong>name</strong> (e.g. "Green Valley Plots").</li><li>Enter the <strong>city</strong> and <strong>zone/locality</strong>.</li><li>Choose the <strong>unit type</strong> (Plot, Apartment, Villa&hellip;).</li><li>Enter the price range if asked.</li><li>Click <strong>Save</strong> / <strong>Next</strong>.</li></ol></div>
+<div class="step"><div class="t">3. Map your department users</div>
+<ol class="rock"><li>Add each team member's <strong>name</strong>, <strong>email</strong> (their login ID) and <strong>phone number</strong> (their first-time password).</li><li>Pick their <strong>role</strong> from the list (Sales Head, BDE, Accounts Head&hellip;).</li><li>Click <strong>Add user</strong> and repeat for everyone.</li></ol></div>
+<div class="step"><div class="t">4. Upload inventory</div>
+<ol class="rock"><li>Add the phases and the plots/units for your project.</li><li>Mark each unit's status (Available / Held / Booked / Sold).</li></ol></div>
+<div class="step"><div class="t">5. Assign a Process Admin</div>
+<ol class="rock"><li>Choose a trusted team member to help run daily setup.</li><li>Click <strong>Finish</strong> &mdash; the full menu now appears.</li></ol></div>
+<div class="note"><b>Need to redo the demo?</b> On the dashboard, the setup banner has a <b>Restart setup</b> button that resets the wizard.</div>
+
+<h2 class="sec newpage">TASK 2 &mdash; Add a new user</h2>
+<figure><img src="screenshots/admin_users.png"><figcaption>Administration &rarr; Users &amp; Roles &mdash; your team directory grouped by department.</figcaption></figure>
+<ol class="rock">
+  <li>In the left menu, open <strong>Administration &rarr; Users &amp; Roles</strong>.</li>
+  <li>Click the <strong>Add user</strong> button (top right).</li>
+  <li>Type the person's <strong>full name</strong>.</li>
+  <li>Type their <strong>email</strong> &mdash; this becomes their login ID, so type it carefully.</li>
+  <li>Type their <strong>phone number</strong> &mdash; this becomes their temporary password for the first login.</li>
+  <li>Pick their <strong>role</strong> from the dropdown (this decides what they can see and do).</li>
+  <li>Click <strong>Save</strong>.</li>
+  <li>Tell the person their email and that their first password is their phone number.</li>
+  <li>They will be forced to set a new password the first time they log in.</li>
+</ol>
+<div class="note"><b>Note:</b> Sending the welcome email is <b>mocked</b> until you connect a real email account in Integrations. Until then, share the login details yourself.</div>
+
+<h3>Turn a user on or off</h3>
+<ol class="rock">
+  <li>Open <strong>Users &amp; Roles</strong>.</li>
+  <li>Find the person's card (use the search box if the list is long).</li>
+  <li>Use the <strong>active toggle</strong> on their card &mdash; off means they can no longer log in.</li>
+</ol>
+
+<h2 class="sec">TASK 3 &mdash; Change what a role can do (Roles &amp; Access)</h2>
+<figure><img src="screenshots/admin_access.png"><figcaption>Roles &amp; Access &mdash; permissions grouped by area, with on/off switches.</figcaption></figure>
+<ol class="rock">
+  <li>Open <strong>Administration &rarr; Roles &amp; Access</strong>.</li>
+  <li>On the left, click the <strong>role</strong> you want to change (e.g. "Accounts Support").</li>
+  <li>The middle shows features grouped by area (Accounts &amp; Finance, Messaging, etc.).</li>
+  <li>Use the <strong>search box</strong> to find a specific feature quickly.</li>
+  <li>Flip an individual <strong>toggle</strong> on to grant it, or off to remove it.</li>
+  <li>Use the <strong>"All"</strong> switch on a group header to turn a whole group on or off.</li>
+  <li>Click <strong>Save access</strong> (top right).</li>
+</ol>
+<div class="note"><b>Two things to remember:</b> (1) The <b>Super Admin</b> role is locked &mdash; you can't reduce its access. (2) Changes take effect the <b>next time that user logs in</b>.</div>
+<h3>Reset a role to its defaults</h3>
+<ol class="rock">
+  <li>Select the role. If it was changed, a <span class="tag">Customised</span> badge shows.</li>
+  <li>Click <strong>Reset to default</strong> to restore the standard access for that role.</li>
+</ol>
+
+<h2 class="sec newpage">TASK 4 &mdash; Connect your own accounts (Integrations Hub)</h2>
+<figure><img src="screenshots/admin_integrations.png"><figcaption>Administration &rarr; Integrations &mdash; connect WhatsApp, Email and Calling.</figcaption></figure>
+<p>This is where you switch the CRM from safe demo mode to sending real WhatsApp, email and calls. Only Admin and Process Admin can see this page.</p>
+<div class="step"><div class="t">General steps for any integration</div>
+<ol class="rock">
+  <li>Open <strong>Administration &rarr; Integrations</strong>.</li>
+  <li>Click the card you want to set up (Meta WhatsApp, Google Email or Mcube).</li>
+  <li>Fill each field in the form. Fields marked <strong>*</strong> are required.</li>
+  <li>Click <strong>Test connection</strong> and wait for the result.</li>
+  <li>If you see a green tick, click <strong>Save</strong>.</li>
+  <li>Turn the card's <strong>toggle on</strong> to go live.</li>
+</ol></div>
+<div class="note warn"><b>Safety:</b> Your passwords and tokens are <b>encrypted</b> and never shown again &mdash; you'll only ever see dots like <b>&bull;&bull;&bull;&bull;1234</b>. You <b>cannot</b> turn an integration on until all required fields are filled, and if you change a field you must <b>test again</b> before it goes live.</div>
+<h4>Meta WhatsApp Cloud &mdash; fields</h4>
+<ul><li>Phone number ID</li><li>Access token</li><li>Verify token (for the webhook)</li></ul>
+<h4>Google Workspace Email &mdash; fields</h4>
+<ul><li>SMTP host (default <strong>smtp.gmail.com</strong>) and port (default <strong>587</strong>)</li><li>Username (the dedicated mailbox address)</li><li>App password (generated in Google &mdash; not the normal password)</li><li>From name and from email</li></ul>
+<h4>Mcube &mdash; fields</h4>
+<ul><li>Base URL</li><li>Auth token</li><li>Caller ID</li></ul>
+<div class="note"><b>Before you start:</b> get your credentials ready with your IT person. You paste them <b>into the CRM form</b> &mdash; never into chat or email.</div>
+
+<h2 class="sec newpage">TASK 5 &mdash; Build an automation (Flow Builder)</h2>
+<figure><img src="screenshots/admin_workflows.png"><figcaption>Flow Builder &mdash; drag blocks onto the canvas and connect them.</figcaption></figure>
+<ol class="rock">
+  <li>Open <strong>Automation &amp; Setup &rarr; Flow Builder</strong>.</li>
+  <li>Click <strong>Starter flows</strong> to begin from a ready-made journey (recommended), or start blank.</li>
+  <li>Drag a <strong>Trigger</strong> block onto the canvas (e.g. "On new lead").</li>
+  <li>Drag action blocks &mdash; <strong>Send WhatsApp</strong>, <strong>Send Email</strong>, <strong>Create Task</strong>, <strong>Wait / Delay</strong>, <strong>Condition</strong>.</li>
+  <li>Connect blocks by dragging from one block's dot to the next.</li>
+  <li>Click a block to configure it in the right-hand <strong>Node settings</strong> panel.</li>
+  <li>Use the <strong>Mission checklist</strong> (bottom right) to create any templates the flow needs.</li>
+  <li>Click <strong>Validate</strong>, then <strong>Save flow</strong>.</li>
+  <li>Click <strong>Test run</strong> to try it, then <strong>Activate</strong> to make it live.</li>
+</ol>
+<div class="note"><b>Good to know:</b> An active flow runs automatically when its trigger happens for a real lead. If a step fails, it is marked as failed (not silently skipped) so you can see it.</div>
+
+<h2 class="sec">TASK 6 &mdash; Check system health &amp; the audit log</h2>
+<figure><img src="screenshots/admin_health.png"><figcaption>System &amp; Integration Health &mdash; comms sent, automation success and search speed.</figcaption></figure>
+<ol class="rock">
+  <li>Open <strong>Administration &rarr; System Health</strong> to see message volume, automation success and search latency. "MOCK" means that integration is still in demo mode.</li>
+  <li>Open <strong>Administration &rarr; Audit Log</strong> to see exactly who changed what, and when.</li>
+  <li>Use the <strong>filters</strong> at the top of the Audit Log to narrow by action or by entity type (e.g. "Lead").</li>
+</ol>
+<figure><img src="screenshots/admin_audit.png"><figcaption>Audit Log &mdash; a full, filterable trail of every change.</figcaption></figure>
+
+<h2 class="sec">TASK 7 &mdash; See the app as another role (Preview Roles)</h2>
+<ol class="rock">
+  <li>Open <strong>Administration &rarr; Preview Roles</strong> (Super Admin only).</li>
+  <li>Choose the role you want to preview.</li>
+  <li>The CRM now shows exactly what that role sees &mdash; useful before you hand access to a team.</li>
+  <li>Exit preview to return to your own view.</li>
+</ol>
+
+<h2 class="sec">Quick answers</h2>
+<table>
+  <tr><th>Question</th><th>Answer</th></tr>
+  <tr><td>A user says they can't log in</td><td>Check they use their email as ID; confirm their account toggle is on in Users &amp; Roles.</td></tr>
+  <tr><td>My permission change didn't apply</td><td>It applies at the user's next login &mdash; ask them to sign out and in.</td></tr>
+  <tr><td>Are real messages going out?</td><td>Only after you connect and enable the integration. Otherwise it's demo mode.</td></tr>
+  <tr><td>I need to redo the demo data</td><td>Use "Restart setup" on the dashboard banner.</td></tr>
+</table>
+
+</body></html>

@@ -3,7 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Real Estate CRM</title>
+    <title>Agrocorp CRM</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/agrocorp-mark.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/img/agrocorp-mark.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,7 +17,7 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/drawflow.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/workflow.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
-    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=10">
+    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=11">
 </head>
 <body>
     <div id="app"></div>
@@ -32,11 +34,11 @@
     <script src="{{ asset('assets/js/config.js') }}?v=10"></script>
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=15"></script>
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
-    <script src="{{ asset('assets/js/onboarding.js') }}?v=22"></script>
+    <script src="{{ asset('assets/js/onboarding.js') }}?v=23"></script>
     <script src="{{ asset('assets/js/workflow.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/integrations.js') }}?v=2"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=26"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=27"></script>
 </body>
 </html>
