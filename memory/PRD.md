@@ -172,6 +172,11 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - The `crm:email-scheduled` command drives both one-off and recurring sends. Status column shows a repeat badge for recurring campaigns. Migration `2026_01_20_...email_campaign_recurrence`; JS bumped to v=17.
 - Verified: weekly campaign dispatched (3 sent) → status stays scheduled, next_sched +7 days; immediate re-run does nothing (future); second cycle accumulates sent_count 3→6.
 
+## Implemented — Per-Send History for recurring campaigns (2026-06, agent-tested)
+- **Send history**: each dispatch now creates an `email_campaign_runs` record (run_number, recipients, sent/failed, sent_at) and every `EmailMessage` is tagged with `run_id`. Analytics endpoint returns a `runs` array with per-run opens/clicks + rates (computed from message opened_at/clicked_at grouped by run).
+- **UI**: analytics modal shows a "Send history (N)" table above the recipients list. Recurring campaigns (which stay `scheduled`) now also get a "Details" button once `sent_count > 0`, so their run history is viewable.
+- Migration `2026_01_21_...email_campaign_runs`; `EmailCampaignRun` model; JS bumped to v=19. Verified: weekly campaign run #1 = 2 opens/66.7%, run #2 = 0 opens — independent per-run tracking confirmed via API + UI.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.

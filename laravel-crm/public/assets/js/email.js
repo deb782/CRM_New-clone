@@ -126,11 +126,13 @@
       const openRate = c.sent_count ? Math.round((c.open_count / c.sent_count) * 100) : 0;
       const clickRate = c.sent_count ? Math.round((c.click_count / c.sent_count) * 100) : 0;
       const sendBtn = el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'email-camp-send-' + c.id, onclick: async () => { try { const r = await api.post('/email/campaigns/' + c.id + '/send'); toast('Sent to ' + r.sent + ' (failed ' + r.failed + ')', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, 'Send now');
+      const detailsBtn = el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-details-' + c.id, onclick: () => analyticsModal(c) }, el('i', { class: 'fa-solid fa-chart-simple' }), 'Details');
       let action;
       if (c.status === 'sent') {
-        action = el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-details-' + c.id, onclick: () => analyticsModal(c) }, el('i', { class: 'fa-solid fa-chart-simple' }), 'Details');
+        action = detailsBtn;
       } else if (c.status === 'scheduled') {
         action = el('div', { style: 'display:flex;gap:6px;justify-content:flex-end' },
+          (c.sent_count > 0 ? detailsBtn : null),
           sendBtn,
           el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-unschedule-' + c.id, onclick: async () => { try { await api.post('/email/campaigns/' + c.id + '/unschedule'); toast('Schedule cancelled', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, 'Cancel'));
       } else {
@@ -187,7 +189,23 @@
             el('td', {}, el('span', { class: 'chip', style: 'color:' + (r.status === 'sent' ? 'var(--won)' : 'var(--lost)') }, r.status)),
             el('td', {}, r.opened_at ? '✓ ' + timeAgo(r.opened_at) : '—'),
             el('td', {}, r.clicked_at ? '✓ ' + timeAgo(r.clicked_at) : '—')));
+        const runs = res.runs || [];
+        let historySection = null;
+        if (runs.length) {
+            const fmt = d => { try { return new Date(d).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return d; } };
+            const runRows = runs.map(r => el('tr', { 'data-testid': 'email-run-' + r.run_number },
+                el('td', {}, '#' + r.run_number),
+                el('td', {}, fmt(r.sent_at)),
+                el('td', {}, String(r.sent) + (r.failed ? ' (' + r.failed + ' failed)' : '')),
+                el('td', {}, r.opens + ' · ' + r.open_rate + '%'),
+                el('td', {}, r.clicks + ' · ' + r.click_rate + '%')));
+            historySection = el('div', { 'data-testid': 'email-run-history', style: 'margin-bottom:18px' },
+                el('div', { style: 'font-size:13px;font-weight:600;margin-bottom:8px' }, 'Send history (' + runs.length + ')'),
+                tableWrap(['Run', 'Sent at', 'Sent', 'Opens', 'Clicks'], runRows));
+        }
         const body = el('div', { 'data-testid': 'email-analytics-body' }, cards,
+            historySection,
+            el('div', { style: 'font-size:13px;font-weight:600;margin-bottom:8px' }, 'Recipients'),
             recRows.length ? tableWrap(['Recipient', 'Status', 'Opened', 'Clicked'], recRows)
                 : el('div', { class: 'empty', style: 'padding:20px' }, 'No recipients recorded.'));
         const m = modal({ title: 'Campaign Analytics · ' + c.name, bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Close')] });

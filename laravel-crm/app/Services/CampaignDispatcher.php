@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\EmailCampaign;
+use App\Models\EmailCampaignRun;
 use App\Models\EmailMessage;
 use App\Models\Lead;
 use Illuminate\Support\Str;
@@ -34,6 +35,13 @@ class CampaignDispatcher
         $failed = 0;
         $appUrl = rtrim(config('app.url') ?: url('/'), '/');
 
+        $runNumber = EmailCampaignRun::where('campaign_id', $campaign->id)->count() + 1;
+        $run = EmailCampaignRun::create([
+            'campaign_id' => $campaign->id,
+            'run_number' => $runNumber,
+            'sent_at' => now(),
+        ]);
+
         foreach ($targets as $lead) {
             $token = Str::random(48);
             $subject = $this->personalize($campaign->subject, $lead);
@@ -45,6 +53,7 @@ class CampaignDispatcher
 
             EmailMessage::create([
                 'campaign_id' => $campaign->id,
+                'run_id' => $run->id,
                 'lead_id' => $lead->id,
                 'to_email' => $lead->email,
                 'subject' => $subject,
@@ -55,6 +64,8 @@ class CampaignDispatcher
             ]);
             $res['status'] === 'sent' ? $sent++ : $failed++;
         }
+
+        $run->update(['recipients' => $targets->count(), 'sent_count' => $sent, 'failed_count' => $failed]);
 
         $campaign->increment('sent_count', $sent);
         $campaign->increment('failed_count', $failed);

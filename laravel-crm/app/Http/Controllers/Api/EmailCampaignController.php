@@ -33,6 +33,27 @@ class EmailCampaignController extends Controller
         $opens = (int) $email_campaign->open_count;
         $clicks = (int) $email_campaign->click_count;
 
+        $runs = \App\Models\EmailCampaignRun::where('campaign_id', $email_campaign->id)
+            ->orderByDesc('run_number')
+            ->get()
+            ->map(function ($run) {
+                $runOpens = EmailMessage::where('run_id', $run->id)->whereNotNull('opened_at')->count();
+                $runClicks = EmailMessage::where('run_id', $run->id)->whereNotNull('clicked_at')->count();
+                $runSent = (int) $run->sent_count;
+
+                return [
+                    'run_number' => $run->run_number,
+                    'sent_at' => $run->sent_at,
+                    'recipients' => (int) $run->recipients,
+                    'sent' => $runSent,
+                    'failed' => (int) $run->failed_count,
+                    'opens' => $runOpens,
+                    'clicks' => $runClicks,
+                    'open_rate' => $runSent ? round($runOpens / $runSent * 100, 1) : 0,
+                    'click_rate' => $runSent ? round($runClicks / $runSent * 100, 1) : 0,
+                ];
+            });
+
         return response()->json([
             'campaign' => $email_campaign,
             'stats' => [
@@ -44,6 +65,7 @@ class EmailCampaignController extends Controller
                 'open_rate' => $sent ? round($opens / $sent * 100, 1) : 0,
                 'click_rate' => $sent ? round($clicks / $sent * 100, 1) : 0,
             ],
+            'runs' => $runs,
             'recipients' => $messages,
         ]);
     }
