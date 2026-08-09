@@ -24,7 +24,7 @@
 
     <script src="{{ asset('assets/vendor/drawflow.min.js') }}"></script>
     <script>window.CRM = { API: '/api/v1', asset: '{{ asset('assets') }}' };</script>
-    <script src="{{ asset('assets/js/api.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/api.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/leads.js') }}?v=13"></script>
     <script src="{{ asset('assets/js/inventory.js') }}?v=11"></script>

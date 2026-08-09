@@ -48,6 +48,8 @@
 
   function toast(msg, type = '') {
     const wrap = document.getElementById('toast');
+    // Clear any lingering toast so only the latest shows (avoids stacked/overlapping messages)
+    wrap.querySelectorAll('.toast').forEach(o => o.remove());
     const icon = type === 'error' ? 'fa-circle-exclamation' : type === 'success' ? 'fa-circle-check' : 'fa-circle-info';
     const t = el('div', { class: 'toast ' + (type ? 'toast--' + type : ''), 'data-testid': 'toast' },
       el('i', { class: 'fa-solid ' + icon }), el('span', {}, msg));
