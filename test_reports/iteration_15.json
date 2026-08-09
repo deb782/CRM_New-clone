@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 15: Tested WhatsApp Media & Buttons, Template Sync, and Inbox Analytics (backend + frontend). Backend: 17/17 pytest cases pass covering media upload (image/pdf/invalid), send image/document/interactive with validation, 24h window enforcement (media/interactive blocked outside, template allowed), template sync idempotency & RBAC, analytics shape & RBAC. Frontend: verified inbox composer testids (wa-send-template, wa-attach, wa-file-input, wa-buttons, wa-btn-body/1/2/3/send, wa-tpl-select with 6 options incl. placeholder + 5 templates, wa-tpl-send), WA Templates page sync (5 rows), WA Analytics page (cards + per-agent table), and RBAC (Rahul cannot see nav-waTemplates/nav-waAnalytics but sees nav-inbox).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "WA Analytics", "issues": ["'per_agent' shows a row with '–' for broadcast messages (474 sent) which is expected per main agent note, but it may look confusing to end users compared to named agents (Priya Sharma 12, Agent 3). Consider labeling it 'Broadcasts/System' instead of an em-dash."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/tests/whatsapp_media_templates_analytics_test.py",
+    "/app/test_reports/pytest/iter15_media_templates.xml"
+  ],
+  "action_items": [
+    "(Optional/nice-to-have) Relabel the '–' row in Messages-per-agent as 'Broadcasts' or 'System' for clarity."
+  ],
+  "critical_code_review_comments": [
+    "Media upload endpoint correctly validates MIME (txt rejected 422); stored file is publicly GET-accessible (200) via public disk symlink.",
+    "InboxService.reply branching enforces 24h window for text/image/document/interactive while allowing type=template outside window - matches spec.",
+    "Interactive validation enforces max 3 buttons, non-empty body, and non-empty buttons array (verified via 422 responses).",
+    "Template sync is idempotent (upsert by name+language yields 5 rows across repeated calls); RBAC on POST /whatsapp/templates/sync gated by config.manage (Rahul 403) while GET /whatsapp/templates gated by leads.view (Rahul 200).",
+    "Analytics endpoint returns all documented keys with correct types; avg_response_minutes is a number (1.1) in the current dataset.",
+    "Frontend template modal dropdown correctly populated from synced templates (5 real + 1 placeholder = 6 <option> elements)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "priya@crm.local/Demo@12345 (Sales Manager), rahul@crm.local/Demo@12345 (Sales Exec)",
+  "seed_data_creation": "Created transient TEST conversations via /whatsapp/simulate-inbound and 5 mock templates via /whatsapp/templates/sync (idempotent, safe to re-run).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 3 new features (media/buttons, template sync, analytics) are green end-to-end on backend and frontend. New pytest file at /app/tests/whatsapp_media_templates_analytics_test.py runs in ~2.6s and is safe to include in regression. Previous iteration_14 whatsapp_test.py suite was NOT re-run (per main agent instructions). WHATSAPP_DRIVER=mock; Laravel app at http://127.0.0.1:8000 (not REACT_APP_BACKEND_URL).",
+  "rca of the issue": "N/A - no failures."
+}

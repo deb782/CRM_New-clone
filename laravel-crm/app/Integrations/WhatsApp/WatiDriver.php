@@ -35,4 +35,21 @@ class WatiDriver implements Contract
     {
         // WATI marks messages read via its own dashboard; no-op here.
     }
+
+    public function sendMedia(string $phone, string $type, string $link, ?string $caption = null): array
+    {
+        return $this->send($phone, $caption ?: '['.$type.'] '.$link);
+    }
+
+    public function sendInteractive(string $phone, string $body, array $buttons): array
+    {
+        $labels = implode(' | ', array_map(fn ($b) => $b['title'], $buttons));
+
+        return $this->send($phone, $body.($labels ? "\n[".$labels.']' : ''));
+    }
+
+    public function fetchTemplates(): array
+    {
+        return [];
+    }
 }

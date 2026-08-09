@@ -219,6 +219,9 @@ Route::prefix('v1')->group(function () {
             Route::get('whatsapp/conversations', [WhatsAppInboxController::class, 'conversations']);
             Route::get('whatsapp/conversations/{conversation}/messages', [WhatsAppInboxController::class, 'messages']);
             Route::post('whatsapp/conversations/{conversation}/reply', [WhatsAppInboxController::class, 'reply']);
+            Route::post('whatsapp/media/upload', [WhatsAppInboxController::class, 'uploadMedia']);
+            Route::get('whatsapp/analytics', [WhatsAppInboxController::class, 'analytics']);
+            Route::get('whatsapp/templates', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'index']);
             Route::post('whatsapp/conversations/{conversation}/assign', [WhatsAppInboxController::class, 'assign']);
             Route::post('whatsapp/conversations/{conversation}/read', [WhatsAppInboxController::class, 'read']);
             Route::post('whatsapp/conversations/{conversation}/toggle', [WhatsAppInboxController::class, 'toggle']);
@@ -233,6 +236,7 @@ Route::prefix('v1')->group(function () {
             Route::post('whatsapp/auto-replies', [WhatsAppAutoReplyController::class, 'store']);
             Route::put('whatsapp/auto-replies/{auto_reply}', [WhatsAppAutoReplyController::class, 'update']);
             Route::delete('whatsapp/auto-replies/{auto_reply}', [WhatsAppAutoReplyController::class, 'destroy']);
+            Route::post('whatsapp/templates/sync', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'sync']);
         });
         Route::get('partners', [ChannelPartnerController::class, 'index'])->middleware('permission:config.manage');
         Route::post('partners', [ChannelPartnerController::class, 'store'])->middleware('permission:config.manage');

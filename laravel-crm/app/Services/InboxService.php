@@ -65,24 +65,36 @@ class InboxService
     }
 
     /**
-     * @param  array{type?:string, body?:string, template?:string}  $data
+     * @param  array{type?:string, body?:string, template?:string, media_url?:string, buttons?:array}  $data
      */
     public function reply(WhatsappConversation $conv, array $data, ?User $agent = null): WhatsappMessage
     {
         $type = $data['type'] ?? 'text';
         $template = $type === 'template' ? ($data['template'] ?? null) : null;
 
+        // Only templates are allowed outside the 24-hour customer-service window.
         if ($type !== 'template' && ! $conv->withinWindow()) {
             throw new \DomainException('Outside the 24-hour WhatsApp window — send an approved template instead.');
         }
 
-        // Consent guard (mirror WhatsAppService)
         if ($conv->lead && ($conv->lead->do_not_contact || $conv->lead->whatsapp_opt_out)) {
             throw new \DomainException('Contact has opted out / is do-not-contact.');
         }
 
-        $body = $type === 'template' ? ($data['body'] ?? "[Template: {$template}]") : ($data['body'] ?? '');
-        $res = $this->driver->send((string) $conv->contact_phone, $body, $template);
+        $phone = (string) $conv->contact_phone;
+        $mediaUrl = $data['media_url'] ?? null;
+        $buttons = $data['buttons'] ?? null;
+        $body = $data['body'] ?? '';
+
+        $res = match ($type) {
+            'template' => $this->driver->send($phone, $body ?: "[Template: {$template}]", $template),
+            'image', 'document', 'video' => $this->driver->sendMedia($phone, $type, (string) $mediaUrl, $body ?: null),
+            'interactive' => $this->driver->sendInteractive($phone, $body, $buttons ?: []),
+            default => $this->driver->send($phone, $body),
+        };
+        if ($type === 'template' && ! $body) {
+            $body = "[Template: {$template}]";
+        }
 
         $msg = WhatsappMessage::create([
             'conversation_id' => $conv->id,
@@ -92,6 +104,8 @@ class InboxService
             'message_type' => $type,
             'template' => $template,
             'body' => $body,
+            'media_url' => $mediaUrl,
+            'meta' => $buttons ? ['buttons' => $buttons] : null,
             'sender_name' => $agent?->name ?? 'Agent',
             'status' => $res['status'],
             'provider_id' => $res['provider_id'],
@@ -100,12 +114,12 @@ class InboxService
 
         $conv->update([
             'unread_count' => 0,
-            'last_message_preview' => $this->preview($body),
+            'last_message_preview' => $this->preview($body ?: '['.$type.']'),
             'last_message_at' => now(),
         ]);
 
         if ($conv->lead) {
-            $this->activity->log($conv->lead, 'whatsapp', 'WhatsApp sent', $body, ['template' => $template]);
+            $this->activity->log($conv->lead, 'whatsapp', 'WhatsApp sent', $body, ['template' => $template, 'type' => $type]);
             $this->activity->comm($conv->lead_id, 'whatsapp', 'outbound', $res['status']);
         }
 

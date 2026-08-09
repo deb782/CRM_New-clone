@@ -120,23 +120,67 @@
       sendBtn.addEventListener('click', sendText);
       ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); } });
       tplBtn.addEventListener('click', () => templateModal(c));
-      composer.appendChild(el('div', { style: 'display:flex;gap:8px;align-items:flex-end' }, ta, el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, sendBtn, tplBtn)));
+
+      // Attach media + quick-reply buttons (only usable within the 24h window)
+      const fileInput = el('input', { type: 'file', style: 'display:none', 'data-testid': 'wa-file-input', accept: '.jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx' });
+      fileInput.addEventListener('change', async () => {
+        if (!fileInput.files.length) return;
+        const fd = new FormData(); fd.append('file', fileInput.files[0]);
+        try {
+          const up = await api.post('/whatsapp/media/upload', fd);
+          await api.post('/whatsapp/conversations/' + c.id + '/reply', { type: up.type, media_url: up.url, body: fileInput.value.split('\\').pop() });
+          fileInput.value = ''; await loadThread(); loadList();
+        } catch (e) { toast(e.message, 'error'); }
+      });
+      const attachBtn = el('button', { class: 'btn', 'data-testid': 'wa-attach', disabled: !d.within_window ? 'disabled' : null, onclick: () => fileInput.click() }, el('i', { class: 'fa-solid fa-paperclip' }));
+      const btnsBtn = el('button', { class: 'btn', 'data-testid': 'wa-buttons', disabled: !d.within_window ? 'disabled' : null, onclick: () => buttonsModal(c) }, el('i', { class: 'fa-solid fa-list-check' }));
+
+      composer.appendChild(fileInput);
+      composer.appendChild(el('div', { style: 'display:flex;gap:8px;align-items:flex-end' },
+        ta,
+        el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, sendBtn, el('div', { style: 'display:flex;gap:6px' }, tplBtn, attachBtn, btnsBtn))));
       threadPane.appendChild(composer);
+    }
+
+    function buttonsModal(c) {
+      const bodyI = el('textarea', { class: 'input', rows: '2', placeholder: 'Question / message', 'data-testid': 'wa-btn-body' });
+      const b1 = el('input', { class: 'input', placeholder: 'Button 1 (required)', 'data-testid': 'wa-btn-1' });
+      const b2 = el('input', { class: 'input', placeholder: 'Button 2 (optional)', 'data-testid': 'wa-btn-2' });
+      const b3 = el('input', { class: 'input', placeholder: 'Button 3 (optional)', 'data-testid': 'wa-btn-3' });
+      const save = el('button', { class: 'btn btn--primary', 'data-testid': 'wa-btn-send' }, 'Send buttons');
+      const m = modal({ title: 'Send quick-reply buttons', bodyNode: el('div', {},
+        el('div', { class: 'field' }, el('label', {}, 'Message'), bodyI),
+        el('div', { class: 'field' }, el('label', {}, 'Buttons (max 3, 20 chars each)'), b1),
+        el('div', { class: 'field' }, b2), el('div', { class: 'field' }, b3)),
+        footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+      save.addEventListener('click', async () => {
+        const buttons = [b1.value, b2.value, b3.value].map(t => t.trim()).filter(Boolean).map(t => ({ title: t.slice(0, 20) }));
+        if (!bodyI.value.trim() || !buttons.length) { toast('Message and at least one button required', 'error'); return; }
+        try { await api.post('/whatsapp/conversations/' + c.id + '/reply', { type: 'interactive', body: bodyI.value.trim(), buttons }); m.close(); await loadThread(); loadList(); }
+        catch (e) { toast(e.message, 'error'); }
+      });
     }
 
     function fillMessages(box, messages) {
       box.innerHTML = '';
       messages.forEach(m => {
         const out = m.direction === 'outbound';
+        const content = [];
+        if (m.template) content.push(el('div', { style: 'font-size:11px;color:var(--text-3);margin-bottom:2px' }, 'Template: ' + m.template));
+        if (m.message_type === 'image' && m.media_url) content.push(el('img', { src: m.media_url, style: 'max-width:220px;border-radius:8px;display:block;margin-bottom:4px' }));
+        if (m.message_type === 'document' && m.media_url) content.push(el('a', { href: m.media_url, target: '_blank', class: 'chip', style: 'display:inline-flex;gap:6px;margin-bottom:4px' }, el('i', { class: 'fa-solid fa-file' }), 'Document'));
+        if (m.body) content.push(el('div', {}, m.body));
+        if (m.message_type === 'interactive' && m.meta && m.meta.buttons) {
+          content.push(el('div', { style: 'display:flex;flex-wrap:wrap;gap:6px;margin-top:6px' },
+            ...m.meta.buttons.map(b => el('span', { class: 'chip', style: 'border:1px solid var(--accent);color:var(--accent)' }, b.title))));
+        }
+        content.push(el('div', { style: 'font-size:10px;color:var(--text-3);margin-top:3px;text-align:right' }, (m.sender_name ? m.sender_name + ' · ' : '') + (out ? (m.status || '') : '')));
         box.appendChild(el('div', {
           'data-testid': 'wa-msg-' + m.id,
           style: 'max-width:72%;padding:8px 12px;border-radius:12px;font-size:14px;line-height:1.4;' +
             (out ? 'align-self:flex-end;background:#dcf8c6;color:#0b3d0b;border-bottom-right-radius:4px'
               : 'align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px')
-        },
-          m.template ? el('div', { style: 'font-size:11px;color:var(--text-3);margin-bottom:2px' }, 'Template: ' + m.template) : null,
-          el('div', {}, m.body || ''),
-          el('div', { style: 'font-size:10px;color:var(--text-3);margin-top:3px;text-align:right' }, (m.sender_name ? m.sender_name + ' · ' : '') + (out ? (m.status || '') : ''))));
+        }, ...content));
       });
       box.scrollTop = box.scrollHeight;
       lastCount = messages.length;
@@ -153,14 +197,19 @@
       });
     }
 
-    function templateModal(c) {
-      const nameI = el('input', { class: 'input', placeholder: 'template_name', 'data-testid': 'wa-tpl-name' });
+    async function templateModal(c) {
+      let templates = [];
+      try { templates = (await api.get('/whatsapp/templates')).templates || []; } catch (e) { /* ignore */ }
+      const sel = el('select', { class: 'input', 'data-testid': 'wa-tpl-select' },
+        el('option', { value: '' }, templates.length ? 'Select a template…' : 'No templates — sync from WA Templates page'),
+        ...templates.map(t => el('option', { value: t.name }, t.name + ' (' + t.language + ')')));
       const bodyI = el('textarea', { class: 'input', rows: '2', placeholder: 'Preview text stored in the thread', 'data-testid': 'wa-tpl-body' });
+      sel.addEventListener('change', () => { const t = templates.find(x => x.name === sel.value); bodyI.value = t?.body || ''; });
       const save = el('button', { class: 'btn btn--primary', 'data-testid': 'wa-tpl-send' }, 'Send template');
-      const m = modal({ title: 'Send template message', bodyNode: el('div', {}, el('div', { class: 'field' }, el('label', {}, 'Template name'), nameI), el('div', { class: 'field' }, el('label', {}, 'Preview text'), bodyI)), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+      const m = modal({ title: 'Send template message', bodyNode: el('div', {}, el('div', { class: 'field' }, el('label', {}, 'Template'), sel), el('div', { class: 'field' }, el('label', {}, 'Preview text'), bodyI)), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
       save.addEventListener('click', async () => {
-        if (!nameI.value.trim()) { toast('Template name required', 'error'); return; }
-        try { await api.post('/whatsapp/conversations/' + c.id + '/reply', { type: 'template', template: nameI.value.trim(), body: bodyI.value.trim() || ('[Template: ' + nameI.value.trim() + ']') }); m.close(); await loadThread(); loadList(); }
+        if (!sel.value) { toast('Select a template', 'error'); return; }
+        try { await api.post('/whatsapp/conversations/' + c.id + '/reply', { type: 'template', template: sel.value, body: bodyI.value.trim() || ('[Template: ' + sel.value + ']') }); m.close(); await loadThread(); loadList(); }
         catch (e) { toast(e.message, 'error'); }
       });
     }
@@ -267,5 +316,37 @@
         } catch (e) { toast(e.message, 'error'); }
       });
     }
+  };
+  // ========================= WA TEMPLATES =========================
+  CRM.pages.waTemplates = async function (view) {
+    const syncBtn = el('button', { class: 'btn btn--primary', 'data-testid': 'wa-tpl-sync', onclick: async () => { try { const r = await api.post('/whatsapp/templates/sync'); toast('Synced ' + r.synced + ' templates', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, el('i', { class: 'fa-solid fa-rotate' }), 'Sync from Meta');
+    CRM.setActions(syncBtn);
+    view.innerHTML = '<div class="spinner"></div>';
+    const { templates } = await api.get('/whatsapp/templates');
+    view.innerHTML = '';
+    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:14px' }, 'Approved WhatsApp templates. Agents pick these in the inbox & broadcasts. Sync pulls the latest from Meta (mock samples until live keys are added).'));
+    if (!templates.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-lines' }), el('div', {}, 'No templates yet — click Sync from Meta'))); return; }
+    const rows = templates.map(t => el('tr', { 'data-testid': 'wa-tpl-row-' + t.id },
+      el('td', { class: 'mono' }, t.name), el('td', {}, t.language), el('td', {}, t.category),
+      el('td', {}, el('span', { class: 'chip', style: 'color:var(--won)' }, t.status)),
+      el('td', { style: 'color:var(--text-3);font-size:13px' }, (t.body || '').slice(0, 70))));
+    view.appendChild(tableWrap(['Name', 'Lang', 'Category', 'Status', 'Body'], rows));
+  };
+
+  // ========================= WA ANALYTICS =========================
+  CRM.pages.waAnalytics = async function (view) {
+    CRM.setActions(null);
+    view.innerHTML = '<div class="spinner"></div>';
+    const a = await api.get('/whatsapp/analytics');
+    view.innerHTML = '';
+    const card = (k, v, color) => el('div', { class: 'card stat' }, el('div', { class: 'k' }, k), el('div', { class: 'v', style: color ? ('color:' + color) : '' }, String(v)));
+    view.appendChild(el('div', { class: 'cards', style: 'margin-bottom:22px', 'data-testid': 'wa-analytics-cards' },
+      card('Open conversations', a.open_conversations),
+      card('Unread backlog', a.unread_backlog, a.unread_backlog ? 'var(--warm)' : 'var(--won)'),
+      card('Unassigned', a.unassigned, a.unassigned ? 'var(--warm)' : ''),
+      card('Avg first response', a.avg_response_minutes != null ? (a.avg_response_minutes + 'm') : '—')));
+    view.appendChild(el('div', { class: 'section-title' }, 'Messages per agent'));
+    if (!a.per_agent.length) view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px' }, 'No outbound messages yet'));
+    else view.appendChild(tableWrap(['Agent', 'Sent'], a.per_agent.map(x => el('tr', { 'data-testid': 'wa-agent-row' }, el('td', {}, x.sender_name || '—'), el('td', {}, String(x.sent))))));
   };
 })();

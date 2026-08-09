@@ -29,6 +29,8 @@
       { route: 'commissions', icon: 'fa-hand-holding-dollar', name: 'Commissions' },
       { route: 'broadcasts', icon: 'fa-bullhorn', name: 'WA Broadcasts' },
       { route: 'waAutomations', icon: 'fa-robot', name: 'WA Auto-Replies' },
+      { route: 'waTemplates', icon: 'fa-file-lines', name: 'WA Templates' },
+      { route: 'waAnalytics', icon: 'fa-chart-line', name: 'WA Analytics' },
       { route: 'chatbot', icon: 'fa-robot', name: 'Chat Widget' },
       { route: 'health', icon: 'fa-heart-pulse', name: 'System Health' },
       { route: 'audit', icon: 'fa-clipboard-list', name: 'Audit Log' },
@@ -39,7 +41,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');

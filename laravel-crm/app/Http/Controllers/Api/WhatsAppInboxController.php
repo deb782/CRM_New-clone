@@ -51,12 +51,25 @@ class WhatsAppInboxController extends Controller
     public function reply(Request $request, WhatsappConversation $conversation, InboxService $inbox)
     {
         $data = $request->validate([
-            'type' => 'nullable|in:text,template',
+            'type' => 'nullable|in:text,template,image,document,video,interactive',
             'body' => 'nullable|string|max:4096',
             'template' => 'nullable|string',
+            'media_url' => 'nullable|string|max:2048',
+            'buttons' => 'nullable|array|max:3',
+            'buttons.*.title' => 'required_with:buttons|string|max:20',
         ]);
-        if (empty($data['body']) && empty($data['template'])) {
-            return response()->json(['message' => 'Message body or template is required'], 422);
+        $type = $data['type'] ?? 'text';
+        if ($type === 'text' && empty($data['body'])) {
+            return response()->json(['message' => 'Message body is required'], 422);
+        }
+        if (in_array($type, ['image', 'document', 'video']) && empty($data['media_url'])) {
+            return response()->json(['message' => 'Media URL is required'], 422);
+        }
+        if ($type === 'template' && empty($data['template'])) {
+            return response()->json(['message' => 'Template name is required'], 422);
+        }
+        if ($type === 'interactive' && (empty($data['body']) || empty($data['buttons']))) {
+            return response()->json(['message' => 'Body and at least one button are required'], 422);
         }
         try {
             $msg = $inbox->reply($conversation, $data, $request->user());
@@ -65,6 +78,22 @@ class WhatsAppInboxController extends Controller
         }
 
         return response()->json(['message' => $msg, 'conversation' => $this->present($conversation->fresh())]);
+    }
+
+    /** Upload an image/document for sending; stored on the public disk (mock-ready; Meta media upload happens at go-live). */
+    public function uploadMedia(Request $request)
+    {
+        $request->validate(['file' => 'required|file|max:16384|mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx']);
+        $file = $request->file('file');
+        $path = $file->store('wa-media', 'public');
+        $mime = $file->getMimeType();
+        $type = str_starts_with((string) $mime, 'image/') ? 'image' : 'document';
+
+        return response()->json([
+            'url' => url(\Illuminate\Support\Facades\Storage::url($path)),
+            'type' => $type,
+            'name' => $file->getClientOriginalName(),
+        ], 201);
     }
 
     public function assign(Request $request, WhatsappConversation $conversation)
@@ -105,6 +134,53 @@ class WhatsAppInboxController extends Controller
             'conversation' => $this->present($conv->fresh()),
             'auto_reply' => $auto,
         ], 201);
+    }
+
+    /** Inbox analytics for managers: backlog, response time, per-agent volume, 7-day trend. */
+    public function analytics()
+    {
+        $open = WhatsappConversation::where('status', 'open')->count();
+        $unreadBacklog = (int) WhatsappConversation::where('unread_count', '>', 0)->count();
+        $unreadTotal = (int) WhatsappConversation::sum('unread_count');
+        $unassigned = WhatsappConversation::whereNull('assigned_to')->where('status', 'open')->count();
+
+        // Avg first-response time: for each inbound, gap to the first outbound after it in the same conversation.
+        $msgs = \App\Models\WhatsappMessage::whereNotNull('conversation_id')
+            ->orderBy('conversation_id')->orderBy('id')
+            ->get(['conversation_id', 'direction', 'sender_name', 'created_at']);
+        $byConv = $msgs->groupBy('conversation_id');
+        $gaps = [];
+        foreach ($byConv as $list) {
+            $pendingInbound = null;
+            foreach ($list as $m) {
+                if ($m->direction === 'inbound' && ! $pendingInbound) {
+                    $pendingInbound = $m->created_at;
+                } elseif ($m->direction === 'outbound' && $pendingInbound) {
+                    $gaps[] = $pendingInbound->diffInSeconds($m->created_at);
+                    $pendingInbound = null;
+                }
+            }
+        }
+        $avgResponseMin = count($gaps) ? round((array_sum($gaps) / count($gaps)) / 60, 1) : null;
+
+        $perAgent = \App\Models\WhatsappMessage::where('direction', 'outbound')
+            ->selectRaw('sender_name, COUNT(*) as sent')
+            ->groupBy('sender_name')->orderByDesc('sent')->limit(20)->get();
+
+        $since = now()->subDays(6)->startOfDay();
+        $trend = \App\Models\WhatsappMessage::where('created_at', '>=', $since)
+            ->selectRaw("DATE(created_at) as day, direction, COUNT(*) as c")
+            ->groupBy('day', 'direction')->get();
+
+        return response()->json([
+            'open_conversations' => $open,
+            'unread_backlog' => $unreadBacklog,
+            'unread_total' => $unreadTotal,
+            'unassigned' => $unassigned,
+            'avg_response_minutes' => $avgResponseMin,
+            'per_agent' => $perAgent,
+            'trend' => $trend,
+        ]);
     }
 
     private function present(WhatsappConversation $c): array
