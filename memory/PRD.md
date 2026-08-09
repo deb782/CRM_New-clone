@@ -74,10 +74,17 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **Dev**: login throttle raised 20→60/min to avoid 429 flakes in test suites.
 - New files: migration `2026_01_06_...payment_schedule_and_agreements`, models `PaymentMilestone/Agreement/DemandLetter`, services `PaymentScheduleService/AgreementService/DemandLetterService`, controllers `PaymentScheduleController/AgreementController/DemandLetterController`.
 
+## Implemented — Phase D · Section T (2026-06, verified: Section T 8/8, overall 99/100)
+- **T1 Audit trail viewer**: `GET /audit-logs` (paginated, filters: action / entity type / user / date) + **Audit Log** page showing field-level change history (old → new, by whom, reason).
+- **T2 System & integration health**: `GET /system/health` (comms sent/failed by status+channel, automation success/failed, integration driver modes MOCK/LIVE, recent errors) + **System Health** dashboard page.
+- **T3 Search performance**: `GET /system/performance` live probe. Added composite/secondary indexes (leads owner+status, source, created_at; audit/automation/comms log indexes) and a `crm:seed-leads {n}` load-test command. **Verified: 100,046 leads → lead search 0.5ms query / 85ms endpoint — well under the 2s acceptance target.**
+- All three endpoints gated by `config.manage` (403 for Sales Exec). New Configuration nav: System Health, Audit Log.
+
 ## Backlog (prioritized)
-- **P2 (Phase D — R–T)**: Channel Partner portal + commission, full automation trigger engine + ~40 edge cases (R), automation trigger acceptance tests (S), audit/error dashboards + performance hardening (<2s search @100K, automation <2 min) (T), full QA against A–T.
-- **Tech hardening**: receipt/letter/serial generation uses COUNT+1 (unique constraint guards duplicates but throws under rare concurrency) — move to atomic counter/retry when going multi-user. Collections `collected` is org-wide while `scheduled/outstanding` derive from milestones — consistent once all bookings have schedules.
-- **Chatbot**: port the chatbot from https://github.com/deb782/CRM_New-clone when prioritized (crawl returned nothing usable; a basic lead-capture endpoint is live).
+- **P2 (Phase D — R, S)**: Section R ~40 edge cases (DNC/wrong-number/spam, multiple decision-makers/units, competing project, cancellations, bounced/partial/discrepant payments, consent changes, concurrency de-dup); Section S full automation trigger acceptance tests against SLAs.
+- **Channel Partner portal**: scoped leads/bookings + basic commission visibility.
+- **Tech hardening**: serial-number generation uses COUNT+1 (unique constraint guards duplicates but throws under rare concurrency) — move to atomic counter/retry for multi-user. Fix pre-existing flaky `test_qualify_updates_score_status` (session-scoped shared fixture in test file).
+- **Chatbot**: port from https://github.com/deb782/CRM_New-clone when prioritized.
 - **Integrations (live, when keys provided)**: Razorpay keys+webhook secret, WATI base URL+token, Gmail Workspace SMTP.
 
 ## Next tasks
