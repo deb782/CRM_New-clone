@@ -96,7 +96,7 @@ class LeadController extends Controller
 
     public function show(Lead $lead)
     {
-        $lead->load(['stage', 'owner', 'project', 'contact', 'tasks.assignee', 'calls', 'whatsappMessages', 'emails', 'enrollments.sequence']);
+        $lead->load(['stage', 'owner', 'project', 'contact', 'tasks.assignee', 'calls', 'whatsappMessages', 'emails', 'enrollments.sequence', 'siteVisits.project', 'siteVisits.plot']);
         return response()->json([
             'lead' => $lead,
             'timeline' => $lead->activities()->with('user')->limit(100)->get(),

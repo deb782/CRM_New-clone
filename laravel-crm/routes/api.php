@@ -6,10 +6,12 @@ use App\Http\Controllers\Api\CommunicationController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ImportController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ScoringController;
 use App\Http\Controllers\Api\SequenceController;
+use App\Http\Controllers\Api\SiteVisitController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
@@ -76,6 +78,27 @@ Route::prefix('v1')->group(function () {
         Route::post('projects', [ProjectController::class, 'store'])->middleware('permission:projects.manage');
         Route::get('projects/{project}', [ProjectController::class, 'show']);
         Route::put('projects/{project}', [ProjectController::class, 'update'])->middleware('permission:projects.manage');
+
+        // Inventory: Projects -> Phases -> Plots
+        Route::get('inventory/tree', [InventoryController::class, 'tree']);
+        Route::get('inventory/available-plots', [InventoryController::class, 'availablePlots']);
+        Route::post('phases', [InventoryController::class, 'storePhase'])->middleware('permission:projects.manage');
+        Route::put('phases/{phase}', [InventoryController::class, 'updatePhase'])->middleware('permission:projects.manage');
+        Route::post('plots', [InventoryController::class, 'storePlot'])->middleware('permission:projects.manage');
+        Route::put('plots/{plot}', [InventoryController::class, 'updatePlot'])->middleware('permission:projects.manage');
+        Route::delete('plots/{plot}', [InventoryController::class, 'destroyPlot'])->middleware('permission:projects.manage');
+
+        // Site Visits (Sections I & J)
+        Route::get('site-visits', [SiteVisitController::class, 'index']);
+        Route::get('site-visits/slots', [SiteVisitController::class, 'slots']);
+        Route::post('leads/{lead}/site-visits', [SiteVisitController::class, 'store'])->middleware('permission:leads.edit');
+        Route::get('site-visits/{siteVisit}', [SiteVisitController::class, 'show']);
+        Route::post('site-visits/{siteVisit}/confirm', [SiteVisitController::class, 'confirm']);
+        Route::post('site-visits/{siteVisit}/reschedule', [SiteVisitController::class, 'reschedule']);
+        Route::post('site-visits/{siteVisit}/checkin', [SiteVisitController::class, 'checkin']);
+        Route::post('site-visits/{siteVisit}/checkout', [SiteVisitController::class, 'checkout']);
+        Route::post('site-visits/{siteVisit}/complete', [SiteVisitController::class, 'complete']);
+        Route::post('site-visits/{siteVisit}/cancel', [SiteVisitController::class, 'cancel']);
 
         // Config (admin)
         Route::get('scoring-rules', [ScoringController::class, 'index']);

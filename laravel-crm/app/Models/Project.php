@@ -13,4 +13,14 @@ class Project extends Model
     {
         return $this->hasMany(Lead::class);
     }
+
+    public function phases()
+    {
+        return $this->hasMany(Phase::class)->orderBy('sort_order');
+    }
+
+    public function plots()
+    {
+        return $this->hasMany(Plot::class);
+    }
 }

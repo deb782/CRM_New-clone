@@ -1,0 +1,31 @@
+{
+  "summary": "Phase B (Inventory + Site Visits + Sales Handover) end-to-end testing against Laravel 11 CRM at http://127.0.0.1:8000. Added pytest suite /app/backend/tests/test_phase_b.py with 18 test cases covering: inventory tree shape + counts, available-plots filter, plot CRUD (create/update/held->available clears held_by_lead_id/delete), phase CRUD, RBAC 403 for non-admin (rahul@crm.local) on POST /plots and /phases, slots endpoint, schedule flow (lead->site_visit_scheduled + 'Conduct site visit' task), slot marked unavailable after schedule, confirm/checkin/checkout lifecycle, outcome INTERESTED (lead->negotiation + handover task + plot->held with held_by_lead_id), outcome CONSIDERING (lead->site_visit_completed), outcome NOT_INTERESTED (lead->not_interested), reschedule escalation (4th reschedule -> lead->no_response), no_show (visit->no_show + callback task), cancel, upcoming filter, status=completed filter. Result: 18/18 Phase B tests PASS. Phase A regression run: 26/26 still PASS. Frontend Playwright: verified login, Inventory page renders 51 color-coded plot cards (Available/Held/Booked/Sold badges), plot-<id> click opens edit modal with plot-status + plot-save + Delete + Cancel; Site Visits page shows Upcoming/Completed/No-Shows/All filters (vf-upcoming, vf-completed, vf-no_show, vf-all), Outcome buttons (v-complete-<id>) open a modal with v-outcome (options: interested/considering/not_interested/no_show/reschedule) + v-outcome-save; selecting 'considering' + save shows 'Outcome recorded' toast. On Leads, clicking lead-row-1 opens right-side drawer that includes 'Site Visits' section with past+future visits, Open Tasks (Conduct site visit, Sales: initiate contact within 24h (handover)), Details, Qualification. schedule-visit-btn opens modal (sv-datetime, sv-project, sv-save); saving triggers 'Site visit scheduled' toast, status changes to 'Site Visit Scheduled', WhatsApp and Email confirmations are auto-logged in the Activity timeline.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase_b.py",
+    "/app/backend/tests/test_laravel_crm.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/phase_b_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Site visit response shapes are consistent ({visit:{...}}) but inventory endpoints mix shapes: /inventory/tree -> {projects:[...]}, /inventory/available-plots -> {data:[...]}, /plots CRUD -> {plot:{...}}. Consider unifying under {data:...}.",
+    "Reschedule endpoint does not appear to return a task list; escalation happens as a side-effect. Consider echoing back the escalation_task_id/no_response_flag in the response payload for easier frontend UX.",
+    "No throttle observed on /api/v1/site-visits/slots — could be abused if scraped."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase_b.py"
+  ],
+  "success_rate": {"backend": "100% (18/18 Phase B; 26/26 Phase A regression)", "frontend": "100% of exercised flows"},
+  "test_credentials": "admin@crm.local / Admin@12345 (Administrator, has projects.manage); rahul@crm.local / Demo@12345 (Sales Exec, NO projects.manage — verified 403 on POST /plots and POST /phases).",
+  "seed_data_creation": "Tests create TEST_SV_/TESTPHASE_/TP- prefixed data via API. Cleanup: none required beyond the mutating tests themselves (plot delete in one test; leads left as-is with status transitions). MariaDB seed data (Skyline Residences, Green Valley Plots) available and intact.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run backend: cd /app && python -m pytest backend/tests -v -o addopts=. All 44 tests (26 Phase A + 18 Phase B) pass. Frontend served by Laravel at http://127.0.0.1:8000 (SPA hash routing #/dashboard, #/leads, #/inventory, #/visits). Login uses input[type=email]/password + button 'Sign in' (data-testid=login-submit if present, otherwise get_by_role button). data-testids confirmed: nav-inventory, nav-visits, nav-leads, plot-<id>, plot-status, plot-save, vf-upcoming/completed/no_show/all, v-complete-<id>, v-outcome, v-outcome-save, lead-row-1, schedule-visit-btn, sv-datetime, sv-project, sv-save. Modals use .modal-overlay which intercepts pointer events — always close (Cancel/×) before navigating. Response shapes: {visit:{...}} for /site-visits/* endpoints, {projects:[...]} for /inventory/tree, {data:[...]} for /available-plots, {plot:{...}} for /plots. Reschedule 3rd -> escalation task; 4th -> lead status='no_response'. Considering outcome -> lead status='site_visit_completed'. Interested outcome -> lead status='negotiation' + handover task 24h + plot status='held' with held_by_lead_id.",
+  "rca_of_the_issue": "N/A — all Phase B acceptance criteria verified working end-to-end."
+}

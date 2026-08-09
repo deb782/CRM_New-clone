@@ -70,4 +70,9 @@ class Lead extends Model
     {
         return $this->hasMany(SequenceEnrollment::class);
     }
+
+    public function siteVisits()
+    {
+        return $this->hasMany(SiteVisit::class)->latest('scheduled_at');
+    }
 }

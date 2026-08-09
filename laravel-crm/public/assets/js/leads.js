@@ -149,6 +149,13 @@
           detailRow('Budget', lead.budget_min ? money(lead.budget_min) + (lead.budget_max ? '–' + money(lead.budget_max) : '') : '—'),
           detailRow('Financing', lead.financing), detailRow('Decision', lead.decision_maker),
           detailRow('Pref. Location', lead.preferred_location)),
+        el('div', { class: 'section-title' }, 'Site Visits'),
+        (lead.site_visits || []).length
+          ? el('div', {}, ...(lead.site_visits || []).map(v =>
+              el('div', { class: 'chip', style: 'display:flex;width:100%;margin-bottom:6px;justify-content:space-between', 'data-testid': 'lead-visit-' + v.id },
+                el('span', {}, new Date(v.scheduled_at).toLocaleDateString() + (v.plot ? ' · ' + v.plot.number : '')),
+                el('span', { style: 'font-weight:600' }, CRM.stageName(v.status)))))
+          : el('div', { style: 'color:var(--text-3);font-size:13px' }, 'No visits scheduled'),
         el('div', { class: 'section-title' }, 'Open Tasks'),
         (lead.tasks || []).filter(t => t.status === 'open').length
           ? el('div', {}, ...(lead.tasks || []).filter(t => t.status === 'open').map(t =>
@@ -260,6 +267,7 @@
     if (!lead.contact_verified) actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'verify-btn', onclick: async () => { await api.post('/leads/' + id + '/verify', {}); toast('Contact verified', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-user-check' }), 'Verify Contact'));
     actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'recalc-btn', onclick: async () => { const r = await api.post('/leads/' + id + '/recalculate'); toast('Score: ' + r.result.total + ' (' + r.result.temperature + ')', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-arrows-rotate' }), 'Recalculate'));
     actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'enroll-btn', onclick: async () => { await api.post('/leads/' + id + '/enroll', {}); toast('Enrolled in ' + lead.temperature + ' cadence', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-seedling' }), 'Enroll Nurture'));
+    actionRow.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'schedule-visit-btn', onclick: () => CRM.scheduleVisit(lead, reload) }, el('i', { class: 'fa-solid fa-calendar-check' }), 'Schedule Visit'));
     main.appendChild(actionRow);
 
     const tabsBar = el('div', { class: 'tabs' });

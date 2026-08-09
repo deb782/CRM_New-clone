@@ -6,7 +6,9 @@ use App\Models\AutomationRule;
 use App\Models\Contact;
 use App\Models\Lead;
 use App\Models\Permission;
+use App\Models\Phase;
 use App\Models\PipelineStage;
+use App\Models\Plot;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\ScoringRule;
@@ -31,6 +33,7 @@ class DatabaseSeeder extends Seeder
         $this->sequences();
         $this->automationRules();
         $this->demoData($projects);
+        $this->inventory($projects);
     }
 
     private function permissions(): void
@@ -270,6 +273,51 @@ class DatabaseSeeder extends Seeder
                 'last_contacted_at' => now()->subDays(rand(1, 6)),
                 'acknowledged_at' => now()->subDays(rand(1, 6)),
             ]);
+        }
+    }
+
+    private function inventory(array $projects): void
+    {
+        $blueprints = [
+            // project index => [ [phase name, code, possession, [unit_type, count, base_price, area], ... ] ]
+            0 => [ // Skyline Residences (apartments)
+                ['Tower A', 'A', 'Dec 2027', [['2BHK', 6, 7500000, 1150], ['3BHK', 4, 11000000, 1650]]],
+                ['Tower B', 'B', 'Jun 2028', [['1BHK', 6, 5200000, 720], ['2BHK', 6, 7800000, 1180]]],
+            ],
+            1 => [ // Green Valley Plots
+                ['Sector 1', 'S1', 'Ready', [['Plot', 10, 3500000, 1200]]],
+                ['Sector 2', 'S2', 'Ready', [['Plot', 8, 4800000, 1500]]],
+            ],
+            2 => [ // Marina Heights
+                ['Phase 1', 'P1', 'Mar 2028', [['2BHK', 6, 9000000, 1250], ['3BHK', 5, 14000000, 1800]]],
+            ],
+        ];
+        $facings = ['East', 'West', 'North', 'South', 'North-East'];
+        foreach ($blueprints as $pi => $phases) {
+            $project = $projects[$pi] ?? null;
+            if (! $project) continue;
+            foreach ($phases as $order => [$pname, $pcode, $possession, $units]) {
+                $phase = Phase::updateOrCreate(
+                    ['project_id' => $project->id, 'name' => $pname],
+                    ['code' => $pcode, 'sort_order' => $order + 1, 'possession_target' => $possession, 'status' => 'active']
+                );
+                if ($phase->plots()->count() > 0) continue;
+                foreach ($units as [$type, $count, $base, $area]) {
+                    for ($i = 1; $i <= $count; $i++) {
+                        $num = $pcode.'-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT);
+                        $rand = rand(0, 100);
+                        $status = $rand < 60 ? 'available' : ($rand < 78 ? 'held' : ($rand < 92 ? 'booked' : 'sold'));
+                        Plot::create([
+                            'project_id' => $project->id, 'phase_id' => $phase->id, 'number' => $num,
+                            'unit_type' => $type, 'carpet_area' => $area, 'built_up_area' => round($area * 1.25),
+                            'floor' => $type === 'Plot' ? null : (string) rand(1, 12),
+                            'facing' => $facings[array_rand($facings)],
+                            'price' => $base + rand(0, 8) * 100000,
+                            'status' => $status,
+                        ]);
+                    }
+                }
+            }
         }
     }
 }

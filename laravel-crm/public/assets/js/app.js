@@ -8,6 +8,8 @@
       { route: 'dashboard', icon: 'fa-gauge-high', name: 'Dashboard' },
       { route: 'leads', icon: 'fa-users', name: 'Leads' },
       { route: 'pipeline', icon: 'fa-diagram-project', name: 'Pipeline' },
+      { route: 'inventory', icon: 'fa-building', name: 'Inventory' },
+      { route: 'visits', icon: 'fa-calendar-check', name: 'Site Visits' },
       { route: 'callList', icon: 'fa-phone-volume', name: 'Call List' },
       { route: 'tasks', icon: 'fa-list-check', name: 'Tasks' },
       { route: 'import', icon: 'fa-file-arrow-up', name: 'Import' },
@@ -20,7 +22,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', users: 'Users & Roles' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', users: 'Users & Roles' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
