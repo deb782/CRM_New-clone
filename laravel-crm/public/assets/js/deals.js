@@ -437,6 +437,38 @@
     view.appendChild(el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Ref'), el('th', {}, 'Customer'), el('th', {}, 'Booking'), el('th', {}, 'Total Due'), el('th', {}, 'Overdue'), el('th', {}, 'Status'))), tbody)));
   };
 
+  // ===== SLA Heat-Board (manager) =====
+  CRM.pages.slaBoard = async function (view) {
+    CRM.setActions(null);
+    view.innerHTML = '<div class="spinner"></div>';
+    const d = await api.get('/tasks/sla-board');
+    view.innerHTML = '';
+    const colors = { breached: 'var(--hot)', red: '#ff6b57', amber: 'var(--warm)', green: 'var(--won)' };
+    const labels = { breached: 'Breached', red: '< 1 hour', amber: '1–4 hours', green: 'On track' };
+    view.appendChild(el('div', { class: 'cards', style: 'margin-bottom:20px', 'data-testid': 'sla-cards' },
+      ...['breached', 'red', 'amber', 'green'].map(k => el('div', { class: 'card stat', 'data-testid': 'sla-count-' + k },
+        el('div', { class: 'k', style: 'color:' + colors[k] }, labels[k]),
+        el('div', { class: 'v', style: 'color:' + colors[k] }, String(d.counts[k] || 0))))));
+
+    if (!d.tasks.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-mug-hot' }), el('div', {}, 'No open tasks — all clear'))); return; }
+
+    const fmt = (m) => { const a = Math.abs(m); const h = Math.floor(a / 60), mm = a % 60; const s = (h ? h + 'h ' : '') + mm + 'm'; return m < 0 ? '-' + s : s; };
+    const tbody = el('tbody', { 'data-testid': 'sla-tbody' });
+    d.tasks.forEach(t => {
+      const sel = el('select', { class: 'select', style: 'width:auto;min-width:130px', 'data-testid': 'sla-reassign-' + t.id },
+        ...d.users.map(u => el('option', { value: u.id, selected: t.assignee && t.assignee.id === u.id ? 'selected' : null }, u.name)));
+      sel.addEventListener('change', async () => { try { await api.put('/tasks/' + t.id, { assigned_to: Number(sel.value) }); toast('Reassigned', 'success'); } catch (e) { toast(e.message, 'error'); } });
+      tbody.appendChild(el('tr', { 'data-testid': 'sla-row-' + t.id, style: 'border-left:3px solid ' + colors[t.bucket] },
+        el('td', {}, el('span', { class: 'chip', style: 'color:' + colors[t.bucket] }, labels[t.bucket]), t.escalated ? el('i', { class: 'fa-solid fa-fire', style: 'color:var(--hot);margin-left:6px' }) : null),
+        el('td', {}, t.title),
+        el('td', {}, t.lead ? el('a', { href: '#/leads/' + t.lead.id, style: 'color:var(--accent)' }, t.lead.name) : '—'),
+        el('td', { style: 'font-weight:600;color:' + colors[t.bucket] }, fmt(t.minutes_to_breach)),
+        el('td', {}, sel)));
+    });
+    view.appendChild(el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {},
+      el('th', {}, 'SLA'), el('th', {}, 'Task'), el('th', {}, 'Lead'), el('th', {}, 'Time to breach'), el('th', {}, 'Assignee'))), tbody)));
+  };
+
   // ===== Bookings page =====
   CRM.pages.bookings = async function (view) {
     CRM.setActions(null);

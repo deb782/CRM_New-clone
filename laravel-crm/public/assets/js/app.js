@@ -14,6 +14,7 @@
       { route: 'collections', icon: 'fa-indian-rupee-sign', name: 'Collections' },
       { route: 'demands', icon: 'fa-file-invoice-dollar', name: 'Demand Letters' },
       { route: 'callList', icon: 'fa-phone-volume', name: 'Call List' },
+      { route: 'slaBoard', icon: 'fa-gauge-high', name: 'SLA Board' },
       { route: 'tasks', icon: 'fa-list-check', name: 'Tasks' },
       { route: 'import', icon: 'fa-file-arrow-up', name: 'Import' },
     ]},
@@ -34,7 +35,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
@@ -56,7 +57,7 @@
       btn.disabled = true; btn.textContent = 'Signing in…';
       try {
         const res = await api.login(email.value.trim(), pass.value);
-        setToken(res.token); state.user = res.user;
+        setToken(res.token); state.user = res.user; sessionStorage.removeItem('crm_homed');
         toast('Welcome back, ' + res.user.name.split(' ')[0], 'success');
         location.hash = '#/dashboard';
       } catch (err) {
@@ -131,7 +132,7 @@
     return view;
   }
 
-  function logout() { api.post('/auth/logout').catch(() => {}); setToken(null); state.user = null; location.hash = '#/login'; }
+  function logout() { api.post('/auth/logout').catch(() => {}); setToken(null); state.user = null; sessionStorage.removeItem('crm_homed'); location.hash = '#/login'; }
 
   async function render() {
     document.querySelectorAll('.drawer-overlay, .modal-overlay').forEach(n => n.remove());
@@ -142,6 +143,12 @@
     }
     const { route, id } = parseRoute();
     if (route === 'login') { location.hash = '#/dashboard'; return; }
+    // Role-based home: land each role on what they act on first (once per session)
+    if ((route === 'dashboard' || !route) && !sessionStorage.getItem('crm_homed')) {
+      sessionStorage.setItem('crm_homed', '1');
+      const home = { channel_partner: 'portal', post_sales: 'collections', sales_exec: 'callList' }[state.user.role];
+      if (home && ('#/' + home) !== location.hash) { location.hash = '#/' + home; return; }
+    }
     if (route === 'dashboard' && !can('leads.view') && can('partner.portal')) { location.hash = '#/portal'; return; }
     const view = renderShell(route);
     const page = CRM.pages[route];

@@ -64,6 +64,27 @@ class ChannelPartnerController extends Controller
         return response()->json(['booking' => $booking->fresh()]);
     }
 
+    // ---- Public referral submission (no auth) ----
+    public function refer(Request $request, string $code, \App\Services\LeadService $leads)
+    {
+        $partner = ChannelPartner::where('referral_code', $code)->where('active', true)->first();
+        if (! $partner) {
+            return response()->json(['message' => 'Invalid referral code'], 404);
+        }
+        $data = $request->validate([
+            'name' => 'required|string|max:150',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email',
+            'message' => 'nullable|string|max:500',
+        ]);
+        $result = $leads->capture(array_merge($data, ['source' => 'Partner Referral']));
+        $lead = $result['lead'] ?? null;
+        if ($lead) {
+            $lead->forceFill(['channel_partner_id' => $partner->id, 'source' => 'Partner Referral'])->save();
+        }
+        return response()->json(['message' => 'Thank you! '.$partner->name.' will be in touch shortly.', 'status' => $result['status'] ?? 'created']);
+    }
+
     // ---- Partner portal (scoped to the logged-in partner user) ----
     private function currentPartner(Request $request): ?ChannelPartner
     {
@@ -82,7 +103,9 @@ class ChannelPartnerController extends Controller
         $pending = (int) $bookings->whereIn('commission_status', ['pending', 'approved'])->sum('commission_amount');
 
         return response()->json([
-            'partner' => $partner->only(['id', 'name', 'company', 'commission_rate']),
+            'partner' => array_merge($partner->only(['id', 'name', 'company', 'commission_rate', 'referral_code']), [
+                'referral_url' => url('/refer/'.$partner->referral_code),
+            ]),
             'summary' => [
                 'leads' => $leads->count(),
                 'bookings' => $bookings->count(),

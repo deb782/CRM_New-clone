@@ -8,6 +8,35 @@ use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
+    /** SLA heat-board: open tasks colour-coded by time-to-breach. */
+    public function slaBoard(Request $request)
+    {
+        $slaVerify = (int) config('integrations.sla.verify_hours', 2);
+        $tasks = Task::with(['lead:id,name', 'assignee:id,name'])
+            ->where('status', 'open')->get();
+
+        $rows = $tasks->map(function ($t) use ($slaVerify) {
+            $deadline = $t->due_at
+                ?: ($t->type === 'verify' ? $t->created_at->copy()->addHours($slaVerify) : $t->created_at->copy()->addHours(24));
+            $mins = (int) round(now()->diffInMinutes($deadline, false));
+            $bucket = $mins < 0 ? 'breached' : ($mins < 60 ? 'red' : ($mins < 240 ? 'amber' : 'green'));
+            return [
+                'id' => $t->id, 'title' => $t->title, 'type' => $t->type,
+                'priority' => $t->priority, 'escalated' => (bool) $t->escalated,
+                'lead' => $t->lead ? ['id' => $t->lead->id, 'name' => $t->lead->name] : null,
+                'assignee' => $t->assignee ? ['id' => $t->assignee->id, 'name' => $t->assignee->name] : null,
+                'deadline' => $deadline, 'minutes_to_breach' => $mins, 'bucket' => $bucket,
+            ];
+        })->sortBy('minutes_to_breach')->values();
+
+        $counts = ['breached' => 0, 'red' => 0, 'amber' => 0, 'green' => 0];
+        foreach ($rows as $r) {
+            $counts[$r['bucket']]++;
+        }
+        $users = \App\Models\User::where('is_active', true)->get(['id', 'name']);
+        return response()->json(['tasks' => $rows, 'counts' => $counts, 'users' => $users]);
+    }
+
     public function index(Request $request)
     {
         $q = Task::with(['lead', 'assignee']);

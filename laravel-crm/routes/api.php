@@ -39,6 +39,7 @@ Route::prefix('v1')->group(function () {
         Route::post('webhooks/razorpay', [WebhookController::class, 'razorpay']);
         Route::post('chatbot', [WebhookController::class, 'chatbot']);
         Route::get('track/email/{event}/{emailId}', [WebhookController::class, 'emailEvent']);
+        Route::post('public/refer/{code}', [\App\Http\Controllers\Api\ChannelPartnerController::class, 'refer']);
     });
     // Public booking form (token link)
     Route::middleware('throttle:60,1')->group(function () {
@@ -85,6 +86,7 @@ Route::prefix('v1')->group(function () {
         Route::post('leads/{lead}/pause-sequence', [SequenceController::class, 'pause']);
 
         // Tasks
+        Route::get('tasks/sla-board', [TaskController::class, 'slaBoard'])->middleware('permission:leads.view');
         Route::get('tasks', [TaskController::class, 'index']);
         Route::post('tasks', [TaskController::class, 'store']);
         Route::post('tasks/{task}/complete', [TaskController::class, 'complete']);

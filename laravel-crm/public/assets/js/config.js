@@ -349,6 +349,13 @@
     catch (e) { view.innerHTML = ''; view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-circle-info' }), el('div', {}, e.message || 'No partner profile'))); return; }
     view.innerHTML = '';
     view.appendChild(el('div', { style: 'margin-bottom:8px' }, el('b', {}, d.partner.name), el('span', { style: 'color:var(--text-3);margin-left:8px' }, d.partner.commission_rate + '% commission')));
+    if (d.partner.referral_url) {
+      const link = el('input', { class: 'input', readonly: true, value: d.partner.referral_url, 'data-testid': 'referral-link', style: 'flex:1;font-family:var(--mono,monospace);font-size:12px' });
+      const copy = el('button', { class: 'btn btn--sm', 'data-testid': 'referral-copy', onclick: () => { navigator.clipboard.writeText(d.partner.referral_url); toast('Referral link copied', 'success'); } }, el('i', { class: 'fa-solid fa-copy' }), 'Copy');
+      view.appendChild(el('div', { class: 'card', style: 'padding:14px;margin-bottom:18px' },
+        el('div', { style: 'font-size:12px;color:var(--text-3);margin-bottom:6px' }, 'Your referral link — share it to auto-attribute new leads & commission'),
+        el('div', { style: 'display:flex;gap:8px' }, link, copy)));
+    }
     const card = (k, v, color) => el('div', { class: 'card stat' }, el('div', { class: 'k' }, k), el('div', { class: 'v', style: color ? ('color:' + color) : '' }, String(v)));
     view.appendChild(el('div', { class: 'cards', style: 'margin-bottom:20px', 'data-testid': 'portal-cards' },
       card('My Leads', d.summary.leads), card('My Bookings', d.summary.bookings),
