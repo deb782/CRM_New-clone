@@ -92,9 +92,19 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **Acceptance suite**: `/app/backend/tests/test_section_s.py` (10 tests) proving each event fires the right task/message and SLA breaches escalate correctly.
 - Added `?lead_id=` filter to `/automation-logs` for per-lead audit.
 
+## Implemented — Automation Builder UI + Section R residual edge cases (2026-06, verified 141/141)
+- **Automation Builder UI**: managers create/edit/delete automation rules from the Automations page via a structured, no-JSON form — pick a trigger event, a "when status becomes" condition, and add/remove typed action rows (create task with due-hours+priority, send WhatsApp/email, enroll/pause sequence). Full CRUD via `/automation-rules` (config.manage gated); newly built rules fire live on the chosen event. `/automation-logs` now supports `?lead_id=`.
+- **Section R residual edge cases**:
+  - Multiple decision-makers (`stakeholders` JSON) — add/remove, primary flag, shown in the lead Qualify tab.
+  - Multiple units of interest (`interested_units` JSON, deduplicated).
+  - Competing/other-project switch (`/leads/{id}/switch-project`, audited).
+  - **Concurrency-safe de-duplication** — normalized `dedupe_key` unique index + race-catch: 8 parallel identical creates collapse to one lead; sequential dups still 409; explicit force-create still allowed.
+- **Test hardening**: fixed the two long-standing flaky tests (session-fixture + pagination) — full suite now deterministically 141/141.
+- New: migration `2026_01_09_...lead_stakeholders_and_dedupe`, LeadService dedupe+switchProject, LeadController stakeholder/units/switch endpoints, structured autoForm builder, qualify-tab interests panel.
+
 ## Backlog (prioritized)
-- **P2 (Phase D — R residual)**: multiple decision-makers/units per lead, competing-project switches, tighter concurrency de-duplication hardening.
-- **Tech hardening**: two pre-existing test-file defects (`test_qualify_updates_score_status`, `test_verify_task_created`) rely on a session-scoped shared fixture + default pagination and flake under load — not app bugs (Section S proves the behaviour). Move serial-number generation to an atomic counter for multi-user concurrency.
+- **P3 nice-to-haves**: SLA heat-board on manager dashboard (time-to-breach colour coding + one-click reassign); role-based home dashboards; partner self-registration + referral links; commission monthly statements.
+- **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
 - **Chatbot**: port from https://github.com/deb782/CRM_New-clone when prioritized.
 - **Integrations (live, when keys provided)**: Razorpay keys+webhook secret, WATI base URL+token, Gmail Workspace SMTP.
 

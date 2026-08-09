@@ -58,7 +58,8 @@ class TestLeadCapture:
         assert lead.get("owner_id") is not None, "round-robin owner not assigned"
 
     def test_verify_task_created(self, seed_lead, admin_token):
-        r = requests.get(f"{API}/tasks", headers=H(admin_token))
+        r = requests.get(f"{API}/tasks", params={"lead_id": seed_lead["id"], "type": "verify"},
+                         headers=H(admin_token))
         assert r.status_code == 200
         data = r.json()
         items = data.get("tasks") or data.get("data") or (data if isinstance(data, list) else [])
@@ -101,8 +102,17 @@ class TestDuplicate:
 
 # -------- Qualify --------
 class TestQualify:
-    def test_qualify_updates_score_status(self, seed_lead, admin_token):
-        r = requests.post(f"{API}/leads/{seed_lead['id']}/qualify", json={
+    def test_qualify_updates_score_status(self, admin_token):
+        # Create a fresh lead so shared-fixture mutations by other tests don't affect status
+        import uuid, random
+        suffix = uuid.uuid4().hex[:8]
+        cr = requests.post(f"{API}/leads", json={
+            "name": f"QualifyTest {suffix}", "email": f"qualify_{suffix}@example.com",
+            "phone": "9" + str(random.randint(100000000, 999999999)), "source": "Website Form",
+        }, headers=H(admin_token))
+        assert cr.status_code in (200, 201), cr.text
+        lead_id = (cr.json().get("lead") or cr.json())["id"]
+        r = requests.post(f"{API}/leads/{lead_id}/qualify", json={
             "interest_level": "high", "budget_min": 5000000, "budget_max": 8000000,
             "timeline": "1-3m", "financing": "loan", "decision_maker": "self",
             "preferred_location": "Mumbai"
