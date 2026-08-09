@@ -26,6 +26,7 @@
       { route: 'templates', icon: 'fa-comment-dots', name: 'Templates' },
       { route: 'partners', icon: 'fa-handshake', name: 'Channel Partners' },
       { route: 'commissions', icon: 'fa-hand-holding-dollar', name: 'Commissions' },
+      { route: 'chatbot', icon: 'fa-robot', name: 'Chat Widget' },
       { route: 'health', icon: 'fa-heart-pulse', name: 'System Health' },
       { route: 'audit', icon: 'fa-clipboard-list', name: 'Audit Log' },
       { route: 'users', icon: 'fa-user-shield', name: 'Users & Roles', perm: 'users.manage' },
@@ -35,7 +36,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');

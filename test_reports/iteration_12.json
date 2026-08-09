@@ -1,0 +1,29 @@
+{
+  "summary": "Tested the new embeddable Website Chat Widget end-to-end: widget asset serving, /chat-demo page + floating bubble UX, full scripted capture flow (name -> contact -> looking -> budget -> location), contact validation, lead persistence with source 'Chatbot' + composed intent_notes, in-CRM config page (embed snippet + partner-ref snippet + demo link + live preview), RBAC visibility of the new 'Chat Widget' nav item, and partner-attributed capture via /api/v1/public/refer/{code}. All checks passed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "detailed_results": {
+    "widget_asset": "GET /widget/chat.js -> 200 OK",
+    "demo_page": "GET /chat-demo -> 200 OK; bubble+panel+first bot msg render with correct data-testids",
+    "scripted_flow": "Answered name=Test Chatbot User, invalid contact 'abc' correctly rejected with error bot message ('Enter a valid phone number or email.'); valid phone 9876500022 advanced; 4 looking chips + 5 budget chips (4 + Skip) visible via [data-testid=chat-widget-quick]; picked Apartment + ₹50L–1Cr; typed location 'Bengaluru Whitefield'; [data-testid=chat-widget-success] shown ('Thanks Test Chatbot User! Our team will reach out shortly...').",
+    "lead_persistence": "DB check: Lead(phone=9876500022) count=1, source='Chatbot', name='Test Chatbot User', intent_notes='Looking for: Apartment | Budget: ₹50L–1Cr | Location: Bengaluru Whitefield' (contains Looking for:, Budget:, Location:).",
+    "config_page_admin": "nav-chatbot present; page renders chatbot-embed-copy, chatbot-ref-copy, chatbot-demo-link (href=http://127.0.0.1:8000/chat-demo), plus live chat-widget-bubble preview.",
+    "config_page_marketing": "nav-chatbot present (config.manage granted).",
+    "config_page_sales_exec": "nav-chatbot NOT present for rahul@crm.local (no config.manage) — RBAC correct.",
+    "partner_refer_endpoint": "Login partner@crm.local -> GET /api/v1/partner/portal returned referral_code=ORCIGCZE. POST /api/v1/public/refer/ORCIGCZE (unauth) -> HTTP 200 with {status:'created', message:'Thank you! Prime Realty Partners will be in touch shortly.'}. DB: Lead(phone=9876500099).source='Partner Referral', channel_partner_id=1 (Prime Realty Partners)."
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "widget/chat.js: on the final step, if the fetch fails the widget sets idx = steps.length - 1 which puts the user back on 'location' — resubmission may still fail because payload lacks contact/name updates. Minor UX resilience concern, not blocking.",
+    "widget/chat.js: 'Skip' chip for budget submits '' but no visual user bubble appears (submit early-returns on empty val). That is intentional but could confuse users; consider echoing 'Skipped'.",
+    "widget/chat.js: input.focus() on open panel works but on the 'looking'/'budget' quick-reply steps, typing into the input still calls submit(v) which will fail validation only for the current step (contact). For chip-only steps a free-text reply is accepted as the answer — acceptable per scripted design but worth noting."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Used from /app/memory/test_credentials.md (admin, marketing, rahul sales exec, partner).",
+  "seed_data_creation": "Two leads created during testing: phone 9876500022 (source Chatbot) and 9876500099 (source Partner Referral, channel_partner_id=1). Both are visible in Leads list.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Widget testids: chat-widget-bubble/panel/messages/input/send/quick/bot-msg/user-msg/success/close. Config page testids: nav-chatbot, chatbot-embed-copy, chatbot-ref-copy, chatbot-demo-link. Use distinct phones to avoid dedupe. Partner referral_code for 'Prime Realty Partners' seed is currently ORCIGCZE (regenerated on reseed)."
+}

@@ -373,4 +373,53 @@
     else view.appendChild(tableWrap(['Name', 'Phone', 'Stage'], d.leads.map(l => el('tr', { 'data-testid': 'portal-lead-' + l.id },
       el('td', {}, l.name), el('td', {}, l.phone || '—'), el('td', {}, l.stage ? l.stage.name : l.status)))));
   };
+
+  // ========== WEBSITE CHAT WIDGET (embed + live preview) ==========
+  CRM.pages.chatbot = async function (view) {
+    CRM.setActions(null);
+    view.innerHTML = '';
+    const origin = window.location.origin;
+    const snippet = '<script src="' + origin + '/widget/chat.js" async><\/script>';
+    const refSnippet = '<script src="' + origin + '/widget/chat.js" data-ref="PARTNER-CODE" async><\/script>';
+
+    const copyBtn = (id, text) => {
+      const b = el('button', { class: 'btn btn--sm', 'data-testid': id }, el('i', { class: 'fa-solid fa-copy' }), 'Copy');
+      b.addEventListener('click', () => { navigator.clipboard.writeText(text); toast('Copied to clipboard', 'success'); });
+      return b;
+    };
+    const codeBox = (code) => el('pre', { class: 'card', style: 'padding:14px 16px;overflow-x:auto;font-family:var(--mono,monospace);font-size:12.5px;white-space:pre-wrap;word-break:break-all;margin:0' }, code);
+
+    view.appendChild(el('div', { class: 'card', style: 'padding:18px 20px;margin-bottom:18px' },
+      el('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:6px' },
+        el('i', { class: 'fa-solid fa-robot', style: 'color:var(--accent)' }),
+        el('b', {}, 'Capture leads from any website')),
+      el('div', { style: 'color:var(--text-3);font-size:13px;line-height:1.6' },
+        'Paste the one-line snippet below just before the ', el('code', {}, '</body>'),
+        ' tag on your marketing site. Visitors get a friendly chat bubble; every completed conversation lands in the CRM as a new lead (source ',
+        el('b', {}, 'Chatbot'), ').')));
+
+    view.appendChild(el('div', { class: 'section-title' }, 'Embed snippet'));
+    view.appendChild(el('div', { style: 'display:flex;gap:10px;align-items:flex-start;margin-bottom:20px' },
+      codeBox(snippet), copyBtn('chatbot-embed-copy', snippet)));
+
+    view.appendChild(el('div', { class: 'section-title' }, 'Partner-attributed snippet'));
+    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:8px' },
+      'Give partners this variant — replace ', el('b', {}, 'PARTNER-CODE'), ' with their referral code so captured leads (and commission) auto-attribute to them.'));
+    view.appendChild(el('div', { style: 'display:flex;gap:10px;align-items:flex-start;margin-bottom:20px' },
+      codeBox(refSnippet), copyBtn('chatbot-ref-copy', refSnippet)));
+
+    const demoUrl = origin + '/chat-demo';
+    view.appendChild(el('div', { style: 'display:flex;gap:10px;align-items:center' },
+      el('a', { class: 'btn btn--primary', 'data-testid': 'chatbot-demo-link', href: demoUrl, target: '_blank' },
+        el('i', { class: 'fa-solid fa-arrow-up-right-from-square' }), 'Open live demo'),
+      el('span', { style: 'color:var(--text-3);font-size:13px' }, 'A real page with the widget installed — try a full capture flow.')));
+
+    // Live preview: load the widget on this page (bottom-right bubble)
+    if (!document.getElementById('crmcw-root') && !window.__crmChatWidget) {
+      const s = document.createElement('script');
+      s.src = origin + '/widget/chat.js'; s.async = true;
+      s.setAttribute('data-title', 'Find your dream home');
+      document.body.appendChild(s);
+    }
+  };
 })();

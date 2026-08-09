@@ -12,4 +12,7 @@ Route::get('/refer/{code}', function (string $code) {
     return view('refer', ['partner' => $partner, 'code' => $code]);
 });
 
+// Public live-demo of the embeddable chat widget
+Route::view('/chat-demo', 'chat-demo');
+
 Route::get('/{any?}', [PageController::class, 'index'])->where('any', '^(?!api).*$');
