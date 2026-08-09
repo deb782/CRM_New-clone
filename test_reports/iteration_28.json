@@ -1,0 +1,35 @@
+{
+  "summary": "Certified the new self-service Integrations Hub end-to-end (backend + UI). Backend pytest suite (12/12 PASS) covers RBAC (admin/process_admin=200, BDE=403), 3-provider registry shape, PUT save + secret masking on subsequent GET (••••1234, has_value=true), blank-secret preserves stored value, toggle-guard 422 for unconfigured mcube, toggle 200 for configured meta, and live Meta 'Test connection' with fake token failing 422 with 'Meta rejected the credentials: Invalid OAuth access token'. UI (Playwright, hash router at http://localhost:8000) confirms: grid data-testid='integrations-grid' with 3 cards (ig-card-meta_whatsapp/google_email/mcube) each starting 'Not configured'; Meta modal Save persists non-secret 'phone_number_id'=9988776655 and the access_token input reopens EMPTY with masked placeholder '•••••••• (unchanged)' (raw secret never rendered); live Test connection renders '✕ Meta rejected the credentials: Invalid OAuth access token - Cannot parse access token' via data-testid='ig-test-result'; card pill flips to ERROR on next hub render (confirmed visually + via GET which returns status='error'); Google Workspace Email modal renders host/port/username/app_password/from_name/from_email with required '*' markers (defaults smtp.gmail.com / 587 pre-filled); Mcube modal renders base_url/auth_token/caller_id; regression pages Dashboard/Leads/Roles/Users load and Cmd+K palette still opens. Admin sidebar shows '#/integrations' link (verified after onboarding overlay dismissed) and Process Admin sidebar shows it directly. BDE @ #/integrations returns 403 (no grid). Post-test cleanup ran: `Integration::query()->delete()` — hub back to 'Not configured' for all three providers.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Meta Test connection", "issue": "After a failed live test inside the config modal, the underlying card status pill does not re-fetch until the modal is closed and the hub view is re-rendered. The 'ig-test-result' error text updates instantly, but the ig-status-<key> pill on the card remains stale (still 'Configured') until a page/route revisit. Minor polish: call refresh() after test as well as after save.", "affected_selectors": ["[data-testid='ig-status-meta_whatsapp']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_integrations_hub.py",
+    "/app/test_reports/pytest/integrations_hub.xml"
+  ],
+  "action_items": [
+    "(Optional polish) In public/assets/js/integrations.js testBtn handler, call refresh() after api.post('/test') so the card status pill reflects new server status without needing to close+revisit the hub."
+  ],
+  "critical_code_review_comments": [
+    "IntegrationController::update always resets $row->status = null after any save — good (forces re-test after edits). Consider retaining status when NO fields actually changed to reduce noise.",
+    "testMeta uses graph.facebook.com/v21.0/{phone_number_id} — correct minimal probe; error message extraction via $r->json('error.message') falls back to HTTP code (handled).",
+    "testSmtp starts EsmtpTransport then stops immediately — validates auth but does not send. Good.",
+    "index() masking format ('••••' + last 4) is consistent for all secret fields; ensures raw secrets never leave the server. Verified via API and UI.",
+    "Toggle guard iterates required fields — correct behavior confirmed by 422 on mcube (no config) and 200 on meta_whatsapp (configured).",
+    "Route middleware permission:integrations.manage is properly attached — BDE (rahul) gets 403 as designed; process_admin gets 200 via seeded permission."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_integrations_hub.py (new)"
+  ],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100% of documented flows"},
+  "test_credentials": "admin@crm.local/Admin@12345, process@crm.local/Demo@12345, rahul@crm.local/Demo@12345 — all validated OK.",
+  "seed_data_creation": "Test rows in `integrations` table (meta_whatsapp configured with fake creds) — cleaned up at end of run via `php artisan tinker --execute='\\App\\Models\\Integration::query()->delete();'`. Post-cleanup GET /integrations returns configured=false, enabled=false, status=null for all three providers.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Integrations Hub feature is stable. Backend regression file lives at /app/backend/tests/test_integrations_hub.py — run with `-o addopts=''` to bypass the repo's xdist default. Live Meta test hitting graph.facebook.com will FAIL fast with 'Invalid OAuth access token' for the seeded fake creds; this is the intended proof-of-live behavior. The only cosmetic gap is post-test card status refresh inside the modal (see integration_issues above)."
+}

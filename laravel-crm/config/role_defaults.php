@@ -3,7 +3,7 @@
 // Default (out-of-the-box KRA) permissions per role slug. Mirrors the seeder.
 // Used by the Roles & Access screen for "reset to default" and deviation badges.
 return [
-    'process_admin' => ['config.manage', 'users.manage', 'projects.manage', 'workflow.manage', 'leads.view'],
+    'process_admin' => ['config.manage', 'users.manage', 'projects.manage', 'workflow.manage', 'integrations.manage', 'leads.view'],
     'sales_head' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'discounts.approve', 'projects.manage'],
     'sales_bdm' => ['leads.view', 'leads.create', 'leads.edit'],
     'sales_bde' => ['leads.view', 'leads.create', 'leads.edit'],

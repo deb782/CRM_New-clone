@@ -314,6 +314,13 @@ Route::prefix('v1')->group(function () {
         Route::get('permissions', [UserController::class, 'permissions'])->middleware('permission:users.manage');
         Route::put('roles/{role}/permissions', [UserController::class, 'updateRolePermissions'])->middleware('permission:users.manage');
         Route::post('roles/{role}/reset-permissions', [UserController::class, 'resetPermissions'])->middleware('permission:users.manage');
+
+        Route::middleware('permission:integrations.manage')->group(function () {
+            Route::get('integrations', [\App\Http\Controllers\Api\IntegrationController::class, 'index']);
+            Route::put('integrations/{key}', [\App\Http\Controllers\Api\IntegrationController::class, 'update']);
+            Route::post('integrations/{key}/test', [\App\Http\Controllers\Api\IntegrationController::class, 'test']);
+            Route::post('integrations/{key}/toggle', [\App\Http\Controllers\Api\IntegrationController::class, 'toggle']);
+        });
         }); // end force_pw group
     });
 });

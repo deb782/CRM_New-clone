@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/drawflow.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/workflow.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
-    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=9">
+    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=10">
 </head>
 <body>
     <div id="app"></div>
@@ -36,6 +36,7 @@
     <script src="{{ asset('assets/js/workflow.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=25"></script>
+    <script src="{{ asset('assets/js/integrations.js') }}?v=1"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=26"></script>
 </body>
 </html>
