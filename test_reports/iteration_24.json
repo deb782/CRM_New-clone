@@ -1,0 +1,38 @@
+{
+  "summary": "Frontend-only verification of new Roles & Access RBAC feature + redesigned Users Directory + elegant .sw toggle switches. All 8 requested scenarios PASS with 0 console/page errors. Seed data restored (Rahul re-activated, legal_head restored to original 3 permissions).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Toast stack (Users page)", "issues": ["Consecutive toasts (e.g. Deactivated then Activated after quick sequential toggle) concatenate in a single container reading 'DeactivatedActivated' instead of dismissing/replacing the previous. Same non-blocking issue observed in iteration_23; still present."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Role slug naming inconsistency vs spec: spec listed 'bdm' and 'bde' but backend/UI expose 'sales_bdm' and 'sales_bde' (verified from data-testids: access-role-sales_bdm, access-role-sales_bde). All 12 roles render correctly; only a doc/spec vs impl mismatch. Consider aligning slugs or updating spec.",
+    "people.js CRM.pages.access: search + group-All + per-permission toggles work correctly. Save button disabled until any change; after Save success toast 'Access updated for <Role>' fires and state persists across reload (verified with real PUT /api/v1/roles/14/permissions round-trip).",
+    "Super Admin lock is properly enforced client-side: [data-testid=access-role-admin] shows lock icon and selecting it renders 'Full access — nothing to configure' with NO access-save button in the DOM (count=0). Good.",
+    "Switch component (.sw / .sw.is-on) confirmed on both user-active-* and access-perm-* toggles; class flips correctly on click and persists via PUT roundtrip.",
+    "No console errors on #/users, #/access, #/dashboard, #/leads, #/inventory during full navigation sweep."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (8/8 scenarios)"},
+  "test_credentials": "admin@crm.local / Admin@12345 (used). Non-admin toggled: rahul@crm.local (id=3) — restored to Active.",
+  "seed_data_creation": "None. Mutations made and REVERTED: (1) Rahul Verma (id=3) is_active toggled off then on — final state Active (verified after reload). (2) legal_head role granted 'accounts.view' extra, then removed — final state back to original 3 perms [leads.view, legal.view, legal.manage] (verified after two reloads).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "1) Login button label is 'Sign in' (not type=submit) — use get_by_role('button', name='Sign in'). 2) After login admin still redirects to #/onboarding — force location.hash='#/dashboard' or '#/users' to reach app. 3) Role list ships 12 roles; slugs use 'sales_bdm'/'sales_bde' (not 'bdm'/'bde' as in spec). 4) legal_head defaults: leads.view, legal.view, legal.manage. 5) Sample perm keys use dashes in testids (e.g., access-perm-accounts-view) but dots in the visible label (accounts.view). 6) Toast container concatenates rapid consecutive toasts — assert textContent contains expected string rather than equality.",
+  "verified_scenarios": [
+    "Users & Roles page: KPI row (13/13/12/6), search filter (typing 'rahul' narrows to 1 visible card), 13 department-grouped person cards with data-testid='user-row-<id>', goto-access + add-user + user-search testids all present.",
+    "Active toggle on Rahul (id=3): click flips class from is-on -> off, PUT /api/v1/users/3 fires, 'Deactivated' toast shown; second click restores to Active with 'Activated' toast; state persisted after full page reload.",
+    "Roles & Access page (#/access): 12 roles grouped by department in left column (Administration/Sales/Accounts/Legal/CRM/Partners).",
+    "Super Admin (access-role-admin): shows lock icon, 'Full access — nothing to configure' panel, 0 save buttons — impossible to modify from UI.",
+    "Legal Head panel: access-search input, 18 permission toggles, 11 group-All toggles, access-save present and disabled until change. Search 'leads' filters to 5 visible perm rows.",
+    "RBAC grant flow: toggled access-perm-accounts-view ON for legal_head -> save button enabled -> click save -> PUT /api/v1/roles/14/permissions -> toast 'Access updated for Legal Head'. Reload + re-select role -> 4 perms present including accounts.view (persistence confirmed).",
+    "Restoration: toggled accounts.view OFF, saved, reloaded, re-selected — final state back to original 3 perms.",
+    "Regression: #/dashboard, #/leads, #/inventory all navigate cleanly; goto-access button routes to #/access; Cmd+K opens command palette overlay; zero console/page errors across the entire test sweep."
+  ],
+  "rca of the issue": "N/A — no defects found."
+}

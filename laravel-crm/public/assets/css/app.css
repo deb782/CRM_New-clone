@@ -379,3 +379,48 @@ tbody tr:last-child td { border-bottom: none; }
 .inv-cell--sold { background: #111; border-color: #111; color: #fff; }
 .inv-cell--sold .inv-cell__no { color: #fff; }
 .inv-cell--sold .inv-cell__t { color: rgba(255,255,255,.6); }
+
+/* ---------- People Directory ---------- */
+.avatar--lg { width: 46px; height: 46px; border-radius: 14px; font-size: 15px; }
+.people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.person-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px; transition: box-shadow .2s ease, transform .15s ease; }
+.person-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.person-card__top { display: flex; align-items: flex-start; justify-content: space-between; }
+.person-card__name { font-size: 15px; font-weight: 600; margin-top: 14px; }
+.person-card__email { font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+.person-card__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
+.person-card__active { display: flex; align-items: center; gap: 8px; }
+.mut { font-size: 11.5px; color: var(--text-3); }
+
+/* ---------- Roles & Access ---------- */
+.access-intro { margin-bottom: 20px; }
+.access-intro__h { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.access-intro__p { color: var(--text-2); font-size: 13.5px; margin-top: 8px; max-width: 720px; line-height: 1.55; }
+.access-grid { display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start; }
+.access-roles { display: flex; flex-direction: column; gap: 4px; }
+.access-roles__dept { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--text-3); font-weight: 600; padding: 16px 6px 6px; }
+.access-role { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 16px; border-radius: 14px; border: 1px solid transparent; background: transparent; cursor: pointer; text-align: left; transition: background-color .2s ease, border-color .2s ease; }
+.access-role:hover { background: var(--surface); }
+.access-role.active { background: var(--surface); border-color: var(--border); box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 8px 20px -12px rgba(17,17,17,.18); }
+.access-role.locked { opacity: .8; }
+.access-role__name { font-size: 14px; font-weight: 600; }
+.access-role__meta { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+.access-role i { color: var(--text-3); font-size: 12px; }
+.access-role.active i { color: var(--text); }
+.access-panel { padding: 26px; }
+.access-panel__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.access-panel__role { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.access-panel__sub { font-size: 13px; color: var(--text-3); margin-top: 4px; }
+.access-groups { display: flex; flex-direction: column; gap: 14px; }
+.access-group { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.access-group__head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: var(--surface-2); }
+.access-group__title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 13.5px; }
+.access-group__title i { color: var(--text-2); width: 16px; text-align: center; }
+.access-group__count { font-size: 11px; font-weight: 600; color: var(--text-3); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; font-variant-numeric: tabular-nums; }
+.access-group__all { display: flex; align-items: center; gap: 8px; }
+.access-feature-rows { padding: 6px 18px; }
+.access-feature { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+.access-feature:last-child { border-bottom: none; }
+.access-feature__t { font-size: 13.5px; font-weight: 500; }
+.access-feature__k { font-family: ui-monospace, 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); margin-top: 2px; }
+@media (max-width: 900px) { .access-grid { grid-template-columns: 1fr; } .access-roles { flex-direction: row; overflow-x: auto; } }

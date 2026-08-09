@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -17,7 +17,27 @@ class UserController extends Controller
 
     public function roles()
     {
-        return response()->json(['data' => Role::withCount('users')->get()]);
+        return response()->json(['data' => Role::withCount('users')->with('permissions:id,key,label,group')->get()]);
+    }
+
+    public function permissions()
+    {
+        return response()->json(['data' => Permission::orderBy('group')->orderBy('id')->get(['id', 'key', 'label', 'group'])]);
+    }
+
+    public function updateRolePermissions(Request $request, Role $role)
+    {
+        if ($role->slug === 'admin') {
+            return response()->json(['message' => 'Super Admin always has full access and cannot be restricted.'], 422);
+        }
+        $data = $request->validate([
+            'permission_ids' => 'present|array',
+            'permission_ids.*' => 'integer|exists:permissions,id',
+        ]);
+        $role->permissions()->sync($data['permission_ids']);
+        \Illuminate\Support\Facades\Log::info('[RBAC] role "'.$role->slug.'" permissions updated by '.($request->user()->email ?? 'system').' → '.count($data['permission_ids']).' perms');
+
+        return response()->json(['role' => $role->fresh()->loadCount('users')->load('permissions:id,key,label,group')]);
     }
 
     public function store(Request $request)
@@ -71,9 +91,8 @@ class UserController extends Controller
             'is_active' => 'sometimes|boolean',
             'password' => 'nullable|string|min:8',
         ]);
-        if (! empty($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        } else {
+        // Pass plain password; the User model's 'hashed' cast hashes it exactly once.
+        if (empty($data['password'])) {
             unset($data['password']);
         }
         $user->update($data);
