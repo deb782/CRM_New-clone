@@ -31,13 +31,14 @@ class UserController extends Controller
         ]);
 
         // Auto-provisioning: temp password = phone, forced change on first login.
+        // Pass plain password; the User model's 'hashed' cast hashes it exactly once.
         $tempPassword = $data['phone'];
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'],
             'role_id' => $data['role_id'],
-            'password' => Hash::make($tempPassword),
+            'password' => $tempPassword,
             'is_active' => true,
             'must_change_password' => true,
         ])->load('role');

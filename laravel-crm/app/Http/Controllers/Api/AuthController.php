@@ -51,6 +51,7 @@ class AuthController extends Controller
         }
         $data = $request->validate(['user_id' => 'required|exists:users,id']);
         $target = User::with('role.permissions')->findOrFail($data['user_id']);
+        \Illuminate\Support\Facades\Log::info('[preview-roles] impersonation', ['by' => $request->user()->id, 'as' => $target->id, 'role' => $target->role?->slug]);
         $token = $target->createToken('crm-preview')->plainTextToken;
 
         return response()->json(['token' => $token, 'user' => $this->userPayload($target)]);
@@ -71,7 +72,7 @@ class AuthController extends Controller
         }
 
         $user->forceFill([
-            'password' => Hash::make($data['new_password']),
+            'password' => $data['new_password'],
             'must_change_password' => false,
         ])->save();
 
