@@ -14,6 +14,7 @@
 
   var answers = {};
   var idx = 0;
+  var pendingRetry = false;
   var steps = [
     { key: 'name', q: "Hi! I can help you explore our projects. First, what's your name?", validate: function (v) { return v.trim().length >= 2 ? '' : 'Please enter your name.'; } },
     { key: 'contact', q: "Great to meet you, {name}! What's the best phone or email to reach you?", validate: validateContact },
@@ -122,8 +123,8 @@
       })
       .catch(function (e) {
         input.disabled = false; sendBtn.disabled = false;
-        bot(e.message || 'Sorry, something went wrong. Please try again.');
-        idx = steps.length - 1;
+        bot((e.message || 'Sorry, something went wrong.') + ' Tap send to try again.');
+        pendingRetry = true;
       });
   }
 
@@ -163,7 +164,7 @@
     function toggle() { panel.classList.contains('open') ? panel.classList.remove('open') : open(); }
     bubble.onclick = toggle;
     close.onclick = function () { panel.classList.remove('open'); };
-    function send() { var v = input.value; if (!v.trim()) return; input.value = ''; submit(v); }
+    function send() { if (pendingRetry) { pendingRetry = false; input.value = ''; finish(); return; } var v = input.value; if (!v.trim()) return; input.value = ''; submit(v); }
     sendBtn.onclick = send;
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
   }

@@ -107,6 +107,12 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **Role Home Screens**: one-shot post-login landing (sessionStorage `crm_homed` sentinel, user can navigate back to Dashboard after): post-sales/CS -> #/collections, sales exec -> #/callList, channel partner -> #/portal, sales_manager/admin -> Dashboard/funnel.
 - **Partner Referral Links**: public `/refer/{code}` blade page + `POST /api/v1/public/refer/{code}` (throttle 60/min, name+phone required) auto-captures lead with source='Partner Referral' and channel_partner_id = that partner (commission attribution). Invalid/inactive code -> 404. Partner portal shows referral_url + copy button (referral-link / referral-copy testids). New: migration `2026_01_10_...partner_referral_code`, ChannelPartner.referral_code, TaskController.slaBoard.
 
+## Implemented — Website Chat Widget (2026-06, verified 100% backend + frontend, iteration_12)
+- **Embeddable chat widget** (`public/widget/chat.js`): self-contained floating chat bubble + scripted guided flow (name → phone/email → looking-for → budget → location) with quick-reply chips. Namespaced CSS (no clashes), derives API origin from its own script src, contact validation, retry-on-failure. Install anywhere with `<script src="{CRM}/widget/chat.js" async></script>`.
+- **Lead capture**: completed conversation POSTs to existing `POST /api/v1/chatbot` → new lead with source **Chatbot** and composed intent_notes (Looking for / Budget / Location). Partner variant `data-ref="CODE"` posts to `POST /api/v1/public/refer/{code}` → lead with source **Partner Referral** + auto commission attribution.
+- **Live demo page**: `GET /chat-demo` (public Blade) with widget installed + install instructions.
+- **In-CRM embed/config page**: new **Chat Widget** nav under Configuration (config.manage gated — sales exec can't see it) showing copy-paste embed snippet, partner-attributed snippet, live-demo link, and a live preview bubble.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
