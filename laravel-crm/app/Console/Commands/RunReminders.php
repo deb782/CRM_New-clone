@@ -90,6 +90,40 @@ class RunReminders extends Command
         }
         $this->info("Sent {$pendingDocs->count()} document reminder(s).");
 
+        // P — Milestone payment reminders (30/15/7/1-day + due date) and overdue detection
+        $reminderDays = config('integrations.payments.reminder_days', [30, 15, 7, 1]);
+        $milestones = \App\Models\PaymentMilestone::whereIn('status', ['pending', 'due', 'partial', 'overdue'])
+            ->whereColumn('paid_amount', '<', 'amount')
+            ->whereNotNull('due_at')->with('lead')->get();
+        $mRem = 0; $mOverdue = 0;
+        $demands = app(\App\Services\DemandLetterService::class);
+        foreach ($milestones as $m) {
+            $sent = $m->reminders_sent ?? [];
+            $daysToDue = (int) now()->diffInDays($m->due_at, false);
+            if ($daysToDue >= 0) {
+                foreach ($reminderDays as $d) {
+                    if ($daysToDue <= $d && ! in_array('d'.$d, $sent)) {
+                        if ($m->lead) {
+                            $whatsapp->send($m->lead, "Payment reminder: '{$m->label}' of ₹".number_format($m->outstanding())." is due on ".$m->due_at->format('d M Y').".");
+                        }
+                        $sent[] = 'd'.$d; $mRem++;
+                        break;
+                    }
+                }
+                $m->update(['reminders_sent' => $sent]);
+            } else {
+                // Overdue: mark + auto-issue a demand letter (Q)
+                if ($m->status !== 'overdue') {
+                    $m->update(['status' => 'overdue']);
+                }
+                if (! $m->demand_letter_id) {
+                    $demands->generateForMilestone($m);
+                    $mOverdue++;
+                }
+            }
+        }
+        $this->info("Sent {$mRem} milestone reminder(s); issued {$mOverdue} demand letter(s).");
+
         return self::SUCCESS;
     }
 }

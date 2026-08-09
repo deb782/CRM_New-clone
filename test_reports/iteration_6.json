@@ -1,0 +1,35 @@
+{
+  "summary": "Section O/P/Q (Phase C) end-to-end testing on Laravel 11 CRM. Created /app/backend/tests/test_section_opq.py with 15 pytest tests covering payment milestones + collections dashboard + aging + allotment auto-issue + AFS lifecycle (draft->send_for_sign->signed->registered) + demand letters (interest calc 18% p.a., delivery, escalation) + full RBAC (postsales.manage). ALL 15/15 tests PASS in isolation. Frontend verified via Playwright: nav-collections + nav-demands present, Collections page renders collections-cards + aging-buckets + collections-overdue, Demands page shows demands-tbody with demand-row-{id}, Post-Sales tab renders 5 milestone rows with ms-pay buttons + working pay modal (ms-amount/ms-method/ms-ref/ms-pay-save), ps-gen-afs button drafts an AFS + renders agreement-{id} with afs-send-{id}, demand-{id} rows show dm-post/dm-esc buttons, allotment letter auto-appears at 10% collection.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/v1/auth/login", "issue": "throttle:20,1 is aggressive — the full pytest suite (5 test files, ~90 tests) exhausts the limit and yields 429s when run back-to-back. Not an app bug, but consider raising to throttle:60,1 for dev or exempting local IPs."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_section_opq.py",
+    "/app/test_reports/pytest/section_opq.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PaymentScheduleService::checkAllotment is called on every syncStatuses (i.e. every GET /bookings/{id}/milestones and after every payment). PostSalesService::generateAllotment must remain idempotent — verified via test_allotment_idempotent. Fine as long as the guard `where('type','allotment')` stays in place.",
+    "DemandLetterService::generateForMilestone auto-delivers via 'whatsapp+email' at creation time — no explicit delivery step is required, but the docstring implies POST /deliver is the delivery trigger. Slight semantic mismatch; consider decoupling so /deliver is the sole channel toggle.",
+    "AgreementService::serial() and DemandLetterService::serial() both use COUNT+1 within the year without a transaction — same race-condition risk as PaymentService::receiptNo() flagged in iter5. For MVP this is fine, but add a unique index + retry loop before prod.",
+    "$milestone->due_at->diffInDays(now()) always returns a positive number in Carbon 3, but relies on isPast() gating; if this codepath ever runs against a not-yet-past date (regression), days_overdue would be misleading. Consider `max(0, ...)` guard."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_section_opq.py (new, 15 tests, 4.2s)"
+  ],
+  "success_rate": {"backend": "100% (15/15 Section O/P/Q; regression 82/89 with 7 rate-limit-induced flakes)", "frontend": "100% (all data-testids present and functional)"},
+  "test_credentials": "admin@crm.local/Admin@12345, cs@crm.local/Demo@12345 (postsales.manage), rahul@crm.local/Demo@12345 (no postsales.manage)",
+  "seed_data_creation": "Ran `php artisan migrate:fresh --seed --force` before Section OPQ test run. Tests self-provision fresh leads/bookings using UUID-based unique phones/emails (TEST_OPQ_ prefix). Overdue milestones are created via `php artisan tinker --execute=...->update(['due_at'=>now()->subDays(45)])` from within the test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Public URL https://deal-flow-platform.preview.emergentagent.com is NOT wired to Laravel (proxied to a FastAPI backend that returns {detail:'Not Found'}). ALL testing was against the local Laravel server at http://127.0.0.1:8000. Playwright browser automation successfully reached 127.0.0.1:8000 from within the container. When running the full pytest suite together, expect 429 rate-limit errors on /auth/login (throttle:20,1) — run each test file separately or wait 60s between runs. Draft AFS UI conditionally renders only afs-send-{id}; afs-sign-{id} and afs-register-{id} appear after the status transitions (this is correct product behaviour, verified by backend test test_afs_full_lifecycle).",
+  "rca of the issue": "N/A — no bugs found. Two minor testing artifacts: (1) Playwright modal close via Escape didn't dismiss the pay modal (modal-overlay intercepted subsequent clicks); worked around by scoping AFS UI check to a separate session. (2) Login throttle interferes with the full pytest -n auto regression run; not an app bug."
+}

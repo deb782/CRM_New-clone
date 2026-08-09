@@ -105,6 +105,44 @@ class PostSalesService
         return $letter->fresh();
     }
 
+    /** O — allotment letter once collection crosses trigger (N/O). Idempotent. */
+    public function generateAllotment(Booking $booking): ?Letter
+    {
+        $existing = Letter::where('booking_id', $booking->id)->where('type', 'allotment')->first();
+        if ($existing) {
+            return $existing;
+        }
+        $booking->loadMissing(['lead', 'plot', 'project']);
+        $lead = $booking->lead;
+        $serial = $this->serial('allotment');
+        $body = "Dear {$lead?->name},\n\n"
+            ."We are pleased to formally allot "
+            .($booking->plot ? "Unit {$booking->plot->number}" : 'the said unit')
+            .($booking->project ? " in {$booking->project->name}" : '')
+            ." against booking {$booking->booking_ref}, following receipt of the initial payment.\n\n"
+            ."The Agreement for Sale will follow for your review and execution.\n\n"
+            ."Warm regards,\nSales & Post-Sales Team";
+        $letter = Letter::create([
+            'booking_id' => $booking->id,
+            'lead_id' => $booking->lead_id,
+            'type' => 'allotment',
+            'serial_no' => $serial,
+            'title' => "Allotment Letter · {$booking->booking_ref}",
+            'body' => $body,
+            'status' => 'generated',
+            'created_by' => Auth::id(),
+        ]);
+        if ($lead) {
+            $this->whatsapp->send($lead, "Congratulations {$lead->name}! Your allotment is confirmed (Ref: {$serial}).");
+            if ($lead->email) {
+                $this->email->send($lead, "Allotment Letter · {$booking->booking_ref}", $body);
+            }
+            $letter->update(['status' => 'sent', 'sent_at' => now(), 'sent_via' => $lead->email ? 'whatsapp+email' : 'whatsapp']);
+            $this->activity->log($lead, 'system', 'Allotment letter sent', $serial);
+        }
+        return $letter->fresh();
+    }
+
     /** Confirm a booking once token is paid AND form verified; fires welcome + checklist once. */
     public function confirmBooking(Booking $booking): Booking
     {
@@ -112,6 +150,7 @@ class PostSalesService
             $booking->update(['status' => 'confirmed']);
             $this->seedChecklist($booking);
             $this->generateWelcome($booking->fresh(['lead', 'plot', 'project']));
+            app(PaymentScheduleService::class)->generateSchedule($booking->fresh());
         }
         return $booking->fresh();
     }

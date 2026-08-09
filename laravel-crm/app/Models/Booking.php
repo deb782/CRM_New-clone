@@ -47,4 +47,19 @@ class Booking extends Model
     {
         return $this->hasMany(Letter::class);
     }
+
+    public function milestones()
+    {
+        return $this->hasMany(PaymentMilestone::class)->orderBy('seq');
+    }
+
+    public function agreements()
+    {
+        return $this->hasMany(Agreement::class);
+    }
+
+    public function demandLetters()
+    {
+        return $this->hasMany(DemandLetter::class);
+    }
 }

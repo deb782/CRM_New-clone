@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AgreementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AutomationController;
 use App\Http\Controllers\Api\CommunicationController;
@@ -7,12 +8,14 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\CostSheetController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DealBookingController;
+use App\Http\Controllers\Api\DemandLetterController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentPlanController;
+use App\Http\Controllers\Api\PaymentScheduleController;
 use App\Http\Controllers\Api\PostSalesController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ScoringController;
@@ -150,6 +153,26 @@ Route::prefix('v1')->group(function () {
         Route::post('bookings/{booking}/checklist', [PostSalesController::class, 'seedChecklist'])->middleware('permission:postsales.manage');
         Route::post('bookings/{booking}/welcome-letter', [PostSalesController::class, 'welcome'])->middleware('permission:postsales.manage');
         Route::put('documents/{item}', [PostSalesController::class, 'updateDoc'])->middleware('permission:postsales.manage');
+
+        // Payment schedule & collections (Section P)
+        Route::get('collections', [PaymentScheduleController::class, 'collections']);
+        Route::get('bookings/{booking}/milestones', [PaymentScheduleController::class, 'index']);
+        Route::post('bookings/{booking}/milestones/generate', [PaymentScheduleController::class, 'generate'])->middleware('permission:postsales.manage');
+        Route::post('milestones/{milestone}/pay', [PaymentScheduleController::class, 'pay'])->middleware('permission:postsales.manage');
+
+        // Allotment & Agreement for Sale + mock e-sign (Section O)
+        Route::get('bookings/{booking}/agreements', [AgreementController::class, 'index']);
+        Route::post('bookings/{booking}/agreements', [AgreementController::class, 'generate'])->middleware('permission:postsales.manage');
+        Route::post('agreements/{agreement}/send-for-sign', [AgreementController::class, 'sendForSign'])->middleware('permission:postsales.manage');
+        Route::post('agreements/{agreement}/sign', [AgreementController::class, 'sign'])->middleware('permission:postsales.manage');
+        Route::post('agreements/{agreement}/upload-signed', [AgreementController::class, 'uploadSigned'])->middleware('permission:postsales.manage');
+        Route::post('agreements/{agreement}/register', [AgreementController::class, 'register'])->middleware('permission:postsales.manage');
+
+        // Demand letters + escalation (Section Q)
+        Route::get('demand-letters', [DemandLetterController::class, 'index']);
+        Route::post('milestones/{milestone}/demand-letter', [DemandLetterController::class, 'generate'])->middleware('permission:postsales.manage');
+        Route::post('demand-letters/{demandLetter}/deliver', [DemandLetterController::class, 'deliver'])->middleware('permission:postsales.manage');
+        Route::post('demand-letters/{demandLetter}/escalate', [DemandLetterController::class, 'escalate'])->middleware('permission:postsales.manage');
 
         // Config (admin)
         Route::get('scoring-rules', [ScoringController::class, 'index']);
