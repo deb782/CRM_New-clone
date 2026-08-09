@@ -8,8 +8,11 @@
   var script = document.currentScript || (function () { var s = document.getElementsByTagName('script'); return s[s.length - 1]; })();
   var origin = (function () { try { return new URL(script.src).origin; } catch (e) { return window.location.origin; } })();
   var ref = script.getAttribute('data-ref') || '';
-  var title = script.getAttribute('data-title') || 'Find your dream home';
-  var accent = script.getAttribute('data-accent') || '#6c8cff';
+  var titleAttr = script.getAttribute('data-title');
+  var accentAttr = script.getAttribute('data-accent');
+  var title = titleAttr || 'Find your dream home';
+  var accent = accentAttr || '#6c8cff';
+  var greeting = "Hi! I can help you explore our projects. First, what's your name?";
   var endpoint = ref ? (origin + '/api/v1/public/refer/' + encodeURIComponent(ref)) : (origin + '/api/v1/chatbot');
 
   var answers = {};
@@ -133,6 +136,7 @@
 
   function build() {
     if (document.getElementById('crmcw-root')) return;
+    steps[0].q = greeting;
     var style = el('style'); style.textContent = css(); document.head.appendChild(style);
 
     root = el('div', { id: 'crmcw-root' });
@@ -169,6 +173,24 @@
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);
-  else build();
+  function start() {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);
+    else build();
+  }
+
+  if (ref) {
+    fetch(origin + '/api/v1/public/widget-config/' + encodeURIComponent(ref))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (cfg) {
+        if (cfg) {
+          if (cfg.title && !titleAttr) title = cfg.title;
+          if (cfg.accent && !accentAttr) accent = cfg.accent;
+          if (cfg.greeting) greeting = cfg.greeting;
+        }
+      })
+      .catch(function () {})
+      .then(start);
+  } else {
+    start();
+  }
 })();

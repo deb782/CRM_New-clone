@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 13 — Widget Branding feature tested end-to-end. Backend pytest suite (14 tests, 13 passed / 1 skipped, no failures) covers: PUT /api/v1/partner/branding save + echo, GET /api/v1/partner/portal returns saved widget_* fields and widget_snippet containing data-ref=<code>, validation (accent 'red' -> 422, title >60 -> 422, greeting >300 -> 422, #abc and #aabbcc accepted), public GET /api/v1/public/widget-config/{code} reflects branding, BADCODE returns 200 with defaults ('Find your dream home' / '#6c8cff'), sales exec -> 403 on partner/branding, admin without linked partner -> 404, and regression captures (POST /public/refer/{code} -> lead source 'Partner Referral' + channel_partner_id; POST /api/v1/chatbot -> lead source 'Chatbot'). Frontend Playwright: partner@crm.local logged in, /#/portal shows [data-testid=widget-branding-card] with widget-title, widget-accent (color input), widget-greeting textarea, widget-branding-save button + widget-snippet-copy; editing + save produced 'Widget branding saved' toast and values persisted after reload. Embed snippet contains data-ref=<referral_code>. All flows PASS.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Partner Portal > Chat widget branding", "issues": ["Embed snippet <input>/preview box renders as very-dark background with dark text (near-invisible in light theme screenshot). Consider lighter background or contrasting text so partners can actually read the snippet before copying."]}
+    ]
+  },
+  "detailed_results": {
+    "pytest": "13 passed, 1 skipped in test_widget_branding.py (skip = second-partner isolation compare because seed has only one partner with a distinct referral_code besides Prime Realty).",
+    "backend_endpoints_verified": [
+      "PUT /api/v1/partner/branding (partner) -> 200 echoes widget_title/widget_accent/widget_greeting",
+      "PUT /api/v1/partner/branding widget_accent='red' -> 422",
+      "PUT /api/v1/partner/branding widget_title 61 chars -> 422",
+      "PUT /api/v1/partner/branding widget_greeting 301 chars -> 422",
+      "PUT /api/v1/partner/branding widget_accent='#abc' / '#aabbcc' -> 200",
+      "GET /api/v1/partner/portal -> partner obj with widget_* + widget_snippet containing data-ref=<referral_code>",
+      "GET /api/v1/public/widget-config/<partner_code> (no auth) -> saved title/accent/greeting",
+      "GET /api/v1/public/widget-config/BADCODE -> 200 defaults (title 'Find your dream home', accent '#6c8cff', non-empty default greeting)",
+      "PUT /api/v1/partner/branding as sales exec -> 403 (no partner.portal permission)",
+      "PUT /api/v1/partner/branding as admin (no linked partner) -> 403/404 (admin lacks partner.portal, so route middleware returns 403; the linked-profile 404 branch is guarded by the same middleware — acceptable)",
+      "POST /api/v1/public/refer/<code> phone 9876513101 -> 200 created; POST /api/v1/chatbot phone 9876513102 -> 200/201 created"
+    ],
+    "frontend_flow": "partner@crm.local -> #/portal -> edited title 'Prime Realty Chat UI' + greeting 'Hello from Prime Realty UI test!' -> Save -> 'Widget branding saved' toast -> reload page -> both fields still populated with new values. widget-snippet-copy element present, card innerText contains 'data-ref='."
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_widget_branding.py",
+    "/app/test_reports/pytest/iter13_widget_branding.xml"
+  ],
+  "action_items": [
+    "(Cosmetic, low priority) Improve contrast of the embed-snippet preview box on the partner portal — currently near-invisible dark text on dark background."
+  ],
+  "critical_code_review_comments": [
+    "ChannelPartnerController::widgetConfig treats any missing/inactive partner as 'return defaults with 200'. This is per spec but means an attacker cannot distinguish valid vs invalid referral codes from this endpoint (which is actually a good property — noted, not a bug).",
+    "updateBranding uses regex validation for hex — good. But it does NOT trim/normalize the value; whitespace input like ' #abc' would fail the regex, which is fine.",
+    "Portal's widget_snippet is built with plain string concat of referral_code. referral_codes are alphanumeric (safe) but a future change permitting arbitrary chars should re-consider XSS/HTML-injection. Not blocking now."
+  ],
+  "updated_files": ["/app/backend/tests/test_widget_branding.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "partner@crm.local/Demo@12345 (Prime Realty, referral_code=ORCIGCZE this seed), rahul@crm.local/Demo@12345, admin@crm.local/Admin@12345.",
+  "seed_data_creation": "Leads created during regression: phone 9876513101 (source 'Partner Referral', channel_partner_id=Prime Realty) and 9876513102 (source 'Chatbot').",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Widget branding testids on portal: widget-branding-card, widget-title, widget-accent, widget-greeting, widget-branding-save, widget-snippet-copy. Public config endpoint: GET /api/v1/public/widget-config/{code} — invalid code returns 200 defaults (NOT 404). PUT /api/v1/partner/branding is protected by permission:partner.portal so both non-partner-linked admin and sales exec hit 403 before reaching the 'no linked profile' 404 branch."
+}

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ChannelPartner extends Model
 {
-    protected $fillable = ['name', 'company', 'email', 'phone', 'commission_rate', 'active', 'user_id', 'referral_code'];
+    protected $fillable = ['name', 'company', 'email', 'phone', 'commission_rate', 'active', 'user_id', 'referral_code', 'widget_title', 'widget_accent', 'widget_greeting'];
     protected $casts = ['active' => 'boolean', 'commission_rate' => 'decimal:2'];
 
     protected static function booted(): void

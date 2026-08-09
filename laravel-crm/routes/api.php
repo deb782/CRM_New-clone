@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function () {
         Route::post('chatbot', [WebhookController::class, 'chatbot']);
         Route::get('track/email/{event}/{emailId}', [WebhookController::class, 'emailEvent']);
         Route::post('public/refer/{code}', [\App\Http\Controllers\Api\ChannelPartnerController::class, 'refer']);
+        Route::get('public/widget-config/{code}', [\App\Http\Controllers\Api\ChannelPartnerController::class, 'widgetConfig']);
     });
     // Public booking form (token link)
     Route::middleware('throttle:60,1')->group(function () {
@@ -207,6 +208,7 @@ Route::prefix('v1')->group(function () {
 
         // Channel partners + commissions (admin) & partner portal (Section: Channel Partner)
         Route::get('partner/portal', [ChannelPartnerController::class, 'portal'])->middleware('permission:partner.portal');
+        Route::put('partner/branding', [ChannelPartnerController::class, 'updateBranding'])->middleware('permission:partner.portal');
         Route::get('partners', [ChannelPartnerController::class, 'index'])->middleware('permission:config.manage');
         Route::post('partners', [ChannelPartnerController::class, 'store'])->middleware('permission:config.manage');
         Route::put('partners/{channelPartner}', [ChannelPartnerController::class, 'update'])->middleware('permission:config.manage');

@@ -356,6 +356,34 @@
         el('div', { style: 'font-size:12px;color:var(--text-3);margin-bottom:6px' }, 'Your referral link — share it to auto-attribute new leads & commission'),
         el('div', { style: 'display:flex;gap:8px' }, link, copy)));
     }
+    // Chat widget branding editor + embed snippet
+    {
+      const b = { title: d.partner.widget_title || '', accent: d.partner.widget_accent || '#6c8cff', greeting: d.partner.widget_greeting || '' };
+      const titleI = el('input', { class: 'input', 'data-testid': 'widget-title', value: b.title, placeholder: 'Find your dream home' });
+      const accentI = el('input', { type: 'color', 'data-testid': 'widget-accent', value: b.accent, style: 'width:52px;height:38px;padding:2px;border-radius:8px;border:1px solid var(--line);background:transparent;cursor:pointer' });
+      const greetI = el('textarea', { class: 'input', 'data-testid': 'widget-greeting', rows: '2', placeholder: "Hi! I can help you explore our projects. First, what's your name?" });
+      greetI.value = b.greeting;
+      const save = el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'widget-branding-save' }, 'Save branding');
+      save.addEventListener('click', async () => {
+        try {
+          await api.put('/partner/branding', { widget_title: titleI.value.trim() || null, widget_accent: accentI.value || null, widget_greeting: greetI.value.trim() || null });
+          toast('Widget branding saved', 'success');
+        } catch (e) { toast(e.message, 'error'); }
+      });
+      const snippet = d.partner.widget_snippet || '';
+      const snipCopy = el('button', { class: 'btn btn--sm', 'data-testid': 'widget-snippet-copy', onclick: () => { navigator.clipboard.writeText(snippet); toast('Snippet copied', 'success'); } }, el('i', { class: 'fa-solid fa-copy' }), 'Copy');
+      view.appendChild(el('div', { class: 'card', style: 'padding:16px;margin-bottom:20px', 'data-testid': 'widget-branding-card' },
+        el('div', { style: 'font-weight:600;margin-bottom:4px' }, 'Chat widget branding'),
+        el('div', { style: 'font-size:12px;color:var(--text-3);margin-bottom:12px' }, 'Customise the chat widget prospects see when you embed it on your website.'),
+        el('div', { style: 'display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap' },
+          el('div', { class: 'field', style: 'flex:1;min-width:200px' }, el('label', {}, 'Title'), titleI),
+          el('div', { class: 'field' }, el('label', {}, 'Accent colour'), accentI)),
+        el('div', { class: 'field', style: 'margin-top:10px' }, el('label', {}, 'Greeting message'), greetI),
+        el('div', { style: 'margin-top:12px' }, save),
+        el('div', { style: 'font-size:12px;color:var(--text-3);margin:18px 0 6px' }, 'Embed this snippet on your website (auto-attributes captured leads & commission to you):'),
+        el('div', { style: 'display:flex;gap:8px;align-items:flex-start' },
+          el('pre', { style: 'flex:1;margin:0;padding:10px 12px;background:var(--bg-2,#0e1428);border:1px solid var(--line);border-radius:8px;font-family:var(--mono,monospace);font-size:12px;white-space:pre-wrap;word-break:break-all' }, snippet), snipCopy)));
+    }
     const card = (k, v, color) => el('div', { class: 'card stat' }, el('div', { class: 'k' }, k), el('div', { class: 'v', style: color ? ('color:' + color) : '' }, String(v)));
     view.appendChild(el('div', { class: 'cards', style: 'margin-bottom:20px', 'data-testid': 'portal-cards' },
       card('My Leads', d.summary.leads), card('My Bookings', d.summary.bookings),

@@ -85,6 +85,34 @@ class ChannelPartnerController extends Controller
         return response()->json(['message' => 'Thank you! '.$partner->name.' will be in touch shortly.', 'status' => $result['status'] ?? 'created']);
     }
 
+    // ---- Public widget branding (no auth; used by /widget/chat.js when data-ref set) ----
+    public function widgetConfig(string $code)
+    {
+        $partner = ChannelPartner::where('referral_code', $code)->where('active', true)->first();
+        return response()->json([
+            'title' => $partner && $partner->widget_title ? $partner->widget_title : 'Find your dream home',
+            'accent' => $partner && $partner->widget_accent ? $partner->widget_accent : '#6c8cff',
+            'greeting' => $partner && $partner->widget_greeting ? $partner->widget_greeting : "Hi! I can help you explore our projects. First, what's your name?",
+        ]);
+    }
+
+    // ---- Partner self-service branding update (auth, partner-scoped) ----
+    public function updateBranding(Request $request)
+    {
+        $partner = $this->currentPartner($request);
+        if (! $partner) {
+            return response()->json(['message' => 'No channel-partner profile linked to this account'], 404);
+        }
+        $data = $request->validate([
+            'widget_title' => 'nullable|string|max:60',
+            'widget_accent' => ['nullable', 'string', 'regex:/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/'],
+            'widget_greeting' => 'nullable|string|max:300',
+        ]);
+        $partner->update($data);
+
+        return response()->json(['partner' => $partner->fresh()->only(['id', 'name', 'widget_title', 'widget_accent', 'widget_greeting'])]);
+    }
+
     // ---- Partner portal (scoped to the logged-in partner user) ----
     private function currentPartner(Request $request): ?ChannelPartner
     {
@@ -103,8 +131,9 @@ class ChannelPartnerController extends Controller
         $pending = (int) $bookings->whereIn('commission_status', ['pending', 'approved'])->sum('commission_amount');
 
         return response()->json([
-            'partner' => array_merge($partner->only(['id', 'name', 'company', 'commission_rate', 'referral_code']), [
+            'partner' => array_merge($partner->only(['id', 'name', 'company', 'commission_rate', 'referral_code', 'widget_title', 'widget_accent', 'widget_greeting']), [
                 'referral_url' => url('/refer/'.$partner->referral_code),
+                'widget_snippet' => '<script src="'.url('/widget/chat.js').'" data-ref="'.$partner->referral_code.'" async></script>',
             ]),
             'summary' => [
                 'leads' => $leads->count(),
