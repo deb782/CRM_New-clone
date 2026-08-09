@@ -118,6 +118,15 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **Public config**: `GET /api/v1/public/widget-config/{code}` returns the partner's title/accent/greeting (defaults for missing/inactive code — no 404, so codes can't be enumerated). The embeddable widget (`/widget/chat.js`) fetches this when loaded with `data-ref`; explicit `data-title`/`data-accent` attributes still override.
 - New: migration `2026_01_11_...partner_widget_branding` (widget_title/accent/greeting on channel_partners), ChannelPartnerController.widgetConfig + updateBranding.
 
+## Implemented — Native WhatsApp Business module (replaces WATI) (2026-06, verified backend 10/10 + frontend 100%, iteration_14)
+Built mock-first (WHATSAPP_DRIVER=mock), real-time via ~4s polling. Ported & improved from the user's "WatiClone" (Node) into Laravel-native.
+- **Team Inbox** (`/whatsapp/conversations*`, gated `leads.view`): conversation list (All/Mine/Unread filters, unread badges, search) + live thread with WhatsApp-style bubbles, agent reply, assign-to-agent, mark-read, open/close. **24-hour customer-service window** enforced (free-form text 422 outside window; templates allowed). A **Simulate inbound** test tool injects fake customer messages so the inbox is fully testable without live Meta. New: `WhatsappConversation`, `InboxService`, `WhatsAppInboxController`.
+- **Broadcasts** (`/whatsapp/broadcasts*`, gated `config.manage`): bulk campaigns to lead segments (all/status/temperature/source; opt-out & DNC excluded) with recipients + sent/failed counts; duplicate-send guarded. New: `WhatsappBroadcast`, `WhatsAppBroadcastController`.
+- **Auto-Replies** (`/whatsapp/auto-replies*`, gated `config.manage`): keyword rules (contains/exact/starts) → auto text/template reply on inbound (first match, respects opt-out & window, hit counter). New: `WhatsappAutoReply`, `WhatsAppAutoReplyController`.
+- **Meta Cloud API driver upgrade**: `CloudApiDriver` now config-driven (base_url/version) with text + named-template send + mark-read; `Contract` gained `markRead()`. Webhook: GET verify handshake (`hub.*`), POST Meta payload (entry/changes) → inbound auto-creates lead (source 'WhatsApp') + conversation, delivery/read status updates, STOP opt-out; HMAC `X-Hub-Signature-256` verified when `META_APP_SECRET` set (live).
+- **Go live to replace WATI**: set `WHATSAPP_DRIVER=cloud` + `.env` `CLOUD_API_TOKEN`, `CLOUD_API_PHONE_ID`, `META_WABA_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`; point Meta webhook to `/api/v1/webhooks/whatsapp` (verify token `crm_wa_verify` by default).
+- New migration `2026_01_12_...whatsapp_inbox`; frontend `public/assets/js/whatsapp.js` (inbox/broadcasts/waAutomations), nav+titles in app.js, script include bumped to v=10.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.

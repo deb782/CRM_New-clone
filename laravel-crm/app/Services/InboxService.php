@@ -138,11 +138,16 @@ class InboxService
             if ($hit) {
                 $rule->increment('hits');
 
-                return $this->reply($conv, [
-                    'type' => $rule->reply_template ? 'template' : 'text',
-                    'body' => $rule->reply_body,
-                    'template' => $rule->reply_template,
-                ]);
+                try {
+                    return $this->reply($conv, [
+                        'type' => $rule->reply_template ? 'template' : 'text',
+                        'body' => $rule->reply_body,
+                        'template' => $rule->reply_template,
+                    ]);
+                } catch (\DomainException $e) {
+                    // opted-out / do-not-contact / outside window — skip auto-reply silently
+                    return null;
+                }
             }
         }
 
