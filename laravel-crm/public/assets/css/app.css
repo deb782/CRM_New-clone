@@ -69,7 +69,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- Layout ---------- */
 .shell { display: grid; grid-template-columns: var(--nav-w) 1fr; min-height: 100vh; }
-.nav { border-right: 1px solid var(--border); background: var(--bg); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+.nav { border-right: 1px solid var(--border); background: var(--bg); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .nav__brand { padding: 22px 20px 16px; display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; }
 .nav__logo { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 13px; font-weight: 700; }
 .nav__group { padding: 6px 12px; }
@@ -80,7 +80,7 @@ a { color: inherit; text-decoration: none; }
 .nav__item.active { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 8px 20px -10px rgba(17,17,17,.16); }
 .nav__item.active i { opacity: 1; }
 .nav__item.active::before { content: ''; position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 3px; height: 15px; border-radius: 3px; background: var(--lime); }
-.nav__foot { margin-top: auto; padding: 12px; border-top: 1px solid var(--border); }
+.nav__foot { margin-top: auto; padding: 12px; border-top: 1px solid var(--border); position: sticky; bottom: 0; background: var(--bg); }
 .nav__user { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 8px; }
 .avatar { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 600; font-size: 12px; flex-shrink: 0; }
 .nav__user .meta { overflow: hidden; }
