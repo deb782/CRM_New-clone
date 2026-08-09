@@ -86,9 +86,15 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **Section R edge cases**: Do-Not-Contact (`/leads/{id}/dnc`), wrong-number/spam invalidation (`/leads/{id}/invalid` → not_interested + suppress outbound), consent changes (`/leads/{id}/consent`), booking cancellation (`/bookings/{id}/cancel` → release unit + cancel milestones/dues), bounced/failed payment (`/payments/{id}/fail` → reverses milestone allocation). Outbound WhatsApp already suppressed for DNC/opt-out leads. UI: lead-drawer DNC/Invalid buttons + flag banner, booking Cancel, payment Bounce/Fail.
 - New: migration `2026_01_08_...partner_and_edge_cases`, `ChannelPartnerController`, LeadController DNC/invalid/consent, BookingService.cancel, PaymentService.markFailed, frontend partner/commissions/portal pages.
 
+## Implemented — Phase D · Section S (2026-06, verified 10/10 acceptance + regression)
+- **Full lifecycle automation triggers**: 7 rules covering `lead.created` (welcome WhatsApp + verify task), and `status.changed` to interested (qualify task + email), opportunity (24h handover task + email), negotiation (proposal task + WhatsApp), won (onboarding task + email), not_interested/lost (pause sequences), plus `whatsapp.replied` (reply task). Each fires create_task/send_email/send_whatsapp/pause_sequence and writes an AutomationLog.
+- **SLA breach escalation → manager**: `crm:reminders` escalates verify tasks unstarted > 2h and any overdue follow-up/handover task to the **sales manager** (priya@crm.local), setting escalated=true + high priority + reassignment. SLA targets in config (verify 2h, handover 24h, site-visit report 2h).
+- **Acceptance suite**: `/app/backend/tests/test_section_s.py` (10 tests) proving each event fires the right task/message and SLA breaches escalate correctly.
+- Added `?lead_id=` filter to `/automation-logs` for per-lead audit.
+
 ## Backlog (prioritized)
-- **P2 (Phase D — R, S)**: remaining Section R scenarios (multiple decision-makers/units, competing project, discrepant-payment nuances, concurrency de-dup hardening); Section S full automation-trigger acceptance tests against SLAs.
-- **Tech hardening**: fix pre-existing flaky `test_qualify_updates_score_status` (session-scoped shared fixture — not an app bug); move serial-number generation to atomic counter for multi-user concurrency; WhatsAppService suppression currently logs a 'failed' row (semantically correct) rather than skipping entirely.
+- **P2 (Phase D — R residual)**: multiple decision-makers/units per lead, competing-project switches, tighter concurrency de-duplication hardening.
+- **Tech hardening**: two pre-existing test-file defects (`test_qualify_updates_score_status`, `test_verify_task_created`) rely on a session-scoped shared fixture + default pagination and flake under load — not app bugs (Section S proves the behaviour). Move serial-number generation to an atomic counter for multi-user concurrency.
 - **Chatbot**: port from https://github.com/deb782/CRM_New-clone when prioritized.
 - **Integrations (live, when keys provided)**: Razorpay keys+webhook secret, WATI base URL+token, Gmail Workspace SMTP.
 

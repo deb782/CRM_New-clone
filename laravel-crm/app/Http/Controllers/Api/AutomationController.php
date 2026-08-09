@@ -45,6 +45,9 @@ class AutomationController extends Controller
         if ($status = $request->query('status')) {
             $q->where('status', $status);
         }
+        if ($leadId = $request->query('lead_id')) {
+            $q->where('lead_id', $leadId);
+        }
         return response()->json($q->paginate((int) $request->query('per_page', 50)));
     }
 }
