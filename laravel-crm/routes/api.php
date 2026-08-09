@@ -4,10 +4,13 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AutomationController;
 use App\Http\Controllers\Api\CommunicationController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\CostSheetController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\PaymentPlanController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ScoringController;
 use App\Http\Controllers\Api\SequenceController;
@@ -99,6 +102,24 @@ Route::prefix('v1')->group(function () {
         Route::post('site-visits/{siteVisit}/checkout', [SiteVisitController::class, 'checkout']);
         Route::post('site-visits/{siteVisit}/complete', [SiteVisitController::class, 'complete']);
         Route::post('site-visits/{siteVisit}/cancel', [SiteVisitController::class, 'cancel']);
+
+        // Cost sheets, discounts & proposals (Section L)
+        Route::get('leads/{lead}/cost-sheets', [CostSheetController::class, 'index']);
+        Route::post('leads/{lead}/cost-sheets', [CostSheetController::class, 'store'])->middleware('permission:leads.edit');
+        Route::get('cost-sheets/{costSheet}', [CostSheetController::class, 'show']);
+        Route::post('cost-sheets/{costSheet}/select-plan', [CostSheetController::class, 'selectPlan']);
+        Route::post('cost-sheets/{costSheet}/share', [CostSheetController::class, 'share']);
+        Route::post('cost-sheets/{costSheet}/proposal', [CostSheetController::class, 'generateProposal']);
+        Route::post('proposals/{proposal}/send', [CostSheetController::class, 'sendProposal']);
+        Route::post('proposals/{proposal}/consent', [CostSheetController::class, 'consent']);
+
+        Route::get('payment-plans', [PaymentPlanController::class, 'index']);
+        Route::post('payment-plans', [PaymentPlanController::class, 'store'])->middleware('permission:config.manage');
+        Route::put('payment-plans/{paymentPlan}', [PaymentPlanController::class, 'update'])->middleware('permission:config.manage');
+        Route::delete('payment-plans/{paymentPlan}', [PaymentPlanController::class, 'destroy'])->middleware('permission:config.manage');
+
+        Route::get('discount-approvals', [DiscountController::class, 'index']);
+        Route::post('discount-approvals/{approval}/decide', [DiscountController::class, 'decide'])->middleware('permission:discounts.approve');
 
         // Config (admin)
         Route::get('scoring-rules', [ScoringController::class, 'index']);

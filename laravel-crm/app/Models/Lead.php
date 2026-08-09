@@ -75,4 +75,9 @@ class Lead extends Model
     {
         return $this->hasMany(SiteVisit::class)->latest('scheduled_at');
     }
+
+    public function costSheets()
+    {
+        return $this->hasMany(CostSheet::class);
+    }
 }

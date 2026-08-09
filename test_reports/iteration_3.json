@@ -1,0 +1,33 @@
+{
+  "summary": "Section L (Cost Sheet + Discount Approvals + Payment Plans + Proposals) end-to-end tested against Laravel 11 CRM at http://127.0.0.1:8000. Added /app/backend/tests/test_section_l.py with 14 pytest cases covering: payment-plans seed (CLP/DP/FLEXI milestones sum to 100), admin plan create, exec 403 on plan create, cost-sheet math (3% within_5 auto-approved with gst=400000, subtotal=8600000, disc=240000, total=8360000), 8% -> band=over_5 pending + DiscountApproval row created, 12% -> band=over_10 pending, proposal 422 while pending, exec 403 on decide, manager approve flips cost_sheet.discount_status=approved, manager reject sets rejected, counter with counter_pct=4 recomputes discount_amount=320000 and marks approved, full proposal flow (generate returns PROP-<ref>, send -> status=sent, consent {name:'Vikram Nair'} -> consent_captured=1, consent_name set, status=accepted), select-plan attaches payment_plan_id, share sets status=shared, GET /leads/{id}/cost-sheets returns {cost_sheets:[...],proposals:[...]}. RESULT: 14/14 Section L PASS + 26/26 Phase A regression PASS + 18/18 Phase B regression PASS = 58/58. Frontend Playwright confirmed: login admin@crm.local works, Payment Plans page (nav-plans) renders 4 cards (Construction Linked/Down Payment/Flexi/newly-added Test Plan) with milestone rows and percentages. Lead #1 Quote tab (tab-quote) accepts cs-base_price/cs-gst_rate/cs-registration_charges/cs-maintenance_charges/cs-discount_pct inputs, live cs-total updates to '₹83,60,000' for the 3% scenario. Full UI workflow observed in Activity timeline of Vikram Nair (lead 1): 'Cost sheet created · total ₹8,360,000' (x2), 'Discount 8% requested — pending manager approval', 'Email sent: Your special offer is approved', 'Discount request approved: ok', 'Proposal generated · PROP-20260809-7YBC', plus 'Approve discount 8% for Vikram Nair' escalation task in Open Tasks. Discount Approvals page (nav-approvals) rendered approve-/counter-/reject- buttons and Approve click flipped cost_sheet to approved (verified via subsequent proposal generation success).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_section_l.py",
+    "/app/backend/tests/test_phase_b.py",
+    "/app/backend/tests/test_laravel_crm.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/section_l_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Payment plan milestone field is named 'pct' in the API contract while the seed labels/UI/prompt hint at 'percent'. Consider standardising on one key or accepting both for backward-compat.",
+    "Response shapes remain mixed across Section L: cost-sheet/proposal endpoints -> {cost_sheet:{...}} / {proposal:{...}}; discount-approvals list -> {data:[...]} but decide -> {approval:{...}}; lead cost-sheets listing -> {cost_sheets:[...],proposals:[...]}. Unifying under a single envelope would simplify the frontend.",
+    "Counter-offer path recomputes discount_amount correctly (verified: 4% of 8M = 320000) but there is no audit note preserving the original requested pct; consider persisting counter_pct + original_pct on DiscountApproval for reporting.",
+    "Proposal reference format PROP-YYYYMMDD-XXXX collides risk is low but uniqueness relies on DB unique constraint; ensure a unique index exists on proposals.reference_no."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_section_l.py"
+  ],
+  "success_rate": {"backend": "100% (14/14 Section L; 44/44 regression)", "frontend": "100% of exercised flows (plans page, quote tab, cost-sheet create, approvals page, proposal generation via UI evidenced in Activity timeline)"},
+  "test_credentials": "admin@crm.local/Admin@12345 (all perms); priya@crm.local/Demo@12345 (Sales Manager — discounts.approve + config.manage confirmed); rahul@crm.local/Demo@12345 (Sales Exec — 403 confirmed on POST /payment-plans and on POST /discount-approvals/{id}/decide).",
+  "seed_data_creation": "Tests create TEST_ / TESTPP_ / TESTNO_ prefixed payment plans and multiple cost sheets attached to a fresh TEST_<uuid> lead. No manual cleanup performed; safe as data is namespaced.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run all backend tests: cd /app && python -m pytest backend/tests -v -o addopts=. IMPORTANT contract note: PaymentPlan milestones use key 'pct' (not 'percent') for creation payload. Response shapes for Section L: {cost_sheet:{...}} for create/show/select-plan/share; {proposal:{...}} for generate/send/consent; {data:[...]} for GET /payment-plans and /discount-approvals; {approval:{...}} for decide; {cost_sheets:[...],proposals:[...]} for GET /leads/{id}/cost-sheets. Frontend data-testids verified: nav-plans, nav-approvals, tab-quote, cs-base_price, cs-gst_rate, cs-registration_charges, cs-maintenance_charges, cs-discount_pct, cs-total, cs-create, cost-sheet-<id>, cs-share-<id>, cs-proposal-<id>, approve-<id>, counter-<id>, reject-<id>, prop-send-<id>, prop-consent-<id>, consent-name, consent-save. Discount bands: within_5 (<=5) auto-approved; over_5 (5<pct<=10) & over_10 (>10) pending, create escalation task + DiscountApproval. Proposal generation blocked (422) while discount_status='pending'.",
+  "rca_of_the_issue": "N/A — all Section L acceptance criteria pass end-to-end."
+}

@@ -15,6 +15,8 @@
       { route: 'import', icon: 'fa-file-arrow-up', name: 'Import' },
     ]},
     { label: 'Configuration', perm: 'config.manage', items: [
+      { route: 'approvals', icon: 'fa-gavel', name: 'Discount Approvals', perm: 'discounts.approve' },
+      { route: 'plans', icon: 'fa-money-check-dollar', name: 'Payment Plans' },
       { route: 'scoring', icon: 'fa-sliders', name: 'Lead Scoring' },
       { route: 'automation', icon: 'fa-bolt', name: 'Automations' },
       { route: 'templates', icon: 'fa-comment-dots', name: 'Templates' },
@@ -22,7 +24,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', users: 'Users & Roles' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', users: 'Users & Roles' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
@@ -122,6 +124,7 @@
   function logout() { api.post('/auth/logout').catch(() => {}); setToken(null); state.user = null; location.hash = '#/login'; }
 
   async function render() {
+    document.querySelectorAll('.drawer-overlay, .modal-overlay').forEach(n => n.remove());
     if (!token()) { renderLogin(); return; }
     if (!state.user) {
       try { const res = await api.me(); state.user = res.user; }

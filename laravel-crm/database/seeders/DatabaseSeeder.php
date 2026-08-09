@@ -32,8 +32,27 @@ class DatabaseSeeder extends Seeder
         $this->templates();
         $this->sequences();
         $this->automationRules();
+        $this->paymentPlans();
         $this->demoData($projects);
         $this->inventory($projects);
+    }
+
+    private function paymentPlans(): void
+    {
+        $plans = [
+            ['Construction Linked (20-30-50)', 'CLP', 'On booking 20%, on slab 30%, on possession 50%', [
+                ['label' => 'On Booking', 'pct' => 20], ['label' => 'On Foundation', 'pct' => 30], ['label' => 'On Possession', 'pct' => 50],
+            ]],
+            ['Down Payment (10-80-10)', 'DP', 'On booking 10%, within 45 days 80%, on possession 10%', [
+                ['label' => 'On Booking', 'pct' => 10], ['label' => 'Within 45 Days', 'pct' => 80], ['label' => 'On Possession', 'pct' => 10],
+            ]],
+            ['Flexi (25-25-25-25)', 'FLEXI', 'Four equal milestones', [
+                ['label' => 'On Booking', 'pct' => 25], ['label' => 'On Agreement', 'pct' => 25], ['label' => 'On Slab', 'pct' => 25], ['label' => 'On Possession', 'pct' => 25],
+            ]],
+        ];
+        foreach ($plans as [$name, $code, $desc, $ms]) {
+            \App\Models\PaymentPlan::updateOrCreate(['code' => $code], ['name' => $name, 'description' => $desc, 'milestones' => $ms, 'active' => true]);
+        }
     }
 
     private function permissions(): void
@@ -42,7 +61,7 @@ class DatabaseSeeder extends Seeder
             'leads.view' => 'View leads', 'leads.create' => 'Create leads', 'leads.edit' => 'Edit leads',
             'leads.delete' => 'Delete leads', 'leads.override' => 'Override/downgrade status',
             'projects.manage' => 'Manage projects', 'config.manage' => 'Manage configuration',
-            'users.manage' => 'Manage users & roles',
+            'users.manage' => 'Manage users & roles', 'discounts.approve' => 'Approve discounts',
         ];
         foreach ($perms as $key => $label) {
             Permission::firstOrCreate(['key' => $key], ['label' => $label, 'group' => explode('.', $key)[0]]);
@@ -53,7 +72,7 @@ class DatabaseSeeder extends Seeder
     {
         $map = [
             'admin' => ['name' => 'Administrator', 'perms' => 'all'],
-            'sales_manager' => ['name' => 'Sales Manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'projects.manage', 'config.manage']],
+            'sales_manager' => ['name' => 'Sales Manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'projects.manage', 'config.manage', 'discounts.approve']],
             'sales_exec' => ['name' => 'Sales Exec', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
             'marketing' => ['name' => 'Marketing', 'perms' => ['leads.view', 'leads.create', 'config.manage']],
             'crm_ops' => ['name' => 'CRM Ops', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'config.manage']],
