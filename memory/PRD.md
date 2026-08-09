@@ -102,8 +102,13 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **Test hardening**: fixed the two long-standing flaky tests (session-fixture + pagination) — full suite now deterministically 141/141.
 - New: migration `2026_01_09_...lead_stakeholders_and_dedupe`, LeadService dedupe+switchProject, LeadController stakeholder/units/switch endpoints, structured autoForm builder, qualify-tab interests panel.
 
+## Implemented — SLA Heat-Board + Role Home Screens + Partner Referral Links (2026-06, verified 21/21 backend + 5/5 frontend, iteration_11)
+- **SLA Heat-Board**: `GET /tasks/sla-board` (gated `leads.view`) returns all open tasks colour-bucketed by time-to-breach — breached (<0 min), red (<60), amber (<240), green (else) — sorted by minutes_to_breach, with counts + active-user list. Fallback deadline: verify tasks = created_at + `sla.verify_hours` (2h), else +24h. One-click reassign via `PUT /tasks/{task}` {assigned_to}. Manager SLA Board sidebar page (testids sla-cards, sla-count-*, sla-tbody, sla-row-{id}, sla-reassign-{id}). Partners 403 (still 403 on /leads + /leads/board).
+- **Role Home Screens**: one-shot post-login landing (sessionStorage `crm_homed` sentinel, user can navigate back to Dashboard after): post-sales/CS -> #/collections, sales exec -> #/callList, channel partner -> #/portal, sales_manager/admin -> Dashboard/funnel.
+- **Partner Referral Links**: public `/refer/{code}` blade page + `POST /api/v1/public/refer/{code}` (throttle 60/min, name+phone required) auto-captures lead with source='Partner Referral' and channel_partner_id = that partner (commission attribution). Invalid/inactive code -> 404. Partner portal shows referral_url + copy button (referral-link / referral-copy testids). New: migration `2026_01_10_...partner_referral_code`, ChannelPartner.referral_code, TaskController.slaBoard.
+
 ## Backlog (prioritized)
-- **P3 nice-to-haves**: SLA heat-board on manager dashboard (time-to-breach colour coding + one-click reassign); role-based home dashboards; partner self-registration + referral links; commission monthly statements.
+- **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
 - **Chatbot**: port from https://github.com/deb782/CRM_New-clone when prioritized.
 - **Integrations (live, when keys provided)**: Razorpay keys+webhook secret, WATI base URL+token, Gmail Workspace SMTP.
