@@ -50,7 +50,12 @@ class FlowEngine
         foreach ($runs as $run) {
             $wf = Workflow::find($run->workflow_id);
             $lead = Lead::find($run->lead_id);
-            if (! $wf || ! $lead) { $run->update(['status' => 'failed']); continue; }
+            if (! $wf || ! $lead) {
+                $log = $run->log ?? [];
+                $log[] = ['node' => $run->current_node, 'type' => 'system', 'detail' => 'Run failed: '.(! $wf ? 'workflow' : 'lead').' no longer exists', 'at' => now()->toDateTimeString()];
+                $run->update(['status' => 'failed', 'log' => $log]);
+                continue;
+            }
             // continue from the node AFTER the wait node
             $node = $this->nodes($wf)[$run->current_node] ?? null;
             $next = $node ? $this->nextNode($node, 'output_1') : null;
@@ -106,6 +111,11 @@ class FlowEngine
                 return;
             }
             $nodeId = $this->nextNode($node, $res['output'] ?? 'output_1');
+        }
+        if ($steps >= self::MAX_STEPS) {
+            $log[] = ['node' => $nodeId, 'type' => 'system', 'detail' => 'Stopped: step limit ('.self::MAX_STEPS.') reached — possible loop', 'at' => now()->toDateTimeString()];
+            $run->update(['status' => 'failed', 'current_node' => $nodeId, 'log' => $log]);
+            return;
         }
         $run->update(['status' => 'completed', 'current_node' => null, 'log' => $log, 'completed_at' => now()]);
     }

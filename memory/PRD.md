@@ -197,6 +197,14 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - Verified: tally counts correct (2 WA/1 email), activate flips status, RBAC 403 for sales_head; UI drag-drop creates correctly-colored nodes, config panel edits + live tally, and **save→reload round-trips 4 nodes**. Blueprint: `/app/design_guidelines.json`. JS at v=22, workflow.js v=1.
 - Note: Live Lead Tracker (train-tracker read-only view) is Phase 5, not yet built. Execution engine (running the activated flow) is Phase 4.
 
+## Implemented — Phase 4: Workflow Execution Engine + Checklist + Starter Library (2026-06, tested 100% iteration_21)
+- **Execution engine** (`FlowEngine` service, `workflow_runs` table, `WorkflowRun` model): walks an active flow's graph node-by-node — trigger, status_change (maps label→pipeline slug), task (creates Task), send_whatsapp/send_email (MOCKED/logged), condition (branches output_1=yes/output_2=no on temperature/source/status/score), wait (pauses run.status=waiting + resume_at), fallback. MAX_STEPS=60 loop guard now marks status=failed with a reason log.
+- **Triggers**: `new_lead` fires from LeadService after lead creation; `status_enter` fires on status change — both wrapped in try/catch so they never break lead flows. Wait steps resume via new `crm:flow-run` command (scheduled everyMinute).
+- **Endpoints** (all under workflow.manage): `POST /workflows/{id}/simulate` (test run against a lead, returns step log), `GET /workflows/{id}/runs`, `GET /workflows/{id}/checklist` (distinct template names per send node + exists flag vs WhatsappTemplate/EmailTemplate).
+- **Builder UI additions** (workflow.js v=2): "Test run" → slide-in execution log panel with per-step icons + status badge; "Starter flows" → picker with 3 pre-wired flows (5-Stage Lead Journey, NRTY Re-engagement, Booking & Payment) built via addNode/addConnection so they render correctly; right-panel "Templates to create" checklist with Create deep-links to #/waTemplates / #/emailDesign.
+- Verified: condition branching (Hot→email, else→task), wait/resume cycle, real new_lead trigger creates non-sim run + Task, checklist exists-detection, RBAC 403 for non-workflow.manage, starter build (8 nodes/7 connections), test-run panel. Comms are MOCKED pending WhatsApp/SMTP go-live.
+- Remaining phases: Phase 5 (live train-tracker lead view). Backlog observability nits noted in iteration_21 (queue trigger at scale, log truncation).
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
