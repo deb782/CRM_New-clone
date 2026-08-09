@@ -8,7 +8,12 @@ class WhatsappConversation extends Model
 {
     protected $table = 'whatsapp_conversations';
     protected $guarded = ['id'];
-    protected $casts = ['last_message_at' => 'datetime', 'last_inbound_at' => 'datetime'];
+    protected $casts = ['last_message_at' => 'datetime', 'last_inbound_at' => 'datetime', 'tags' => 'array'];
+
+    public function notes()
+    {
+        return $this->hasMany(WhatsappNote::class, 'conversation_id')->latest();
+    }
 
     public function lead()
     {

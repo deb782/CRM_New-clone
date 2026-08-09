@@ -230,6 +230,10 @@ Route::prefix('v1')->group(function () {
             Route::post('whatsapp/conversations/{conversation}/assign', [WhatsAppInboxController::class, 'assign']);
             Route::post('whatsapp/conversations/{conversation}/read', [WhatsAppInboxController::class, 'read']);
             Route::post('whatsapp/conversations/{conversation}/toggle', [WhatsAppInboxController::class, 'toggle']);
+            Route::get('whatsapp/conversations/{conversation}/notes', [WhatsAppInboxController::class, 'notes']);
+            Route::post('whatsapp/conversations/{conversation}/notes', [WhatsAppInboxController::class, 'addNote']);
+            Route::delete('whatsapp/conversations/{conversation}/notes/{note}', [WhatsAppInboxController::class, 'deleteNote']);
+            Route::put('whatsapp/conversations/{conversation}/tags', [WhatsAppInboxController::class, 'updateTags']);
             Route::post('whatsapp/simulate-inbound', [WhatsAppInboxController::class, 'simulateInbound']);
         });
         // Broadcasts + auto-replies (manager/config)

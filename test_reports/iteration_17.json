@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 17: WhatsApp inbox NOTES + conversation TAGS feature tested end-to-end (backend + frontend). Backend pytest 21/21 pass. Tags dedup/trim/clear + list presence verified. Notes add/list newest-first with author, empty->422, delete author-or-config.manage guard (rahul->403, priya self->200, priya on rahul note->200 via config.manage, admin->200), 404 on conversation mismatch. RBAC: partner (no leads.view) 403 on GET notes and PUT tags; rahul (leads.view) can read/add. Regression: login priya/rahul OK, GET /api/v1/leads seeded, list conversations, reply within window all OK. Frontend: tags bar [data-testid=wa-tags-bar] with wa-tag-{tag} chips + × remove + wa-tag-input Enter-to-add, adding/removing persists across reload and reflects in conversation list item (chips visible on list card). Notes modal via wa-notes-btn shows wa-notes-list, wa-note-input, wa-note-add; added note shows with author name (Priya) and wa-note-del-{id} delete control that removes it.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/tests/whatsapp_notes_tags_test.py",
+    "/app/test_reports/pytest/iter17.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "updateTags() correctly trims + de-dupes via array_map('trim') + array_unique + array_filter; empty array clears tags. Cast tags=>array on model ensures JSON persistence.",
+    "deleteNote() enforces both conversation ownership (404 on mismatch) and author-or-config.manage (403 otherwise). Clean, correct order of checks.",
+    "present() now includes tags => [] fallback so frontend list can safely map chips without null checks.",
+    "Notes are always available on any open conversation (independent of 24h window) as intended.",
+    "Frontend re-queries the tag chip node after re-render (chip DOM is replaced when saveTags updates state) — noted as a nuance for future tests but functionally fine."
+  ],
+  "updated_files": [
+    "/app/tests/whatsapp_notes_tags_test.py (new)"
+  ],
+  "success_rate": {"backend": "100% (21/21)", "frontend": "100%"},
+  "test_credentials": "priya@crm.local/Demo@12345 (Sales Manager, config.manage), rahul@crm.local/Demo@12345 (Sales Exec, no config.manage), partner@crm.local/Demo@12345 (no leads.view), admin@crm.local/Admin@12345",
+  "seed_data_creation": "Added TEST_iter17 notes and uitest-* tags across 1-2 conversations. Some notes deleted during tests; a couple of TEST_iter17 replies remain. No leads/users created.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Base URL http://127.0.0.1:8000, API /api/v1, Sanctum bearer. Frontend Sign-in button has no type='submit' — use role selector 'Sign in'. Inbox route is hash: #/inbox. Testids: wa-conv-{id}, wa-tags-bar, wa-tag-{tag}, wa-tag-input (Enter to add), wa-notes-btn, wa-notes-list, wa-note-input, wa-note-add, wa-note-del-{id}. Notes list items include author.name. Tags stored as JSON on whatsapp_conversations.tags and returned via present().",
+  "rca of the issue": "N/A"
+}

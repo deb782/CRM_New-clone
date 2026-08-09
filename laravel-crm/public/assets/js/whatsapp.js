@@ -63,6 +63,7 @@
             el('b', { style: 'font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis' }, c.contact_name),
             c.unread_count ? el('span', { 'data-testid': 'wa-unread-' + c.id, style: 'background:#25D366;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600' }, String(c.unread_count)) : null),
           el('div', { style: 'font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px' }, c.last_message_preview || '—'),
+          (c.tags && c.tags.length) ? el('div', { style: 'display:flex;gap:4px;flex-wrap:wrap;margin-top:4px' }, ...c.tags.slice(0, 3).map(t => el('span', { class: 'chip', style: 'font-size:10px;padding:0 6px' }, t))) : null,
           el('div', { style: 'font-size:11px;color:var(--text-3);margin-top:3px' }, c.contact_phone + ' · ' + (c.last_message_at ? timeAgo(c.last_message_at) : ''))));
       });
     }
@@ -91,11 +92,49 @@
       });
       const simBtn = el('button', { class: 'btn btn--sm', 'data-testid': 'wa-simulate', disabled: !c.lead_id ? 'disabled' : null }, el('i', { class: 'fa-solid fa-flask' }), 'Simulate inbound');
       simBtn.addEventListener('click', () => simulateModal(c));
+      const notesBtn = el('button', { class: 'btn btn--sm', 'data-testid': 'wa-notes-btn', onclick: () => notesModal(c) }, el('i', { class: 'fa-solid fa-note-sticky' }), 'Notes');
       const leadLink = c.lead ? el('a', { class: 'chip', href: '#/leads/' + c.lead.id, style: 'font-size:12px' }, 'Lead: ' + c.lead.name) : null;
 
       threadPane.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)' },
         el('div', {}, el('b', {}, c.contact_name), el('div', { style: 'font-size:12px;color:var(--text-3)' }, c.contact_phone)),
-        el('div', { style: 'display:flex;gap:8px;align-items:center' }, leadLink, assignSel, simBtn)));
+        el('div', { style: 'display:flex;gap:8px;align-items:center' }, leadLink, notesBtn, assignSel, simBtn)));
+
+      // Tags bar
+      const tagsBar = el('div', { 'data-testid': 'wa-tags-bar', style: 'display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line)' });
+      threadPane.appendChild(tagsBar);
+      renderTags();
+      function renderTags() {
+        tagsBar.innerHTML = '';
+        (c.tags || []).forEach(t => {
+          tagsBar.appendChild(el('span', { class: 'chip', 'data-testid': 'wa-tag-' + t, style: 'display:inline-flex;gap:6px;align-items:center' }, t,
+            el('i', { class: 'fa-solid fa-xmark', style: 'cursor:pointer', onclick: () => saveTags((c.tags || []).filter(x => x !== t)) })));
+        });
+        const inp = el('input', { class: 'input', 'data-testid': 'wa-tag-input', placeholder: '+ tag', style: 'width:110px;height:28px;font-size:12px' });
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const v = inp.value.trim(); if (v) saveTags([...(c.tags || []), v]); } });
+        tagsBar.appendChild(inp);
+      }
+      async function saveTags(tags) {
+        try { const r = await api.put('/whatsapp/conversations/' + c.id + '/tags', { tags }); c.tags = r.conversation.tags; renderTags(); loadList(); }
+        catch (e) { toast(e.message, 'error'); }
+      }
+      async function notesModal(conv) {
+        const list = el('div', { style: 'display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto', 'data-testid': 'wa-notes-list' });
+        const ta = el('textarea', { class: 'input', rows: '2', placeholder: 'Add a private note (internal only)…', 'data-testid': 'wa-note-input' });
+        const add = el('button', { class: 'btn btn--primary', 'data-testid': 'wa-note-add' }, 'Add note');
+        const m = modal({ title: 'Private notes', bodyNode: el('div', {}, list, el('div', { class: 'field', style: 'margin-top:10px' }, ta, add)), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Close')] });
+        async function load() {
+          const { notes } = await api.get('/whatsapp/conversations/' + conv.id + '/notes');
+          list.innerHTML = '';
+          if (!notes.length) { list.appendChild(el('div', { class: 'empty', style: 'padding:16px' }, 'No notes yet')); return; }
+          notes.forEach(n => list.appendChild(el('div', { class: 'card', 'data-testid': 'wa-note-' + n.id, style: 'padding:8px 10px' },
+            el('div', { style: 'font-size:13px' }, n.body),
+            el('div', { style: 'font-size:11px;color:var(--text-3);margin-top:3px;display:flex;justify-content:space-between' },
+              el('span', {}, (n.author ? n.author.name : '—') + ' · ' + timeAgo(n.created_at)),
+              el('span', { style: 'cursor:pointer;color:#c0392b', 'data-testid': 'wa-note-del-' + n.id, onclick: async () => { try { await api.del('/whatsapp/conversations/' + conv.id + '/notes/' + n.id); load(); } catch (e) { toast(e.message, 'error'); } } }, 'delete')))));
+        }
+        add.addEventListener('click', async () => { const b = ta.value.trim(); if (!b) return; try { await api.post('/whatsapp/conversations/' + conv.id + '/notes', { body: b }); ta.value = ''; load(); } catch (e) { toast(e.message, 'error'); } });
+        load();
+      }
 
       // Messages box
       const box = el('div', { style: 'flex:1;overflow-y:auto;padding:16px;background:var(--bg-2,#f6f7fb);display:flex;flex-direction:column;gap:8px', 'data-testid': 'wa-messages' });

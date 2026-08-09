@@ -200,6 +200,42 @@ class WhatsAppInboxController extends Controller
         return response()->json(['settings' => $s->fresh()]);
     }
 
+    // ---- Private notes (internal handoff context) ----
+    public function notes(WhatsappConversation $conversation)
+    {
+        return response()->json(['notes' => $conversation->notes()->with('author:id,name')->get()]);
+    }
+
+    public function addNote(Request $request, WhatsappConversation $conversation)
+    {
+        $data = $request->validate(['body' => 'required|string|max:2000']);
+        $note = $conversation->notes()->create(['user_id' => $request->user()->id, 'body' => $data['body']]);
+
+        return response()->json(['note' => $note->fresh()->load('author:id,name')], 201);
+    }
+
+    public function deleteNote(Request $request, WhatsappConversation $conversation, \App\Models\WhatsappNote $note)
+    {
+        if ($note->conversation_id !== $conversation->id) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+        if ($note->user_id !== $request->user()->id && ! $request->user()->hasPermission('config.manage')) {
+            return response()->json(['message' => 'Only the author or a manager can delete this note'], 403);
+        }
+        $note->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function updateTags(Request $request, WhatsappConversation $conversation)
+    {
+        $data = $request->validate(['tags' => 'nullable|array|max:20', 'tags.*' => 'string|max:30']);
+        $tags = array_values(array_unique(array_filter(array_map('trim', $data['tags'] ?? []))));
+        $conversation->update(['tags' => $tags]);
+
+        return response()->json(['conversation' => $this->present($conversation->fresh())]);
+    }
+
     private function present(WhatsappConversation $c): array
     {
         return [
@@ -208,6 +244,7 @@ class WhatsAppInboxController extends Controller
             'contact_name' => $c->contact_name ?: ($c->lead?->name ?? $c->contact_phone),
             'contact_phone' => $c->contact_phone,
             'status' => $c->status,
+            'tags' => $c->tags ?? [],
             'unread_count' => $c->unread_count,
             'assigned_to' => $c->assigned_to,
             'agent' => $c->relationLoaded('agent') && $c->agent ? ['id' => $c->agent->id, 'name' => $c->agent->name] : null,
