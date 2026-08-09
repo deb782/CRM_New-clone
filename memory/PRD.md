@@ -57,10 +57,20 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **Record lock (RBAC)**: locked leads return 423 on pre-sales edit/qualify; only Post-Sales/CS (new `post_sales` role, `postsales.manage`) or Admin can edit. New `cs@crm.local` user seeded.
 - **UI**: Won/Lost actions + lock banner + Booking tab in the lead drawer, and a Bookings list page.
 
+## Implemented — Phase C · Section N (2026-06, verified 77/77 = 12 Section N + 65 regression)
+- **Payments & receipts**: record payments against a booking (token/EOI/milestone/registration/other; methods online/razorpay/cheque/neft/upi/cash) with auto serial receipt (`RCPT-YYYY-NNNNN`). Token/EOI payment marks booking token paid → confirms booking when form also verified.
+- **Accounts verification & reconciliation**: accounts verify a received payment, then reconcile against bank statement (matched → reconciled, else discrepancy + note). Reconciliation dashboard endpoint (`GET /payments/reconciliation`) with per-status counts/totals, total collected, and discrepancy list.
+- **Welcome letter**: auto-generated + sent (WhatsApp+email, mock) on booking confirmation with serial `WEL-YYYY-NNNN`; idempotent.
+- **Document checklist**: 7-item KYC/financial/legal checklist auto-seeded on confirmation; per-item status (pending→received→verified/rejected); pending-required-doc reminders via `crm:reminders`.
+- **Razorpay webhook** now records payments through PaymentService with idempotency (skips duplicate gateway_ref). Still mock until live keys added.
+- **UI**: new **Post-Sales** tab in the lead drawer (payments+receipts with verify/match/discrepancy, record-payment modal, document checklist with received/verify, letters with generate-welcome).
+- New files: migration `2026_01_05_...payments_documents_letters`, models `Payment/DocumentChecklistItem/Letter`, services `PaymentService/PostSalesService`, controllers `PaymentController/PostSalesController`.
+
 ## Backlog (prioritized)
-- **P0 (Phase C — N)**: Razorpay token/EOI live integration + payment verification/receipts, accounts reconciliation, welcome letter, initial document checklist + reminders.
-- **P1 (Phase C — O–Q)**: allotment letter + RERA-style AFS + mock e-sign, milestone schedule + staged reminders (30/15/7/1-day), demand letters with serial + late interest.
+- **P1 (Phase C — O–Q)**: allotment letter (≥10% trigger) + RERA-style AFS + mock e-sign, milestone schedule + staged reminders (30/15/7/1-day), demand letters with serial + late interest.
 - **P2 (Phase D — R–T)**: Channel Partner portal + commission, full automation trigger engine + ~40 edge cases, audit/error dashboards, performance hardening (<2s search @100K), QA against A–T.
+- **Tech hardening**: receipt/letter serial generation uses COUNT+1 (unique constraint guards duplicates but throws under rare concurrency) — move to atomic counter/retry when going multi-user.
+- **Integrations (live, when keys provided)**: Razorpay keys+webhook secret, WATI base URL+token, Gmail Workspace SMTP.
 
 ## Next tasks
 1. Phase B site-visit scheduling + inventory board.
