@@ -185,4 +185,71 @@
       });
     }
   };
+
+  // ===== System & Integration Health (Section T) =====
+  CRM.pages.health = async function (view) {
+    CRM.setActions(null);
+    const [h, perf] = await Promise.all([api.get('/system/health'), api.get('/system/performance?q=lead').catch(() => null)]);
+    view.innerHTML = '';
+    const stat = (k, v, color) => el('div', { class: 'card stat' }, el('div', { class: 'k' }, k), el('div', { class: 'v mono', style: color ? ('color:' + color) : '' }, String(v)));
+    view.appendChild(el('div', { class: 'cards', style: 'margin-bottom:20px', 'data-testid': 'health-cards' },
+      stat('Comms sent', h.communications.total),
+      stat('Comms failed', h.communications.failed, h.communications.failed ? 'var(--hot)' : 'var(--won)'),
+      stat('Automation OK', h.automation.success, 'var(--won)'),
+      stat('Automation failed', h.automation.failed, h.automation.failed ? 'var(--hot)' : 'var(--text-1)'),
+      stat('Search latency', (perf ? perf.elapsed_ms + ' ms' : '—'), (perf && perf.within_target) ? 'var(--won)' : 'var(--hot)')));
+
+    view.appendChild(el('div', { class: 'section-title' }, 'Integrations'));
+    const itbody = el('tbody', { 'data-testid': 'health-integrations' });
+    h.integrations.forEach(i => itbody.appendChild(el('tr', {},
+      el('td', {}, i.name), el('td', { class: 'mono' }, i.driver),
+      el('td', {}, el('span', { class: 'chip', style: 'color:' + (i.live ? 'var(--won)' : 'var(--warm)') }, i.live ? 'LIVE' : 'MOCK')))));
+    view.appendChild(el('div', { class: 'table-wrap', style: 'margin-bottom:20px' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Service'), el('th', {}, 'Driver'), el('th', {}, 'Mode'))), itbody)));
+
+    if (perf) view.appendChild(el('div', { class: 'help', style: 'margin-bottom:16px' }, 'Search probe over ' + perf.total_leads.toLocaleString() + ' leads: ' + perf.elapsed_ms + ' ms (target < ' + perf.target_ms + ' ms) — ' + (perf.within_target ? '✓ within target' : '✗ over target')));
+
+    view.appendChild(el('div', { class: 'section-title' }, 'Recent errors'));
+    if (!h.recent_errors.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-circle-check' }), el('div', {}, 'No recent errors'))); return; }
+    const ebody = el('tbody', { 'data-testid': 'health-errors' });
+    h.recent_errors.forEach(e => ebody.appendChild(el('tr', {}, el('td', {}, e.kind), el('td', {}, e.event || '—'), el('td', {}, e.action || '—'), el('td', {}, e.message || '—'))));
+    view.appendChild(el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Kind'), el('th', {}, 'Event'), el('th', {}, 'Action'), el('th', {}, 'Message'))), ebody)));
+  };
+
+  // ===== Audit Log (Section T) =====
+  CRM.pages.audit = async function (view) {
+    CRM.setActions(null);
+    view.innerHTML = '';
+    const filters = el('div', { style: 'display:flex;gap:10px;margin-bottom:16px' });
+    const actionSel = el('select', { class: 'select', style: 'width:auto', 'data-testid': 'audit-action-filter' },
+      el('option', { value: '' }, 'All actions'), ...['created', 'updated', 'status_changed', 'merged', 'deleted'].map(a => el('option', { value: a }, a)));
+    const typeInput = el('input', { class: 'input', style: 'width:220px', placeholder: 'Entity type (e.g. Lead)', 'data-testid': 'audit-type-filter' });
+    filters.appendChild(actionSel); filters.appendChild(typeInput);
+    view.appendChild(filters);
+    const tableHost = el('div', { 'data-testid': 'audit-host' });
+    view.appendChild(tableHost);
+
+    async function load() {
+      tableHost.innerHTML = '<div class="spinner"></div>';
+      const params = [];
+      if (actionSel.value) params.push('action=' + actionSel.value);
+      if (typeInput.value) params.push('auditable_type=' + encodeURIComponent(typeInput.value));
+      const res = await api.get('/audit-logs' + (params.length ? '?' + params.join('&') : ''));
+      tableHost.innerHTML = '';
+      if (!res.data.length) { tableHost.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-clipboard-list' }), el('div', {}, 'No audit entries'))); return; }
+      const tbody = el('tbody', { 'data-testid': 'audit-tbody' });
+      res.data.forEach(a => tbody.appendChild(el('tr', { 'data-testid': 'audit-row-' + a.id },
+        el('td', {}, new Date(a.created_at).toLocaleString()),
+        el('td', {}, (a.auditable_type || '').split('\\').pop() + ' #' + a.auditable_id),
+        el('td', {}, el('span', { class: 'chip' }, a.action)),
+        el('td', {}, a.field || '—'),
+        el('td', {}, (a.old_value ?? '—') + ' → ' + (a.new_value ?? '—')),
+        el('td', {}, a.user ? a.user.name : 'system'),
+        el('td', {}, a.reason || '—'))));
+      tableHost.appendChild(el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {},
+        el('th', {}, 'When'), el('th', {}, 'Entity'), el('th', {}, 'Action'), el('th', {}, 'Field'), el('th', {}, 'Change'), el('th', {}, 'By'), el('th', {}, 'Reason'))), tbody)));
+    }
+    actionSel.addEventListener('change', load);
+    typeInput.addEventListener('input', () => { clearTimeout(window.__auditT); window.__auditT = setTimeout(load, 350); });
+    load();
+  };
 })();

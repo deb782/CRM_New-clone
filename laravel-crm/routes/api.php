@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AgreementController;
+use App\Http\Controllers\Api\AuditController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AutomationController;
 use App\Http\Controllers\Api\CommunicationController;
@@ -186,6 +187,11 @@ Route::prefix('v1')->group(function () {
         Route::put('automation-rules/{rule}', [AutomationController::class, 'update'])->middleware('permission:config.manage');
         Route::delete('automation-rules/{rule}', [AutomationController::class, 'destroy'])->middleware('permission:config.manage');
         Route::get('automation-logs', [AutomationController::class, 'logs']);
+
+        // Audit trail, system/integration health & performance (Section T)
+        Route::get('audit-logs', [AuditController::class, 'index'])->middleware('permission:config.manage');
+        Route::get('system/health', [AuditController::class, 'health'])->middleware('permission:config.manage');
+        Route::get('system/performance', [AuditController::class, 'performance'])->middleware('permission:config.manage');
 
         Route::get('sequences', [SequenceController::class, 'index']);
         Route::get('templates', [TemplateController::class, 'index']);

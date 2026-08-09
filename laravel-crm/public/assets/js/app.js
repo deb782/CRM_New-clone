@@ -23,11 +23,13 @@
       { route: 'scoring', icon: 'fa-sliders', name: 'Lead Scoring' },
       { route: 'automation', icon: 'fa-bolt', name: 'Automations' },
       { route: 'templates', icon: 'fa-comment-dots', name: 'Templates' },
+      { route: 'health', icon: 'fa-heart-pulse', name: 'System Health' },
+      { route: 'audit', icon: 'fa-clipboard-list', name: 'Audit Log' },
       { route: 'users', icon: 'fa-user-shield', name: 'Users & Roles', perm: 'users.manage' },
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', users: 'Users & Roles' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
