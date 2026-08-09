@@ -1,0 +1,123 @@
+{
+  "theme_and_concept": {
+    "concept": "Mission Control Blueprint",
+    "description": "A highly advanced, technical, and precise visual node builder that feels like a space-flight launch sequence dashboard. It is data-dense, highly interactive, and relies on strict grids and precise technical typography. Runs inside a light-themed Laravel CRM, so it acts as a 'Command Center' module with high-contrast clinical light mode (crisp white, intricate blue grids, sharp neon accents for statuses).",
+    "archetype": "THE PERFORMANCE PRO (Adapted for Data/Technical UI)",
+    "mode": "Technical Light"
+  },
+  "global_rules": {
+    "stack": "Laravel Blade + Vanilla JS + CSS Variables. NO React, NO Tailwind assumptions. Use standard CSS classes.",
+    "testing": "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., `data-testid=\"node-trigger-drag\"`).",
+    "icons": "FontAwesome or Lucide (as per CRM baseline).",
+    "transparency": "CRITICAL: DO NOT use complete transparent backgrounds for overlays, side panels, or sticky headers. Always use solid or heavily blurred backgrounds."
+  },
+  "typography": {
+    "strategy": "Swiss Brutalist meets Old Money Tech",
+    "headings": "Chivo or IBM Plex Sans (Never Inter/Roboto/Open Sans). Weight: 700 or 800.",
+    "body": "IBM Plex Sans (Clean, legible for dense data).",
+    "technical_data": "JetBrains Mono (Used for node IDs, timestamps, delay counts, and live tracking stats).",
+    "scales": {
+      "h1": "2.5rem (40px) tracking-tight",
+      "h2": "1.5rem (24px) tracking-tight",
+      "h3": "1.125rem (18px)",
+      "body": "0.875rem (14px)",
+      "labels": "0.75rem (12px) uppercase tracking-[0.2em]"
+    }
+  },
+  "colors": {
+    "css_variables": {
+      "--bg-app": "#F8FAFC",
+      "--bg-canvas": "#FFFFFF",
+      "--grid-color": "#E2E8F0",
+      "--grid-color-dark": "#CBD5E1",
+      "--panel-bg": "#FFFFFF",
+      "--panel-border": "#E2E8F0",
+      "--text-primary": "#0F172A",
+      "--text-secondary": "#64748B",
+      "--text-muted": "#94A3B8",
+      "--primary-blue": "#2563EB",
+      "--edge-default": "#94A3B8",
+      "--edge-active": "#2563EB",
+      "--edge-error": "#EF4444",
+      "--node-bg": "#FFFFFF",
+      "--node-border": "#CBD5E1",
+      "--node-shadow": "0 4px 20px -4px rgba(15, 23, 42, 0.08)",
+      "--color-trigger": "#10B981",
+      "--color-action-wa": "#22C55E",
+      "--color-action-email": "#3B82F6",
+      "--color-condition": "#F59E0B",
+      "--color-wait": "#8B5CF6",
+      "--color-fallback": "#EF4444",
+      "--color-status": "#475569"
+    }
+  },
+  "ui_layout": {
+    "structure": "Three-pane mission control layout.",
+    "left_pane": {
+      "name": "Node Palette",
+      "width": "280px",
+      "design": "Solid white background, right border 1px solid var(--panel-border). Contains draggable node types grouped by category. Accordion-style layout. Each draggable item has a left color-bar indicating its category."
+    },
+    "center_pane": {
+      "name": "Drawflow Canvas",
+      "width": "calc(100% - 580px)",
+      "design": "Dense blueprint grid background. Top edge contains the toolbar. Bottom right contains the minimap and zoom controls."
+    },
+    "right_pane": {
+      "name": "Node Config & Tally Panel",
+      "width": "300px",
+      "design": "Slide-out or fixed solid panel. Left border 1px solid var(--panel-border). Holds per-node settings (template pickers, delay inputs, attachments) AND the 'Mission Tally / Onboarding Checklist'."
+    }
+  },
+  "canvas_design": {
+    "grid": "Use a complex double-grid to look like a blueprint. 20px minor grid (light dots), 100px major grid (solid 1px lines).",
+    "toolbar": "Floating glass panel at the top-center (`backdrop-filter: blur(16px); background: rgba(255,255,255,0.8)`). Houses Save, Validate, Reset, and view toggles.",
+    "minimap": "Bottom-left or bottom-right floating widget. 1px solid border, dense shadow. Provides a bird's-eye view of the complex branch diagram.",
+    "help_icons": "Strategically placed `fa-circle-info` icons next to complex terms. Hovering triggers a crisp, dark tooltip explaining the function (e.g., 'Triggers when lead stays in Pre-Sales 1 for > 24hrs')."
+  },
+  "node_design": {
+    "container": "Border-radius: 6px (crisp, slightly rounded). Background: var(--node-bg). Border: 1px solid var(--node-border). Left border is 4px solid matching the category color.",
+    "header": "Padding: 8px 12px. Border-bottom: 1px solid var(--panel-border). Displays Category Icon (FA/Lucide) + Node Title. Font: JetBrains Mono, 12px, Uppercase.",
+    "body": "Padding: 12px. Displays key configurations as a mini-summary. E.g., 'Delay: 2 Days' or 'Template: Welcome_v1'.",
+    "ports": "Inputs/Outputs (drawflow endpoints). Size: 12px circle. Border: 2px solid white. Background: category color. Hover state: scale(1.2) + box-shadow glow.",
+    "types": {
+      "trigger": "Emerald left-border. Icon: flash/bolt.",
+      "action_wa": "Green left-border. Icon: whatsapp. Displays template name.",
+      "condition": "Amber left-border. Icon: code-branch. Has multiple output ports (True/False).",
+      "fallback": "Red left-border. Icon: shield/alert. Handles failures."
+    }
+  },
+  "live_lead_tracker_view": {
+    "concept": "Train-Tracking Board. The exact same Drawflow canvas is switched to 'Read-Only' mode. It tracks a specific lead's journey.",
+    "top_progress_rail": "A linear horizontal timeline across the top showing the 5 root stages: Lead Entry → Pre-Sales 1 → Pre-Sales 2 → Post-Sales → Customer. The current stage pulses.",
+    "node_states": {
+      "completed": "Grayscale, opacity 0.6. A green checkmark badge overlaps the top-right corner. Borders turn solid light gray.",
+      "active": "Full opacity. Heavy box-shadow glow (`0 0 15px var(--primary-blue)`). Left color bar pulses brightly. A 'CURRENT' badge is attached to the top.",
+      "pending": "Opacity 0.8. Border becomes dashed (`border: 1px dashed var(--text-muted)`). Background slightly dimmed. Text is muted."
+    },
+    "edge_animations": {
+      "completed_path": "Solid green line (`stroke: #10B981; stroke-width: 3px;`).",
+      "active_path": "Blue line with SVG stroke-dasharray animation ('ants marching' effect) moving TOWARDS the active node. `animation: dash 1s linear infinite`.",
+      "pending_path": "Dashed gray line (`stroke: #CBD5E1; stroke-dasharray: 5,5;`)."
+    }
+  },
+  "onboarding_checklist": {
+    "location": "Bottom half of the Right Config Panel, or a dedicated floating toggle.",
+    "design": "A 'Mission Requirements' tally board. As the user drags a 'Send WhatsApp' node to the canvas, the tally dynamically updates: 'WhatsApp Templates Required: 1/15'. Uses progress bars (Shadcn-style) to show completion state. Font: JetBrains Mono."
+  },
+  "motion_and_microinteractions": {
+    "node_drag": "Cursor turns to grabbing. Node receives a larger drop-shadow (`shadow-2xl`) and scales up by 1.02x to feel detached from the canvas.",
+    "edge_connect": "Drawing a connection line snaps to the target port with a magnetic feel. The line turns vibrant blue when a valid connection is hovered.",
+    "active_pulse": "CSS keyframe `pulse-glow`: `0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); } 70% { box-shadow: 0 0 0 10px rgba(37,99,235,0); }` applied to the active node in Live Tracker mode."
+  },
+  "universal_guidelines_for_main_agent": [
+    "You tend to converge toward generic outputs. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "NEVER use generic fonts like Inter, Roboto, Lato for headings.",
+    "DO NOT apply universal transitions (e.g., `transition: all`). Target specific properties to avoid breaking transforms like zoom/pan in the canvas.",
+    "Use 2-3x more spacing in the configuration panels than feels comfortable. Cramped forms look cheap.",
+    "All interactive elements MUST have micro-animations (hover, focus, active states).",
+    "In Blade/Vanilla JS, implement tooltips using data-attributes and a tiny vanilla JS class, or pure CSS pseudo-elements to avoid external dependencies where possible.",
+    "Always ensure high contrast ratios (APCA preferred) for node data. Light text on dark nodes or dark text on light nodes must be highly legible.",
+    "Ensure the zoom and pan controls of Drawflow are smooth and not hindered by overlapping absolute UI elements."
+  ]
+}
