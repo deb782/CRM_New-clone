@@ -8,5 +8,5 @@ class EmailCampaign extends Model
 {
     protected $table = 'email_campaigns';
     protected $guarded = ['id'];
-    protected $casts = ['sent_at' => 'datetime'];
+    protected $casts = ['sent_at' => 'datetime', 'scheduled_at' => 'datetime'];
 }

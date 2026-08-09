@@ -10,3 +10,6 @@ Schedule::command('crm:reminders')->everyFiveMinutes()->withoutOverlapping();
 
 // crm:webhooks — retry failed webhook/comms deliveries (T2)
 Schedule::command('crm:webhooks')->everyTenMinutes()->withoutOverlapping();
+
+// crm:email-scheduled — dispatch email campaigns whose scheduled time has arrived
+Schedule::command('crm:email-scheduled')->everyMinute()->withoutOverlapping();

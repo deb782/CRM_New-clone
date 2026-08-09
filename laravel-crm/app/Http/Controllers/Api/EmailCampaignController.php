@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\EmailCampaign;
 use App\Models\EmailMessage;
-use App\Models\Lead;
-use App\Services\BroadcastMailer;
+use App\Services\CampaignDispatcher;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class EmailCampaignController extends Controller
 {
+    public function __construct(private CampaignDispatcher $dispatcher) {}
+
     public function index()
     {
         return response()->json(['campaigns' => EmailCampaign::latest()->limit(100)->get()]);
@@ -52,7 +52,10 @@ class EmailCampaignController extends Controller
     {
         $data = $this->data($request);
         $data['created_by'] = $request->user()->id;
-        $data['recipients'] = $this->audience($data)->count();
+        $data['recipients'] = $this->dispatcher->audience($data)->count();
+        if (! empty($data['scheduled_at'])) {
+            $data['status'] = 'scheduled';
+        }
 
         return response()->json(['campaign' => EmailCampaign::create($data)], 201);
     }
@@ -63,7 +66,8 @@ class EmailCampaignController extends Controller
             return response()->json(['message' => 'Sent campaigns cannot be edited'], 422);
         }
         $data = $this->data($request);
-        $data['recipients'] = $this->audience($data)->count();
+        $data['recipients'] = $this->dispatcher->audience($data)->count();
+        $data['status'] = ! empty($data['scheduled_at']) ? 'scheduled' : 'draft';
         $email_campaign->update($data);
 
         return response()->json(['campaign' => $email_campaign->fresh()]);
@@ -76,112 +80,41 @@ class EmailCampaignController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function send(EmailCampaign $email_campaign, BroadcastMailer $mailer)
+    public function schedule(Request $request, EmailCampaign $email_campaign)
     {
         if ($email_campaign->status === 'sent') {
             return response()->json(['message' => 'Campaign already sent'], 422);
         }
-        $email_campaign->update(['status' => 'sending']);
-
-        $targets = $this->audience($email_campaign->toArray())->get();
-        $sent = 0;
-        $failed = 0;
-        $appUrl = rtrim(config('app.url') ?: url('/'), '/');
-
-        foreach ($targets as $lead) {
-            $token = Str::random(48);
-            $subject = $this->personalize($email_campaign->subject, $lead);
-            $html = $this->personalize($email_campaign->html ?: '', $lead);
-            $html = $this->injectTracking($html, $token, $appUrl);
-            $html = $this->injectUnsubscribe($html, $token, $appUrl, $email_campaign->from_name);
-
-            $res = $mailer->send($lead->email, $subject, $html, $email_campaign->from_name, $email_campaign->from_email);
-
-            EmailMessage::create([
-                'campaign_id' => $email_campaign->id,
-                'lead_id' => $lead->id,
-                'to_email' => $lead->email,
-                'subject' => $subject,
-                'body_html' => $html,
-                'status' => $res['status'],
-                'open_token' => $token,
-                'provider_id' => $res['provider_id'],
-            ]);
-            $res['status'] === 'sent' ? $sent++ : $failed++;
-        }
-
+        $data = $request->validate([
+            'scheduled_at' => 'required|date|after:now',
+        ]);
         $email_campaign->update([
-            'status' => 'sent',
-            'recipients' => $targets->count(),
-            'sent_count' => $sent,
-            'failed_count' => $failed,
-            'sent_at' => now(),
+            'scheduled_at' => $data['scheduled_at'],
+            'status' => 'scheduled',
         ]);
 
-        return response()->json(['campaign' => $email_campaign->fresh(), 'sent' => $sent, 'failed' => $failed, 'total' => $targets->count()]);
+        return response()->json(['campaign' => $email_campaign->fresh()]);
     }
 
-    private function personalize(string $text, Lead $lead): string
+    public function unschedule(EmailCampaign $email_campaign)
     {
-        $values = [
-            'name' => $lead->name ?: 'there',
-            'email' => (string) $lead->email,
-            'phone' => (string) $lead->phone,
-            'project' => optional($lead->project)->name ?: 'our projects',
-        ];
+        if ($email_campaign->status !== 'scheduled') {
+            return response()->json(['message' => 'Campaign is not scheduled'], 422);
+        }
+        $email_campaign->update(['scheduled_at' => null, 'status' => 'draft']);
 
-        $map = [];
-        foreach ($values as $tag => $value) {
-            $map['{{'.$tag.'}}'] = $value; // double-brace mustache
-            $map['{'.$tag.'}'] = $value;   // single-brace shorthand
+        return response()->json(['campaign' => $email_campaign->fresh()]);
+    }
+
+    public function send(EmailCampaign $email_campaign)
+    {
+        if ($email_campaign->status === 'sent') {
+            return response()->json(['message' => 'Campaign already sent'], 422);
         }
 
-        return strtr($text, $map);
-    }
+        $result = $this->dispatcher->dispatch($email_campaign);
 
-    private function injectTracking(string $html, string $token, string $appUrl): string
-    {
-        // Rewrite outbound links through the click tracker
-        $html = preg_replace_callback('/href="(https?:\/\/[^"]+)"/i', function ($m) use ($token, $appUrl) {
-            return 'href="'.$appUrl.'/api/v1/email/click/'.$token.'?u='.urlencode($m[1]).'"';
-        }, $html);
-
-        // Append a 1x1 open pixel
-        $pixel = '<img src="'.$appUrl.'/api/v1/email/open/'.$token.'" width="1" height="1" alt="" style="display:none"/>';
-        if (stripos($html, '</body>') !== false) {
-            return str_ireplace('</body>', $pixel.'</body>', $html);
-        }
-
-        return $html.$pixel;
-    }
-
-    private function injectUnsubscribe(string $html, string $token, string $appUrl, ?string $fromName): string
-    {
-        $sender = $fromName ? e($fromName) : 'us';
-        $link = $appUrl.'/api/v1/email/unsubscribe/'.$token;
-        $footer = '<div style="margin-top:28px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center;font-family:Arial,Helvetica,sans-serif">'
-            .'You are receiving this because you opted in to updates from '.$sender.'. '
-            .'<a href="'.$link.'" style="color:#64748b;text-decoration:underline">Unsubscribe</a>'
-            .'</div>';
-        if (stripos($html, '</body>') !== false) {
-            return str_ireplace('</body>', $footer.'</body>', $html);
-        }
-
-        return $html.$footer;
-    }
-
-    private function audience(array $c)
-    {
-        $q = Lead::whereNotNull('email')->where('email', '!=', '')
-            ->where('do_not_contact', false)
-            ->where('email_opt_out', false);
-
-        return match ($c['audience_type'] ?? 'all') {
-            'status' => $q->where('status', $c['audience_value'] ?? null),
-            'temperature' => $q->where('temperature', $c['audience_value'] ?? null),
-            'source' => $q->where('source', $c['audience_value'] ?? null),
-            default => $q,
-        };
+        return response()->json(array_merge(['campaign' => $email_campaign->fresh()], $result));
     }
 
     private function data(Request $request): array
@@ -195,6 +128,7 @@ class EmailCampaignController extends Controller
             'audience_value' => 'nullable|string',
             'from_name' => 'nullable|string|max:120',
             'from_email' => 'nullable|email',
+            'scheduled_at' => 'nullable|date|after:now',
         ]);
         if (empty($data['html'])) {
             abort(422, 'Email content is required');

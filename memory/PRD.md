@@ -161,6 +161,11 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - **One-click unsubscribe**: every broadcast now appends a compliant footer with a tokenized `email/unsubscribe/{token}` link (public, no auth). Hitting it sets the lead's new `email_opt_out`/`email_opt_out_at` (migration `2026_01_18_...lead_email_optout`) and shows a confirmation page. `audience()` now excludes `do_not_contact` AND `email_opt_out` (verified: audience 4→3 after unsubscribe).
 - **Campaign analytics**: `GET email/campaigns/{id}/analytics` (config.manage) returns campaign stats (recipients/sent/failed/opens/clicks + open_rate/click_rate) and a recipient-level breakdown (to_email/status/opened_at/clicked_at, up to 500). Frontend "Details" button on sent campaigns opens an analytics modal with stat cards + recipient table. email.js/app.js bumped to v=15.
 
+## Implemented — Email Scheduled Sends (2026-06, agent-tested)
+- **Schedule a campaign**: create modal has an optional "Schedule for later" datetime; draft campaigns show a "Schedule" button (and scheduled ones a "Cancel"). Endpoints `POST email/campaigns/{id}/schedule` (validates `after:now`) + `/unschedule` (config.manage). Status column now shows draft/scheduled(time)/sent chips.
+- **Auto-dispatch**: new console command `crm:email-scheduled` (registered `everyMinute` in routes/console.php) sends campaigns with `status=scheduled` and `scheduled_at <= now`, then marks them sent and clears the schedule. Verified: future schedule not sent; past schedule dispatched 3, status→sent.
+- **Refactor**: extracted the send pipeline (audience + personalize + tracking + unsubscribe + message records) into `App\Services\CampaignDispatcher`, reused by the controller `send()` and the scheduled command (DRY). Migration `2026_01_19_...email_campaign_schedule` (email_campaigns.scheduled_at). email.js/app.js bumped to v=16. RBAC verified (non-config user → 403).
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.

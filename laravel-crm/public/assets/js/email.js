@@ -125,18 +125,46 @@
     const rows = campaigns.map(c => {
       const openRate = c.sent_count ? Math.round((c.open_count / c.sent_count) * 100) : 0;
       const clickRate = c.sent_count ? Math.round((c.click_count / c.sent_count) * 100) : 0;
-      const action = c.status === 'sent'
-        ? el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-details-' + c.id, onclick: () => analyticsModal(c) }, el('i', { class: 'fa-solid fa-chart-simple' }), 'Details')
-        : el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'email-camp-send-' + c.id, onclick: async () => { try { const r = await api.post('/email/campaigns/' + c.id + '/send'); toast('Sent to ' + r.sent + ' (failed ' + r.failed + ')', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, 'Send now');
+      const sendBtn = el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'email-camp-send-' + c.id, onclick: async () => { try { const r = await api.post('/email/campaigns/' + c.id + '/send'); toast('Sent to ' + r.sent + ' (failed ' + r.failed + ')', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, 'Send now');
+      let action;
+      if (c.status === 'sent') {
+        action = el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-details-' + c.id, onclick: () => analyticsModal(c) }, el('i', { class: 'fa-solid fa-chart-simple' }), 'Details');
+      } else if (c.status === 'scheduled') {
+        action = el('div', { style: 'display:flex;gap:6px;justify-content:flex-end' },
+          sendBtn,
+          el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-unschedule-' + c.id, onclick: async () => { try { await api.post('/email/campaigns/' + c.id + '/unschedule'); toast('Schedule cancelled', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, 'Cancel'));
+      } else {
+        action = el('div', { style: 'display:flex;gap:6px;justify-content:flex-end' },
+          sendBtn,
+          el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-schedule-' + c.id, onclick: () => scheduleModal(c) }, el('i', { class: 'fa-solid fa-clock' }), 'Schedule'));
+      }
+      const statusCell = c.status === 'scheduled'
+        ? el('span', { class: 'chip', style: 'color:var(--warm)' }, el('i', { class: 'fa-solid fa-clock', style: 'margin-right:4px' }), fmtDate(c.scheduled_at))
+        : (c.status === 'sent' ? el('span', { class: 'chip', style: 'color:var(--won)' }, 'sent') : el('span', { class: 'chip' }, 'draft'));
       return el('tr', { 'data-testid': 'email-camp-row-' + c.id },
         el('td', {}, c.name), el('td', { style: 'color:var(--text-3)' }, c.subject),
         el('td', {}, c.audience_type + (c.audience_value ? (':' + c.audience_value) : '')), el('td', {}, String(c.recipients)),
-        el('td', {}, c.status === 'sent' ? (c.sent_count + '✓') : '—'),
+        el('td', {}, statusCell),
         el('td', {}, c.status === 'sent' ? (openRate + '% / ' + clickRate + '%') : '—'),
         el('td', {}, action));
     });
-    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:12px;margin-bottom:10px' }, 'Opens % / Clicks % are tracked per campaign.'));
-    view.appendChild(tableWrap(['Name', 'Subject', 'Audience', 'Recipients', 'Sent', 'Open/Click', ''], rows));
+    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:12px;margin-bottom:10px' }, 'Send now or schedule for later. Opens % / Clicks % are tracked per campaign.'));
+    view.appendChild(tableWrap(['Name', 'Subject', 'Audience', 'Recipients', 'Status', 'Open/Click', ''], rows));
+
+    function fmtDate(d) { if (!d) return ''; try { return new Date(d).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return d; } }
+
+    async function scheduleModal(c) {
+      const dt = el('input', { class: 'input', type: 'datetime-local', 'data-testid': 'email-camp-schedule-input' });
+      const now = new Date(Date.now() + 5 * 60000); dt.value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      const save = el('button', { class: 'btn btn--primary', 'data-testid': 'email-camp-schedule-save' }, 'Schedule campaign');
+      const m = modal({ title: 'Schedule · ' + c.name, bodyNode: el('div', {}, el('div', { class: 'field' }, el('label', {}, 'Send date & time'), dt), el('div', { style: 'font-size:12px;color:var(--text-3)' }, 'The campaign will be sent automatically at this time.')), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+      save.addEventListener('click', async () => {
+        if (!dt.value) { toast('Pick a date & time', 'error'); return; }
+        try { await api.post('/email/campaigns/' + c.id + '/schedule', { scheduled_at: new Date(dt.value).toISOString() }); toast('Campaign scheduled', 'success'); m.close(); CRM.render(); }
+        catch (e) { toast(e.message, 'error'); }
+      });
+    }
+
 
     async function analyticsModal(c) {
         const res = await api.get('/email/campaigns/' + c.id + '/analytics');
@@ -174,6 +202,7 @@
       audVal.addEventListener('input', () => f.audience_value = audVal.value);
       const fromN = el('input', { class: 'input', placeholder: 'Sales Team', 'data-testid': 'email-camp-fromname' }); fromN.addEventListener('input', () => f.from_name = fromN.value);
       const fromE = el('input', { class: 'input', placeholder: 'hello@yourco.com', 'data-testid': 'email-camp-fromemail' }); fromE.addEventListener('input', () => f.from_email = fromE.value);
+      const schedI = el('input', { class: 'input', type: 'datetime-local', 'data-testid': 'email-camp-scheduled' }); schedI.addEventListener('input', () => f.scheduled_at = schedI.value);
       const save = el('button', { class: 'btn btn--primary', 'data-testid': 'email-camp-save' }, 'Create campaign');
       const m = modal({ title: 'New Email Campaign', bodyNode: el('div', {},
         el('div', { class: 'field' }, el('label', {}, 'Name'), nameI),
@@ -181,12 +210,13 @@
         el('div', { class: 'field' }, el('label', {}, 'Subject'), subjI),
         el('div', { class: 'field' }, el('label', {}, 'Audience'), audType),
         el('div', { class: 'field' }, audVal),
-        el('div', { style: 'display:flex;gap:10px' }, el('div', { class: 'field', style: 'flex:1' }, el('label', {}, 'From name'), fromN), el('div', { class: 'field', style: 'flex:1' }, el('label', {}, 'From email'), fromE))),
+        el('div', { style: 'display:flex;gap:10px' }, el('div', { class: 'field', style: 'flex:1' }, el('label', {}, 'From name'), fromN), el('div', { class: 'field', style: 'flex:1' }, el('label', {}, 'From email'), fromE)),
+        el('div', { class: 'field' }, el('label', {}, 'Schedule for later (optional)'), schedI)),
         footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
       save.addEventListener('click', async () => {
         if (!f.name || !f.subject) { toast('Name & subject required', 'error'); return; }
         if (!f.html) { toast('Pick a template', 'error'); return; }
-        try { await api.post('/email/campaigns', { name: f.name, subject: f.subject, template_id: f.template_id || null, html: f.html, audience_type: f.audience_type, audience_value: f.audience_value || null, from_name: f.from_name || null, from_email: f.from_email || null }); toast('Campaign created', 'success'); m.close(); CRM.render(); }
+        try { await api.post('/email/campaigns', { name: f.name, subject: f.subject, template_id: f.template_id || null, html: f.html, audience_type: f.audience_type, audience_value: f.audience_value || null, from_name: f.from_name || null, from_email: f.from_email || null, scheduled_at: f.scheduled_at ? new Date(f.scheduled_at).toISOString() : null }); toast(f.scheduled_at ? 'Campaign scheduled' : 'Campaign created', 'success'); m.close(); CRM.render(); }
         catch (e) { toast(e.message, 'error'); }
       });
     }

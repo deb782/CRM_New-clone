@@ -266,6 +266,8 @@ Route::prefix('v1')->group(function () {
             Route::put('email/campaigns/{email_campaign}', [\App\Http\Controllers\Api\EmailCampaignController::class, 'update']);
             Route::delete('email/campaigns/{email_campaign}', [\App\Http\Controllers\Api\EmailCampaignController::class, 'destroy']);
             Route::post('email/campaigns/{email_campaign}/send', [\App\Http\Controllers\Api\EmailCampaignController::class, 'send']);
+            Route::post('email/campaigns/{email_campaign}/schedule', [\App\Http\Controllers\Api\EmailCampaignController::class, 'schedule']);
+            Route::post('email/campaigns/{email_campaign}/unschedule', [\App\Http\Controllers\Api\EmailCampaignController::class, 'unschedule']);
         });
         Route::get('partners', [ChannelPartnerController::class, 'index'])->middleware('permission:config.manage');
         Route::post('partners', [ChannelPartnerController::class, 'store'])->middleware('permission:config.manage');
