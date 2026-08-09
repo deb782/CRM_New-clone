@@ -94,7 +94,9 @@ class SequenceService
             } elseif ($next->channel === 'whatsapp') {
                 $this->whatsapp->send($lead, $body);
             } else {
-                $this->activity->log($lead, 'system', "Sequence SMS touchpoint #{$next->step_no}", $body);
+                $res = app(\App\Integrations\Sms\Contract::class)->send((string) $lead->phone, $body);
+                $this->activity->log($lead, 'system', "Sequence SMS touchpoint #{$next->step_no} ({$res['status']})", $body);
+                $this->activity->comm($lead->id, 'sms', 'outbound', $res['status']);
             }
 
             $enrollment->current_step = $next->step_no;

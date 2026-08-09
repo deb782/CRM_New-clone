@@ -122,4 +122,64 @@ class WebhookController extends Controller
         }
         return hash_equals(hash_hmac('sha256', $request->getContent(), $secret), $sig);
     }
+
+    /** Razorpay webhook — payment.captured / payment_link.paid -> confirm booking token. */
+    public function razorpay(Request $request, \App\Services\RazorpayService $razorpay, \App\Services\BookingService $bookings)
+    {
+        $body = $request->getContent();
+        $sig = $request->header('X-Razorpay-Signature', '');
+        if (! $razorpay->verifyWebhookSignature($body, $sig)) {
+            return response()->json(['message' => 'invalid signature'], 401);
+        }
+        $payload = $request->all();
+        $event = $payload['event'] ?? '';
+        $plinkId = data_get($payload, 'payload.payment_link.entity.id')
+            ?? data_get($payload, 'payload.payment.entity.notes.plink_id');
+        $refId = data_get($payload, 'payload.payment_link.entity.reference_id');
+
+        $booking = \App\Models\Booking::when($plinkId, fn ($q) => $q->where('meta->razorpay_plink', $plinkId))
+            ->when(! $plinkId && $refId, fn ($q) => $q->where('booking_ref', explode('-'.substr($refId, -5), $refId)[0]))
+            ->latest()->first();
+
+        if ($booking && in_array($event, ['payment.captured', 'payment_link.paid', 'order.paid'])) {
+            $booking->update([
+                'token_status' => 'paid',
+                'token_paid_at' => now(),
+                'payment_ref' => data_get($payload, 'payload.payment.entity.id'),
+                'status' => $booking->verified_at ? 'confirmed' : $booking->status,
+            ]);
+        }
+        return response()->json(['message' => 'ok']);
+    }
+
+    /** Lead-capture chatbot (Section A). Scripted; optionally LLM-backed later. */
+    public function chatbot(Request $request, LeadService $leads)
+    {
+        $data = $request->validate([
+            'message' => 'nullable|string',
+            'name' => 'nullable|string',
+            'email' => 'nullable|email',
+            'phone' => 'nullable|string',
+        ]);
+
+        if (! empty($data['name']) && (! empty($data['email']) || ! empty($data['phone']))) {
+            $result = $leads->capture([
+                'name' => $data['name'], 'email' => $data['email'] ?? null,
+                'phone' => $data['phone'] ?? null, 'source' => 'Chatbot',
+                'intent_notes' => $data['message'] ?? null,
+            ]);
+            $leadId = $result['status'] === 'created' ? $result['lead']->id : ($result['duplicate']['matches'][0]['id'] ?? null);
+            return response()->json([
+                'reply' => "Thanks ".($data['name'])."! Our team will reach out shortly. Meanwhile, would you like a brochure or a site visit?",
+                'done' => true,
+                'lead_id' => $leadId,
+            ]);
+        }
+
+        return response()->json([
+            'reply' => "Hi! I can help you explore our projects. Could you share your name and phone or email so our team can assist you?",
+            'done' => false,
+            'need' => ['name', 'phone_or_email'],
+        ]);
+    }
 }

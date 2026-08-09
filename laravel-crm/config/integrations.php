@@ -26,6 +26,32 @@ return [
         'driver' => env('EMAIL_DRIVER', 'smtp'),
     ],
 
+    'razorpay' => [
+        'key_id' => env('RAZORPAY_KEY_ID'),
+        'key_secret' => env('RAZORPAY_KEY_SECRET'),
+        'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
+    ],
+
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'mock'), // mock|http
+        'gateway' => [
+            'url' => env('SMS_GATEWAY_URL'),
+            'api_key' => env('SMS_GATEWAY_KEY'),
+            'sender' => env('SMS_SENDER_ID'),
+            'to_field' => env('SMS_TO_FIELD', 'to'),
+            'body_field' => env('SMS_BODY_FIELD', 'message'),
+            'from_field' => env('SMS_FROM_FIELD', 'from'),
+        ],
+    ],
+
+    'esign' => [
+        'driver' => env('ESIGN_DRIVER', 'mock'), // mock|<provider>
+    ],
+
+    'chatbot' => [
+        'llm' => env('CHATBOT_LLM', false), // set true to use Emergent LLM key
+    ],
+
     'webhook_secret' => env('WEBHOOK_SECRET', 'crm-webhook-secret'),
 
     // SLA / cadence knobs (build.docx A–H)

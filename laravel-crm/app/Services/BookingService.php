@@ -19,6 +19,7 @@ class BookingService
         private EmailService $email,
         private WhatsAppService $whatsapp,
         private SequenceService $sequences,
+        private RazorpayService $razorpay,
     ) {}
 
     /** Deal Won -> booking initiation + booking form + post-sales handover + record lock (M1.1, M1.2, M1.4). */
@@ -55,9 +56,13 @@ class BookingService
             'deal_value' => $dealValue,
             'token_amount' => $tokenAmount,
             'token_status' => 'pending',
-            'payment_link' => $appUrl.'/pay/'.$token, // mock; Razorpay slots in later
+            'payment_link' => $appUrl.'/pay/'.$token, // replaced with gateway link below
             'form_sent_at' => now(),
         ]);
+
+        // Razorpay payment link for token/EOI (live when keys present, else mock)
+        $pl = $this->razorpay->createPaymentLink($booking, $tokenAmount, 'Token / EOI');
+        $booking->update(['payment_link' => $pl['url'], 'meta' => ['razorpay_plink' => $pl['id'], 'gateway' => $pl['provider']]]);
 
         if ($plot && ! in_array($plot->status, ['sold'])) {
             $plot->update(['status' => 'booked', 'held_by_lead_id' => $lead->id, 'hold_expires_at' => null]);

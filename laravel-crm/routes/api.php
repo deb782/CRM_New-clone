@@ -29,6 +29,8 @@ Route::prefix('v1')->group(function () {
         Route::post('webhooks/lead-form', [WebhookController::class, 'leadForm']);
         Route::post('webhooks/whatsapp', [WebhookController::class, 'whatsapp']);
         Route::post('webhooks/telephony', [WebhookController::class, 'telephony']);
+        Route::post('webhooks/razorpay', [WebhookController::class, 'razorpay']);
+        Route::post('chatbot', [WebhookController::class, 'chatbot']);
         Route::get('track/email/{event}/{emailId}', [WebhookController::class, 'emailEvent']);
     });
     // Public booking form (token link)
