@@ -347,6 +347,6 @@
       card('Avg first response', a.avg_response_minutes != null ? (a.avg_response_minutes + 'm') : '—')));
     view.appendChild(el('div', { class: 'section-title' }, 'Messages per agent'));
     if (!a.per_agent.length) view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px' }, 'No outbound messages yet'));
-    else view.appendChild(tableWrap(['Agent', 'Sent'], a.per_agent.map(x => el('tr', { 'data-testid': 'wa-agent-row' }, el('td', {}, x.sender_name || '—'), el('td', {}, String(x.sent))))));
+    else view.appendChild(tableWrap(['Agent', 'Sent'], a.per_agent.map(x => el('tr', { 'data-testid': 'wa-agent-row' }, el('td', {}, x.sender_name || 'Broadcasts / System'), el('td', {}, String(x.sent))))));
   };
 })();

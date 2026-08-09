@@ -127,6 +127,12 @@ Built mock-first (WHATSAPP_DRIVER=mock), real-time via ~4s polling. Ported & imp
 - **Go live to replace WATI**: set `WHATSAPP_DRIVER=cloud` + `.env` `CLOUD_API_TOKEN`, `CLOUD_API_PHONE_ID`, `META_WABA_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`; point Meta webhook to `/api/v1/webhooks/whatsapp` (verify token `crm_wa_verify` by default).
 - New migration `2026_01_12_...whatsapp_inbox`; frontend `public/assets/js/whatsapp.js` (inbox/broadcasts/waAutomations), nav+titles in app.js, script include bumped to v=10.
 
+## Implemented — WhatsApp Media & Buttons + Template Sync + Inbox Analytics (2026-06, verified 17/17 backend + 100% frontend, iteration_15)
+- **Media & Buttons**: inbox composer can attach images/documents (`POST /whatsapp/media/upload` → public disk, MIME-validated) and send **interactive quick-reply buttons** (max 3). Thread renders images/doc links/button chips. 24h window still enforced for media/interactive (only templates bypass). Added `meta` json + media_url to messages; `Contract::sendMedia/sendInteractive` (Mock/Cloud/Wati).
+- **Template Sync**: `POST /whatsapp/templates/sync` (config.manage) pulls approved templates via `Contract::fetchTemplates()` — Mock returns 5 samples, CloudApiDriver hits Meta `/{waba}/message_templates` at go-live. Upsert by name+language (idempotent). Inbox Template modal + WA Templates page (`waTemplates`) use the synced dropdown. New: `whatsapp_templates` table, `WhatsappTemplate`, `WhatsAppTemplateController`.
+- **Inbox Analytics** (`GET /whatsapp/analytics`, leads.view): open conversations, unread backlog, unassigned, avg first-response minutes (inbound→next outbound), messages-per-agent, 7-day trend. New page `waAnalytics`.
+- New migration `2026_01_13_...whatsapp_media_templates`; frontend blade bumped to v=11; nav items WA Templates + WA Analytics under Configuration.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
