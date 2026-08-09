@@ -1,0 +1,31 @@
+{
+  "summary": "Phase 3 (Workflow Builder + Onboarding Reset) tested end-to-end. Backend pytest 17/17 passed covering: RBAC gating on /api/v1/workflows (admin+process_admin allowed; sales_head, accounts_support, partner all 403), full CRUD (create/get/update/delete), tally counting for whatsapp/email/task/trigger/condition/fallback, activate flipping status to 'active', validation (name required), onboarding/reset RBAC (admin+process_admin 200, sales_head+accounts 403), and Phase 1/2 regressions (partner /leads 403, accounts_support cannot edit lead, sales_head can edit, forced password change 409 gate, impersonation admin-only). Frontend UI: process_admin can open #/workflows and sees the full mission-control builder — workflow-builder root, wf-palette (all 8 palette nodes: trigger, send_whatsapp, send_email, condition, task, status_change, wait, fallback), wf-canvas, wf-config, floating toolbar (zoom-in/out/clear), topbar buttons (save/validate/activate/exit), and Mission Checklist tally rows (whatsapptemplates/emailtemplates/tasktypes/totalnodes). Programmatic HTML5 drag-drop successfully created 4 nodes (1 trigger, 2 send_whatsapp, 1 send_email) and live tally correctly updated to WA=2, Email=1, Total=4. Save flow persisted to backend (POST /workflows) and reloading #/workflows re-imported the same 4 nodes. Direct activate-flow API call (with connected graph) confirmed status flips to 'active' and tally recomputes correctly on the server. sales_head has NO 'Flow Builder' nav item and cannot see the builder when navigating directly (API returns 403). Super-admin dashboard shows the 'Restart setup' button (ob-restart) inside the onboarding-timeline banner.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase3_workflow_rbac.py",
+    "/app/test_reports/pytest/phase3_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "WorkflowController::update accepts partial payloads but requires 'name' (required rule) on every PUT. If UI ever sends a partial update it would 422. Currently workflow.js always sends name+graph so it's fine, but consider 'sometimes|required' on update.",
+    "WorkflowController does not scope queries to created_by — any user with workflow.manage can list/edit/delete all workflows. Fine for single-tenant admin usage, but note the model has 'created_by' yet index() returns everyone's rows. If future roles are given workflow.manage-scoped, add ownership check.",
+    "workflow.js activate() calls validate() first; if validation fails the badge never updates and toast shows the first error only. Good UX, but the request states 'Activate validates+saves then POST activate' — confirmed correct implementation.",
+    "workflow.js currentGraphCounts() does not count triggers/conditions/fallbacks in the client tally box (only whatsapp/email/task/nodes). Backend tally includes them; consider surfacing those counts to the UI checklist for parity.",
+    "OnboardingController::reset uses ->delete() on the whole table (single-tenant OK) but does not audit-log who triggered a reset — worth adding an AuditLog entry.",
+    "public/assets/js/workflow.js is ~300 lines and OK, but the T (node registry) config and configFields() would be cleaner split into a config module as more node types are added."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase3_workflow_rbac.py"
+  ],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% (all Phase-3 flows verified)"},
+  "test_credentials": "admin@crm.local/Admin@12345, process@crm.local/Demo@12345, priya@crm.local/Demo@12345, accounts@crm.local/Demo@12345, partner@crm.local/Demo@12345",
+  "seed_data_creation": "Test run created TEST_wf_*, TEST_wf_a_*, TEST_ui_flow workflows (auto-deleted in most tests). Created a few TEST_p3_* leads and TEST_p3fpw_* users during regression tests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 3 fully green. For future retest: reset workflows table via `php artisan tinker --execute=\"App\\Models\\Workflow::query()->delete();\"` and onboarding via `App\\Models\\OnboardingState::query()->delete();`. Drawflow UI drag-drop via Playwright is unreliable with real mouse events; use synthetic DragEvent with DataTransfer as done in this iteration's script. The activate button in the UI intentionally blocks when validation fails (unconnected nodes) — to test the badge flipping to 'active', either wire nodes on the canvas first or call POST /workflows/{id}/activate directly. Backend token key in localStorage is 'crm.token'. Tests use pytest-xdist by default (2 workers) and pass both serially and in parallel."
+}

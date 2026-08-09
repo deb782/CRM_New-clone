@@ -1,0 +1,116 @@
+/* ===== Phase 3: Mission-Control Workflow Builder ===== */
+.wf-root {
+  --wf-grid: #E2E8F0; --wf-grid-major: #CBD5E1;
+  --wf-panel: #FFFFFF; --wf-border: #E2E8F0;
+  --wf-trigger: #10B981; --wf-wa: #22C55E; --wf-email: #3B82F6;
+  --wf-condition: #F59E0B; --wf-wait: #8B5CF6; --wf-fallback: #EF4444;
+  --wf-status: #475569; --wf-task: #0EA5E9;
+  position: fixed; inset: 0; top: 0; left: 0; display: flex; flex-direction: column;
+  background: #F8FAFC; z-index: 50;
+}
+.wf-root.wf-embedded { position: absolute; }
+.wf-topbar {
+  height: 54px; flex: 0 0 54px; display: flex; align-items: center; gap: 14px;
+  padding: 0 18px; background: #0F172A; color: #fff;
+  border-bottom: 1px solid #1e293b;
+}
+.wf-topbar .wf-title { font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 700; letter-spacing: .04em; font-size: 14px; }
+.wf-topbar .wf-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .18em; padding: 3px 8px; border-radius: 4px; background: #1e293b; color: #94A3B8; }
+.wf-topbar .wf-badge.active { background: rgba(16,185,129,.18); color: #34d399; }
+.wf-spacer { flex: 1; }
+.wf-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color .15s, transform .15s; }
+.wf-btn:hover { background: #334155; transform: translateY(-1px); }
+.wf-btn--primary { background: #2563EB; border-color: #2563EB; color: #fff; }
+.wf-btn--primary:hover { background: #1d4ed8; }
+.wf-btn--ghost { background: transparent; }
+
+.wf-body { flex: 1; display: flex; min-height: 0; }
+
+/* ---- Left palette ---- */
+.wf-palette { width: 264px; flex: 0 0 264px; background: var(--wf-panel); border-right: 1px solid var(--wf-border); overflow-y: auto; padding: 16px 14px; }
+.wf-palette__label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .2em; color: #94A3B8; margin: 16px 4px 8px; }
+.wf-palette__label:first-child { margin-top: 0; }
+.wf-pnode { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--wf-border); border-radius: 6px; background: #fff; cursor: grab; position: relative; overflow: hidden; transition: box-shadow .15s, transform .15s, border-color .15s; }
+.wf-pnode:hover { box-shadow: 0 6px 18px -6px rgba(15,23,42,.18); transform: translateY(-1px); border-color: #cbd5e1; }
+.wf-pnode:active { cursor: grabbing; }
+.wf-pnode::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.wf-pnode i.wf-pi { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px; color: #fff; background: var(--c); font-size: 13px; }
+.wf-pnode .wf-pn { font-size: 13px; font-weight: 600; color: #0F172A; }
+.wf-pnode .wf-pd { font-size: 11px; color: #94A3B8; }
+
+/* ---- Center canvas ---- */
+.wf-canvas-wrap { flex: 1; position: relative; min-width: 0; }
+.wf-canvas { position: absolute; inset: 0;
+  background-color: #FFFFFF;
+  background-image:
+    radial-gradient(var(--wf-grid) 1px, transparent 1px),
+    linear-gradient(var(--wf-grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--wf-grid-major) 1px, transparent 1px);
+  background-size: 20px 20px, 100px 100px, 100px 100px;
+}
+.wf-canvas .drawflow { background: transparent; }
+.wf-empty { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.wf-empty div { text-align: center; color: #94A3B8; font-size: 14px; }
+.wf-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: #cbd5e1; }
+
+/* floating toolbar */
+.wf-tools { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; gap: 4px; padding: 5px; border-radius: 10px; background: rgba(255,255,255,.82); backdrop-filter: blur(16px); border: 1px solid var(--wf-border); box-shadow: 0 8px 24px -8px rgba(15,23,42,.2); }
+.wf-tools button { width: 34px; height: 34px; border-radius: 7px; border: none; background: transparent; color: #475569; cursor: pointer; font-size: 14px; transition: background-color .15s, color .15s; }
+.wf-tools button:hover { background: #EFF6FF; color: #2563EB; }
+
+/* ---- Drawflow node card ---- */
+.drawflow .drawflow-node { background: #fff; border: 1px solid #CBD5E1; border-left: 4px solid var(--nc, #94A3B8); border-radius: 6px; padding: 0; width: 210px; box-shadow: 0 4px 20px -4px rgba(15,23,42,.1); font-family: 'IBM Plex Sans', system-ui, sans-serif; transition: box-shadow .15s; }
+.drawflow .drawflow-node.selected { box-shadow: 0 0 0 2px #2563EB, 0 8px 24px -6px rgba(37,99,235,.35); }
+.drawflow .drawflow-node:hover { box-shadow: 0 8px 26px -6px rgba(15,23,42,.22); }
+.wf-node__head { display: flex; align-items: center; gap: 8px; padding: 8px 11px; border-bottom: 1px solid #E2E8F0; }
+.wf-node__head i { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 5px; color: #fff; background: var(--nc); font-size: 11px; }
+.wf-node__head span { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #0F172A; }
+.wf-node__body { padding: 10px 11px; font-size: 12px; color: #475569; min-height: 20px; line-height: 1.5; }
+.wf-node__body b { color: #0F172A; }
+.wf-node__body .muted { color: #94A3B8; font-style: italic; }
+.drawflow .drawflow-node .input, .drawflow .drawflow-node .output { background: var(--nc); border: 2px solid #fff; width: 12px; height: 12px; transition: transform .12s, box-shadow .12s; }
+.drawflow .drawflow-node .input:hover, .drawflow .drawflow-node .output:hover { transform: scale(1.25); box-shadow: 0 0 0 4px rgba(37,99,235,.15); }
+.drawflow .connection .main-path { stroke: #94A3B8; stroke-width: 2.5px; }
+.drawflow .connection .main-path:hover { stroke: #2563EB; }
+
+/* ---- Right config panel ---- */
+.wf-config { width: 316px; flex: 0 0 316px; background: var(--wf-panel); border-left: 1px solid var(--wf-border); overflow-y: auto; display: flex; flex-direction: column; }
+.wf-config__head { padding: 16px 18px 12px; border-bottom: 1px solid var(--wf-border); }
+.wf-config__head h3 { margin: 0; font-size: 15px; font-weight: 800; color: #0F172A; }
+.wf-config__head p { margin: 4px 0 0; font-size: 12px; color: #94A3B8; }
+.wf-config__body { padding: 18px; flex: 1; }
+.wf-field { margin-bottom: 18px; }
+.wf-field label { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: #64748B; margin-bottom: 7px; }
+.wf-field input, .wf-field select, .wf-field textarea { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 13px; color: #0F172A; background: #fff; transition: border-color .15s, box-shadow .15s; }
+.wf-field input:focus, .wf-field select:focus, .wf-field textarea:focus { outline: none; border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.wf-toggle { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #0F172A; cursor: pointer; }
+.wf-config__empty { padding: 40px 20px; text-align: center; color: #94A3B8; font-size: 13px; }
+.wf-config__empty i { font-size: 34px; display: block; margin-bottom: 12px; color: #CBD5E1; }
+.wf-del { width: 100%; margin-top: 8px; padding: 9px; border: 1px solid #FCA5A5; color: #DC2626; background: #FEF2F2; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.wf-del:hover { background: #FEE2E2; }
+
+/* ---- Mission tally ---- */
+.wf-tally { border-top: 1px solid var(--wf-border); padding: 16px 18px; background: #F8FAFC; }
+.wf-tally h4 { margin: 0 0 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .16em; color: #0F172A; }
+.wf-tally p { margin: 0 0 12px; font-size: 11px; color: #94A3B8; }
+.wf-tally__row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.wf-tally__row i { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 5px; color: #fff; font-size: 11px; }
+.wf-tally__row .t-label { flex: 1; font-size: 12px; color: #475569; }
+.wf-tally__row .t-count { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: #0F172A; }
+
+/* help tooltip */
+.wf-help { color: #CBD5E1; cursor: help; position: relative; }
+.wf-help:hover { color: #2563EB; }
+.wf-help[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: 140%; left: 50%; transform: translateX(-50%); white-space: normal; width: 200px; background: #0F172A; color: #fff; font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; text-transform: none; letter-spacing: normal; line-height: 1.4; padding: 8px 10px; border-radius: 6px; z-index: 20; box-shadow: 0 8px 24px -6px rgba(0,0,0,.4); }
+
+@keyframes wf-pulse-glow { 0% { box-shadow: 0 0 0 0 rgba(37,99,235,.4);} 70% { box-shadow: 0 0 0 12px rgba(37,99,235,0);} 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0);} }
+
+/* per-node-type accent (custom prop inherits to header icon + left border) */
+.drawflow .wf-t-trigger { --nc: #10B981; }
+.drawflow .wf-t-status_change { --nc: #475569; }
+.drawflow .wf-t-task { --nc: #0EA5E9; }
+.drawflow .wf-t-send_whatsapp { --nc: #22C55E; }
+.drawflow .wf-t-send_email { --nc: #3B82F6; }
+.drawflow .wf-t-wait { --nc: #8B5CF6; }
+.drawflow .wf-t-condition { --nc: #F59E0B; }
+.drawflow .wf-t-fallback { --nc: #EF4444; }

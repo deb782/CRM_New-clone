@@ -71,6 +71,17 @@ Route::prefix('v1')->group(function () {
         // Onboarding wizard state
         Route::get('onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'show']);
         Route::put('onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'update'])->middleware('permission:config.manage');
+        Route::post('onboarding/reset', [\App\Http\Controllers\Api\OnboardingController::class, 'reset'])->middleware('permission:config.manage');
+
+        // Workflow builder (Process Admin USP)
+        Route::middleware('permission:workflow.manage')->group(function () {
+            Route::get('workflows', [\App\Http\Controllers\Api\WorkflowController::class, 'index']);
+            Route::post('workflows', [\App\Http\Controllers\Api\WorkflowController::class, 'store']);
+            Route::get('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowController::class, 'show']);
+            Route::put('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowController::class, 'update']);
+            Route::post('workflows/{workflow}/activate', [\App\Http\Controllers\Api\WorkflowController::class, 'activate']);
+            Route::delete('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowController::class, 'destroy']);
+        });
 
         // Leads
         Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');

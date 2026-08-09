@@ -71,4 +71,11 @@ class OnboardingController extends Controller
 
         return $this->show();
     }
+
+    public function reset()
+    {
+        \App\Models\OnboardingState::query()->delete();
+
+        return response()->json(['ok' => true, 'message' => 'Onboarding reset. The setup wizard will run again.']);
+    }
 }

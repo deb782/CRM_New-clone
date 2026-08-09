@@ -93,7 +93,20 @@
   CRM.renderOnboardingBanner = async function (view) {
     if (!(state.user?.role === 'admin' || state.user?.role === 'process_admin')) return;
     let ob; try { ob = await api.get('/onboarding'); } catch (e) { return; }
-    if (ob.completed) return;
+    const restartBtn = () => state.user?.role === 'admin'
+      ? el('button', { class: 'btn btn--sm', 'data-testid': 'ob-restart', onclick: async () => {
+          if (!confirm('Restart the setup wizard? Your projects, users and data stay — only the setup checklist resets.')) return;
+          try { await api.post('/onboarding/reset'); sessionStorage.removeItem('crm_onboard_checked'); toast('Setup restarted', 'success'); location.hash = '#/onboarding'; CRM.render(); }
+          catch (e) { toast(e.message, 'error'); } } }, el('i', { class: 'fa-solid fa-rotate-right' }), 'Restart setup')
+      : null;
+
+    if (ob.completed) {
+      view.insertBefore(el('div', { class: 'card', 'data-testid': 'onboarding-complete', style: 'padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;border-left:4px solid var(--won)' },
+        el('i', { class: 'fa-solid fa-circle-check', style: 'color:var(--won);font-size:18px' }),
+        el('div', { style: 'flex:1' }, el('b', {}, 'Setup complete'), el('span', { style: 'color:var(--text-3);font-size:12px;margin-left:8px' }, 'Your CRM is fully configured.')),
+        restartBtn()), view.firstChild);
+      return;
+    }
     const steps = [
       { key: 'profile', label: 'Your profile', route: 'onboarding' },
       { key: 'projects', label: 'Set up a project', route: 'onboarding' },
@@ -115,6 +128,7 @@
         el('div', { style: 'flex:1' }, el('div', { style: 'font-weight:800;font-size:16px' }, 'Finish setting up your CRM'),
           el('div', { style: 'font-size:12px;color:var(--text-3)' }, ob.progress.done + ' of ' + ob.progress.total + ' steps complete')),
         el('div', { style: 'font-weight:800;color:var(--primary)' }, pct + '%'),
+        restartBtn(),
         state.user?.role === 'admin' ? el('a', { href: '#/onboarding', class: 'btn btn--sm btn--primary', 'data-testid': 'ob-resume' }, 'Resume setup') : null),
       el('div', { style: 'height:6px;border-radius:6px;background:var(--surface-2);overflow:hidden;margin-bottom:14px' },
         el('div', { style: 'height:100%;width:' + pct + '%;background:var(--primary);transition:width .5s' })),

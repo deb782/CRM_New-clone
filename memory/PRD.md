@@ -190,6 +190,13 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - **Preview Roles (super admin)**: `#/preview` lists users by department; `POST /auth/impersonate` (admin-only, audit-logged) issues a token for the target and the UI shows an impersonation banner with Exit preview. Non-admin → 403; nav item hidden for non-admin.
 - app.js/onboarding.js/email.js at v=21. Verified: full wizard happy path, later-path timeline, provisioning + forced change gate, impersonation, and all Phase 1 RBAC regressions.
 
+## Implemented — Onboarding Reset + Phase 3: Mission-Control Workflow Builder (2026-06, agent-tested)
+- **Onboarding Reset**: `POST /onboarding/reset` (config.manage). Dashboard banner now shows a "Restart setup" button for admins (both in the incomplete timeline and a compact "Setup complete" bar when done) → resets checklist (data intact) and re-runs the wizard.
+- **Workflow Builder (USP)** at `#/workflows` (`workflow.js` + `workflow.css`, Drawflow vendored at `public/assets/vendor/`): full-screen mission-control builder — dark topbar, node palette grouped Triggers/Flow/Communications/Logic, blueprint-grid canvas, floating zoom/reset/clear toolbar, right config panel + live "Mission Checklist" tally. Node types: trigger, status_change, task, send_whatsapp, send_email, wait, condition (dual output), fallback — each drag-drop, connectable, with per-type config forms + help tooltips. Save/Validate/Activate.
+- Backend: `workflows` table + `Workflow` model + `WorkflowController` (index/show/store/update/activate/destroy) gated by new `workflow.manage` permission (admin + process_admin). `tally()` counts template/task nodes for the onboarding checklist.
+- Verified: tally counts correct (2 WA/1 email), activate flips status, RBAC 403 for sales_head; UI drag-drop creates correctly-colored nodes, config panel edits + live tally, and **save→reload round-trips 4 nodes**. Blueprint: `/app/design_guidelines.json`. JS at v=22, workflow.js v=1.
+- Note: Live Lead Tracker (train-tracker read-only view) is Phase 5, not yet built. Execution engine (running the activated flow) is Phase 4.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
