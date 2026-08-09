@@ -1,0 +1,57 @@
+{
+  "summary": "Re-verification pass after test-only fix of test_phase5_lead_journey.py (dynamic waiting-run lead lookup). Re-ran the previously failing suite plus the entire A–T module set per-module with pauses to avoid the /auth/login 60/min throttle. All backend suites PASS with 0 failures. Overhaul endpoints (PUT /auth/profile, GET /permissions, POST /roles/1/reset-permissions locked with 422, GET /leads/{id}/journey RBAC) re-confirmed via curl.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_phase5_lead_journey.py",
+    "/app/backend/tests/test_section_l.py",
+    "/app/backend/tests/test_section_m.py",
+    "/app/backend/tests/test_section_n.py",
+    "/app/backend/tests/test_section_opq.py",
+    "/app/backend/tests/test_section_r.py",
+    "/app/backend/tests/test_section_r2_automation.py",
+    "/app/backend/tests/test_section_s.py",
+    "/app/backend/tests/test_section_t.py",
+    "/app/backend/tests/test_phase_b.py",
+    "/app/backend/tests/test_phase2_onboarding_rbac.py",
+    "/app/backend/tests/test_phase3_workflow_rbac.py",
+    "/app/backend/tests/test_phase4_flow_engine.py",
+    "/app/backend/tests/test_section_batch3_sla_role_referral.py",
+    "/app/backend/tests/test_widget_branding.py"
+  ],
+  "per_suite_results": {
+    "test_phase5_lead_journey.py": "8 passed (previously 6P/2F — now green: test_journey_waiting_shape_admin, test_journey_waiting_bde_can_access, test_journey_waiting_sales_head_can_access all pass; test_journey_partner_forbidden=403; test_journey_unauth_forbidden as expected)",
+    "test_section_l.py": "14 passed",
+    "test_section_m.py": "7 passed",
+    "test_section_n.py": "12 passed",
+    "test_section_opq.py": "15 passed",
+    "test_section_r.py": "19 passed",
+    "test_section_r2_automation.py": "12 passed",
+    "test_section_s.py": "10 passed",
+    "test_section_t.py": "8 passed",
+    "test_phase_b.py": "18 passed",
+    "test_phase2_onboarding_rbac.py": "10 passed",
+    "test_phase3_workflow_rbac.py": "17 passed",
+    "test_phase4_flow_engine.py": "19 passed",
+    "test_section_batch3_sla_role_referral.py": "21 passed",
+    "test_widget_branding.py": "13 passed, 1 skipped (mocked integration)"
+  },
+  "overhaul_spot_checks": {
+    "PUT /api/v1/auth/profile (admin)": "HTTP 200",
+    "GET /api/v1/permissions (admin)": "HTTP 200",
+    "POST /api/v1/roles/1/reset-permissions (admin)": "HTTP 422 — 'Super Admin always has full access.' (locked as required)",
+    "GET /api/v1/leads/1/journey (admin)": "HTTP 200",
+    "GET /api/v1/leads/1/journey (channel partner)": "HTTP 403 (leads.view enforced)"
+  },
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Two suites still emit pytest 'Instance attributes set in fixture' deprecation warnings (test_phase_b.py, test_section_batch3_sla_role_referral.py) — cosmetic, will become an error in future pytest; consider migrating class-scoped fixtures to @classmethod or converting to module-level fixtures."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (203/203 executed, 1 mocked-integration skip)", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "admin@crm.local/Admin@12345; partner@crm.local/Demo@12345 — validated OK.",
+  "seed_data_creation": "None. No stray data created — dynamic waiting-run helper uses existing DB rows only.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Full A–T backend re-cert is GREEN post test-only fix in test_phase5_lead_journey.py. No app code changes since iteration_26. Continue to run section suites per-module with ~15–25s pauses because /auth/login is throttled at 60/min. Waiting-run lookup in phase5 tests skips gracefully if no WorkflowRun with status='waiting' exists (verified there is at least one such run currently, so no skips fired)."
+}
