@@ -38,7 +38,7 @@ def rahul():
 
 @pytest.fixture(scope="module")
 def cs():
-    return _login("cs@crm.local", "Demo@12345")
+    return _login("crmhead@crm.local", "Demo@12345")
 
 
 # ---------- Channel Partner: commission on Won ----------

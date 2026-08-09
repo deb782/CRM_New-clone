@@ -13,7 +13,7 @@ def _hdr(token):
 
 @pytest.fixture(scope="module")
 def mkt_token():
-    r = requests.post(f"{API}/auth/login", json={"email": "marketing@crm.local", "password": "Demo@12345"})
+    r = requests.post(f"{API}/auth/login", json={"email": "process@crm.local", "password": "Demo@12345"})
     r.raise_for_status()
     return r.json()["token"]
 

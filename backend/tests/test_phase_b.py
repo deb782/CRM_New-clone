@@ -194,7 +194,7 @@ class TestSiteVisitFlow:
         assert lead.get("status") == "site_visit_scheduled", lead.get("status")
 
         # Task created
-        tr = requests.get(f"{API}/tasks", headers=H(admin_token))
+        tr = requests.get(f"{API}/tasks?lead_id=" + str(fresh_lead["id"]) + "&per_page=100", headers=H(admin_token))
         tasks = tr.json().get("tasks") or tr.json().get("data") or []
         assert any(t.get("lead_id") == fresh_lead["id"]
                    and "site visit" in ((t.get("title") or "").lower())
@@ -254,7 +254,7 @@ class TestSiteVisitFlow:
         assert lead.get("status") == "negotiation", lead.get("status")
 
         # Handover task exists
-        tr = requests.get(f"{API}/tasks", headers=H(admin_token))
+        tr = requests.get(f"{API}/tasks?lead_id=" + str(fresh_lead["id"]) + "&per_page=100", headers=H(admin_token))
         tasks = tr.json().get("tasks") or tr.json().get("data") or []
         assert any(t.get("lead_id") == fresh_lead["id"]
                    and ("handover" in (t.get("title") or "").lower()
@@ -334,7 +334,7 @@ class TestSiteVisitFlow:
         v = r.json().get("visit") or r.json()
         assert v.get("status") == "no_show"
         # callback task within 2h
-        tr = requests.get(f"{API}/tasks", headers=H(admin_token))
+        tr = requests.get(f"{API}/tasks?lead_id=" + str(fresh_lead["id"]) + "&per_page=100", headers=H(admin_token))
         tasks = tr.json().get("tasks") or tr.json().get("data") or []
         assert any(t.get("lead_id") == fresh_lead["id"]
                    and "callback" in ((t.get("title") or "") + " " + (t.get("type") or "")).lower()

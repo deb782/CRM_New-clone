@@ -21,7 +21,7 @@ def admin_headers():
 
 @pytest.fixture(scope="module")
 def cs_headers():
-    return {"Authorization": f"Bearer {_login('cs@crm.local', 'Demo@12345')}", "Accept": "application/json"}
+    return {"Authorization": f"Bearer {_login('crmhead@crm.local', 'Demo@12345')}", "Accept": "application/json"}
 
 
 @pytest.fixture(scope="module")

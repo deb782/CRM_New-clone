@@ -22,8 +22,8 @@ def tokens():
     return {
         "admin": _login("admin@crm.local", "Admin@12345"),
         "rahul": _login("rahul@crm.local", "Demo@12345"),
-        "cs": _login("cs@crm.local", "Demo@12345"),
-        "mkt": _login("marketing@crm.local", "Demo@12345"),
+        "cs": _login("crmhead@crm.local", "Demo@12345"),
+        "mkt": _login("legalhead@crm.local", "Demo@12345"),
     }
 
 
@@ -67,7 +67,7 @@ def test_won_creates_booking_and_locks_lead(tokens, fresh_lead):
     assert any(b["id"] == bk["id"] for b in lead.get("bookings", []))
 
     # Post-sales onboarding task created
-    rt = requests.get(f"{API}/tasks", headers=_h(tokens["admin"]))
+    rt = requests.get(f"{API}/tasks?lead_id={lid}&per_page=100", headers=_h(tokens["admin"]))
     tasks = rt.json().get("data", rt.json().get("tasks", []))
     assert any(str(t.get("lead_id")) == str(lid) for t in tasks)
 

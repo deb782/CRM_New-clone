@@ -24,7 +24,7 @@ def tokens():
         "admin": _login("admin@crm.local", "Admin@12345")["token"],
         "mgr": _login("priya@crm.local", "Demo@12345")["token"],
         "exec": _login("rahul@crm.local", "Demo@12345")["token"],
-        "cs": _login("cs@crm.local", "Demo@12345")["token"],
+        "cs": _login("crm@crm.local", "Demo@12345")["token"],
         "partner": _login("partner@crm.local", "Demo@12345")["token"],
     }
 
@@ -107,10 +107,10 @@ class TestSlaBoard:
 class TestRoleHome:
     """Client routes on role field. Verify /me returns the expected roles used by app.js."""
     @pytest.mark.parametrize("email,password,expected_role", [
-        ("cs@crm.local", "Demo@12345", "post_sales"),
-        ("priya@crm.local", "Demo@12345", "sales_manager"),
+        ("crm@crm.local", "Demo@12345", "crm_support"),
+        ("priya@crm.local", "Demo@12345", "sales_head"),
         ("partner@crm.local", "Demo@12345", "channel_partner"),
-        ("rahul@crm.local", "Demo@12345", "sales_exec"),
+        ("rahul@crm.local", "Demo@12345", "sales_bde"),
     ])
     def test_me_role(self, email, password, expected_role):
         d = _login(email, password)

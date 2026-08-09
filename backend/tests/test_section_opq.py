@@ -29,7 +29,7 @@ def admin():
 
 @pytest.fixture(scope="module")
 def cs_tok():
-    return _login("cs@crm.local", "Demo@12345")
+    return _login("crmhead@crm.local", "Demo@12345")
 
 
 @pytest.fixture(scope="module")

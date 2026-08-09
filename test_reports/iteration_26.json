@@ -1,0 +1,56 @@
+{
+  "summary": "Iteration 26 — Backend RE-CERTIFICATION of Sections A–T after the UI/UX overhaul (iter 22–25). Ran the full existing pytest suite at /app/backend/tests/. When run per-module (isolated to avoid the 60-req/min login throttle), ALL A–T behavioural tests PASS: Section L (14/14), M (7/7), N (12/12), OPQ (15/15), R (19/19), S (all), T (8/8), Phase B site-visits (18/18), Phase 2 onboarding RBAC, Phase 3 workflow RBAC, Phase 4 flow engine, batch3 SLA/role/referral (21/21), widget branding (14/14 + 1 skip). Business logic is unchanged after the UI overhaul. All new endpoints from iter 22–25 (PUT /auth/profile, GET /permissions, POST /roles/{id}/reset-permissions with 422 admin-block, GET /leads/{id}/journey with partner 403 isolation) are working. The two remaining hard failures are seed-data drift (lead #20 no longer has a WorkflowRun in the current DB), NOT code regressions. Suite-wide 429 login rate-limit errors surface when everything runs back-to-back; that is a test-infra artefact, not a backend bug.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/v1/leads/20/journey", "issue": "Seed data drift — lead 20 no longer has a waiting WorkflowRun (test_phase5_lead_journey.py::test_journey_lead20_waiting_shape_admin/bde_can_access fail). Current WorkflowRuns start at lead_id 200+. The journey endpoint itself works correctly (verified with lead 310 → run.status='waiting', current_node=19, done=[13,14,15,16,17,19], partner=403). Only the seed fixture assumption is stale."},
+      {"endpoint": "POST /api/v1/auth/login", "issue": "60/min throttle causes 429 setup errors when full test suite runs sequentially back-to-back (~15 modules × several logins). Individual per-module runs pass cleanly. Suggest bumping the login throttle for local/preview env, or caching tokens across modules in conftest."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_section_l.py",
+    "/app/backend/tests/test_section_m.py",
+    "/app/backend/tests/test_section_n.py",
+    "/app/backend/tests/test_section_opq.py",
+    "/app/backend/tests/test_section_r.py",
+    "/app/backend/tests/test_section_r2_automation.py",
+    "/app/backend/tests/test_section_s.py",
+    "/app/backend/tests/test_section_t.py",
+    "/app/backend/tests/test_section_batch3_sla_role_referral.py",
+    "/app/backend/tests/test_phase_b.py",
+    "/app/backend/tests/test_phase2_onboarding_rbac.py",
+    "/app/backend/tests/test_phase3_workflow_rbac.py",
+    "/app/backend/tests/test_phase4_flow_engine.py",
+    "/app/backend/tests/test_phase5_lead_journey.py",
+    "/app/backend/tests/test_widget_branding.py",
+    "/app/test_reports/pytest/iteration_26_final.xml",
+    "/app/test_reports/pytest/iteration_26_full_final.xml"
+  ],
+  "action_items": [
+    "OPTIONAL (test-data): Re-seed one of leads 1-20 with a mid-journey WorkflowRun (workflow_id=5, current_node='19', status='waiting') so test_phase5_lead_journey.py::test_journey_lead20_* pass without editing the tests. Alternative: change those two tests to pick a real waiting-run lead dynamically (e.g. WorkflowRun::where('status','waiting')->first()->lead_id).",
+    "OPTIONAL (infra): Raise or bypass the /auth/login RateLimiter (60/min) for the tests network so the full suite can be run in one shot without 429 setup errors."
+  ],
+  "critical_code_review_comments": [
+    "Business logic across Sections A–T is intact after the UI-only overhaul. All discount bands (>5%, >10%), allotment at >=10% collected, 18% p.a. demand-letter interest, 24h sales handover SLA task, RBAC on postsales.manage / leads.won / config.manage, partner isolation (403 on /leads, /leads/board; 200 on /partner/portal) all verified.",
+    "New endpoints from the overhaul are correct: PUT /auth/profile persists name/phone/avatar_color/preferences (200 + full user echoed); GET /permissions returns full label/group catalog; POST /roles/1/reset-permissions correctly blocks Super Admin with 422 {'message':'Super Admin always has full access.'}; GET /leads/{id}/journey returns {workflow, lead, run, progress} with a real WorkflowRun snapshot and enforces leads.view (partner=403).",
+    "Test-hygiene debt discovered (and fixed) during this run: several older section suites still referenced legacy accounts (cs@crm.local, marketing@crm.local) and legacy role slugs (sales_manager, sales_exec, post_sales) that the 12-role hierarchy migration removed. Also, tasks-assertion helpers were calling GET /tasks without a lead_id filter, so the newly-created task fell off page 1 and the assertion failed even though the task exists. All three issues are pure test-code drift — no backend fix required.",
+    "Nice-to-have: /api/v1/tasks default pagination is 50 with no sort=recent, which makes new-task assertions flaky under load. Consider ?lead_id= filter or ?sort=-id as the default in test helpers."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_section_t.py — mkt_token now uses process@crm.local (marketing@ role no longer exists in the 12-role hierarchy).",
+    "/app/backend/tests/test_section_batch3_sla_role_referral.py — /me role slug assertions updated to current values: sales_head, sales_bde, crm_support (were sales_manager/sales_exec/post_sales). cs fixture switched to crm@crm.local.",
+    "/app/backend/tests/test_section_m.py — cs fixture: crm@→crmhead@ (crm_support lacks postsales.manage by design); mkt fixture: marketing@→legalhead@ (a role that legitimately lacks leads.won); /tasks lookup now filters by lead_id.",
+    "/app/backend/tests/test_section_n.py — cs fixture: crm@→crmhead@ so payments POST (needs postsales.manage) works. Lead.create-forbidden assertion still valid (crm_head does not have leads.create).",
+    "/app/backend/tests/test_section_opq.py — cs_tok: crm@→crmhead@ for postsales.manage on demand-letter, AFS lifecycle, milestone pay.",
+    "/app/backend/tests/test_section_r.py — cs fixture: crm@→crmhead@ for booking-cancel and payment-fail (postsales.manage).",
+    "/app/backend/tests/test_phase_b.py — tasks lookup now uses ?lead_id={id}&per_page=100 so freshly created tasks aren't missed due to pagination."
+  ],
+  "success_rate": {"backend": "98.9% (183/185 A–T + regression tests pass; 2 fails are seed-data drift on lead 20 journey)", "frontend": "not tested (backend-only iteration)"},
+  "test_credentials": "All 12-role users confirmed in /app/memory/test_credentials.md. Note: cs@crm.local and marketing@crm.local from the review-request payload DO NOT EXIST in this seed. The equivalent post-sales role is crmhead@crm.local (has postsales.manage); crm@crm.local is CRM Support (leads.view + crm.view only, cannot execute post-sales writes — this is by design per the 12-role hierarchy).",
+  "seed_data_creation": "None. All test leads created in-flight use TEST_ prefix and are isolated per test. No prod-seed data modified.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend A–T is GREEN. When running the full suite in one shot, wait ~90s between big batches OR set RATE_LIMIT_LOGIN=off, otherwise /auth/login throws 429 and downstream fixtures error-out (not a real backend problem). test_phase5_lead_journey.py has two tests hard-coded to lead 20 that will fail until either the seed re-adds a WorkflowRun for lead 20 or the tests are relaxed to pick any waiting-run lead. All new overhaul endpoints (auth/profile, permissions, roles reset, lead journey) are verified.",
+  "rca of the issue": "1) test_phase5_lead_journey (lead 20): Seed data drift — WorkflowRuns table currently only holds runs for lead_ids 200+ (verified via WorkflowRun::orderBy('id','desc')->limit(10) — lead 20 count=0). The journey endpoint code is functionally correct (verified on a live lead — returns full run with done/log/progress). Mitigation: re-seed lead 20 with a waiting run, OR update the two tests to `WorkflowRun::where('status','waiting')->first()->lead_id`. 2) 429 on /auth/login during full-suite runs: Laravel RateLimiter 'login' is set to 60/min and the full suite performs ~80 logins back-to-back. Cleanest fix is to cache tokens in a session-scoped conftest fixture and reuse them across modules."
+}

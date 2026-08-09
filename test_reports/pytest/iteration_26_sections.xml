@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="33" failures="3" skipped="0" tests="136" time="18.560" timestamp="2026-08-09T22:02:33.984948+00:00" hostname="agent-env-1c6bb7a7-4238-4cbe-a25a-3b41d26d1833"><testcase classname="tests.test_section_n.TestSectionN" name="test_login" time="0.528" /><testcase classname="tests.test_section_n.TestSectionN" name="test_won_verify_paytoken_confirms_booking" time="0.229" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_schedule_moves_lead_and_creates_task" time="0.771" /><testcase classname="tests.test_section_n.TestSectionN" name="test_pay_token_creates_receipt_and_welcome_and_checklist" time="0.253" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_slot_marked_unavailable_after_schedule" time="0.146" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_confirm_checkin_checkout" time="0.233" /><testcase classname="tests.test_section_n.TestSectionN" name="test_welcome_letter_idempotent" time="0.276" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_outcome_interested_handover_and_hold" time="0.304" /><testcase classname="tests.test_section_n.TestSectionN" name="test_record_milestone_payment_creates_serial_receipt" time="0.269" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_outcome_considering" time="0.233" /><testcase classname="tests.test_section_n.TestSectionN" name="test_verify_payment" time="0.298" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_outcome_not_interested" time="0.177" /><testcase classname="tests.test_section_n.TestSectionN" name="test_reconcile_matched_and_discrepancy" time="0.341" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_reschedule_escalation" time="0.310" /><testcase classname="tests.test_section_n.TestSectionN" name="test_reconciliation_dashboard" time="0.044" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_no_show" time="0.222" /><testcase classname="tests.test_section_n.TestSectionN" name="test_documents_update_flow" time="0.334" /><testcase classname="tests.test_phase_b.TestSiteVisitFlow" name="test_cancel" time="0.142" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestRoleHome" name="test_me_role[cs@crm.local-Demo@12345-post_sales]" time="0.020"><failure message="requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login">backend/tests/test_section_batch3_sla_role_referral.py:116: in test_me_role
+    d = _login(email, password)
+        ^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</failure></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestRoleHome" name="test_me_role[priya@crm.local-Demo@12345-sales_manager]" time="0.508"><failure message="AssertionError: {'id': 2, 'name': 'Priya Sharma', 'email': 'priya@crm.local', 'phone': '9000000002', ...}&#10;assert 'sales_head' == 'sales_manager'&#10;  &#10;  - sales_manager&#10;  + sales_head">backend/tests/test_section_batch3_sla_role_referral.py:117: in test_me_role
+    assert d["user"]["role"] == expected_role, d["user"]
+E   AssertionError: {'id': 2, 'name': 'Priya Sharma', 'email': 'priya@crm.local', 'phone': '9000000002', ...}
+E   assert 'sales_head' == 'sales_manager'
+E     
+E     - sales_manager
+E     + sales_head</failure></testcase><testcase classname="tests.test_section_n.TestSectionN" name="test_rahul_forbidden_from_postsales" time="1.943" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestRoleHome" name="test_me_role[partner@crm.local-Demo@12345-channel_partner]" time="0.279" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestRoleHome" name="test_me_role[rahul@crm.local-Demo@12345-sales_exec]" time="0.280"><failure message="AssertionError: {'id': 3, 'name': 'Rahul Verma', 'email': 'rahul@crm.local', 'phone': '9812345678', ...}&#10;assert 'sales_bde' == 'sales_exec'&#10;  &#10;  - sales_exec&#10;  + sales_bde">backend/tests/test_section_batch3_sla_role_referral.py:117: in test_me_role
+    assert d["user"]["role"] == expected_role, d["user"]
+E   AssertionError: {'id': 3, 'name': 'Rahul Verma', 'email': 'rahul@crm.local', 'phone': '9812345678', ...}
+E   assert 'sales_bde' == 'sales_exec'
+E     
+E     - sales_exec
+E     + sales_bde</failure></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestRoleHome" name="test_partner_collections_denied" time="0.832"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestRoleHome" name="test_partner_portal_accessible" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestRoleHome" name="test_exec_call_list_accessible" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_n.TestSectionN" name="test_cs_can_record_but_not_create_leads" time="0.010"><error message="failed on setup with &quot;AssertionError: {&quot;message&quot;:&quot;The given data was invalid.&quot;,&quot;errors&quot;:{&quot;email&quot;:[&quot;Invalid credentials.&quot;]}}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code&quot;">backend/tests/test_section_n.py:24: in cs_headers
+    return {"Authorization": f"Bearer {_login('cs@crm.local', 'Demo@12345')}", "Accept": "application/json"}
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_n.py:13: in _login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"message":"The given data was invalid.","errors":{"email":["Invalid credentials."]}}
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</error></testcase><testcase classname="tests.test_section_n.TestSectionN" name="test_regression_lead_locked_after_won" time="0.244" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestRoleHome" name="test_mgr_dashboard_accessible" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_s.TestStatusChangedEvents" name="test_interested_creates_qualify_task_and_email" time="0.217" /><testcase classname="tests.test_section_s.TestStatusChangedEvents" name="test_opportunity_creates_handover_task_and_email" time="0.602" /><testcase classname="tests.test_section_m" name="test_won_creates_booking_and_locks_lead" time="0.571"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_m.py:25: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345"),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_m.py:12: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_s.TestStatusChangedEvents" name="test_negotiation_creates_proposal_task_and_whatsapp" time="0.169" /><testcase classname="tests.test_section_m" name="test_lock_blocks_sales_exec_and_allows_cs" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_m.py:25: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345"),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_m.py:12: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_m" name="test_public_booking_form_get_and_submit" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_m.py:25: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345"),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_m.py:12: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_m" name="test_lost_sets_reason_and_releases" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_m.py:25: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345"),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_m.py:12: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_m" name="test_bookings_list_and_show" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_m.py:25: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345"),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_m.py:12: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_m" name="test_rbac_marketing_cannot_won" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_m.py:25: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345"),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_m.py:12: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_m" name="test_rahul_can_initiate_won" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_m.py:25: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345"),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_m.py:12: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_s.TestStatusChangedEvents" name="test_won_creates_onboarding_task_and_email" time="0.852" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestPartnerReferral" name="test_public_refer_success_and_attribution" time="0.834"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestPartnerReferral" name="test_public_refer_bad_code_404" time="0.034" /><testcase classname="tests.test_section_s.TestStatusChangedEvents" name="test_not_interested_pauses_sequence" time="0.133" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestPartnerReferral" name="test_web_refer_bad_code_404" time="0.047" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestPartnerReferral" name="test_web_refer_valid_code_html" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestPartnerReferral" name="test_public_refer_missing_required_422" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_s.TestStatusChangedEvents" name="test_lost_pauses_sequence" time="0.372" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestPartnerReferral" name="test_partner_portal_isolation" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestPartnerReferral" name="test_partner_still_403_on_leads_index" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_l.TestApprovalsAndProposals" name="test_proposal_gated_when_pending" time="0.387" /><testcase classname="tests.test_section_s.TestStatusChangedEvents" name="test_no_failed_logs_across_events" time="0.029" /><testcase classname="tests.test_section_l.TestApprovalsAndProposals" name="test_exec_forbidden_to_decide" time="1.038" /><testcase classname="tests.test_section_batch3_sla_role_referral.TestSlaBoard" name="test_sla_board_manager_200" time="1.037"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestSlaBoard" name="test_sla_board_bucket_correctness" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestSlaBoard" name="test_sla_board_exec_200" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestSlaBoard" name="test_sla_board_admin_200" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestSlaBoard" name="test_sla_board_partner_403" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_batch3_sla_role_referral.TestSlaBoard" name="test_sla_reassign_and_persist" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_batch3_sla_role_referral.py:27: in tokens
+    "cs": _login("cs@crm.local", "Demo@12345")["token"],
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_batch3_sla_role_referral.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_l.TestApprovalsAndProposals" name="test_manager_approves" time="0.686" /><testcase classname="tests.test_section_r.TestPartnerPortalScoping" name="test_partner_portal_ok" time="0.465" /><testcase classname="tests.test_section_r.TestPartnerPortalScoping" name="test_partner_denied_leads" time="0.017" /><testcase classname="tests.test_section_r.TestPartnerPortalScoping" name="test_partner_denied_partners" time="0.027" /><testcase classname="tests.test_section_r.TestPartnerPortalScoping" name="test_partner_denied_commissions" time="0.016" /><testcase classname="tests.test_section_l.TestApprovalsAndProposals" name="test_manager_rejects" time="0.309" /><testcase classname="tests.test_section_r.TestPartnerPortalScoping" name="test_admin_portal_404" time="0.288" /><testcase classname="tests.test_section_l.TestApprovalsAndProposals" name="test_counter_recomputes" time="0.394" /><testcase classname="tests.test_section_l.TestApprovalsAndProposals" name="test_full_proposal_flow" time="0.444" /><testcase classname="tests.test_section_opq.TestMilestones" name="test_schedule_generated_after_token" time="0.490" /><testcase classname="tests.test_section_opq.TestMilestones" name="test_pay_milestone_neft" time="0.018"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_opq.py:32: in cs_tok
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_opq.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_opq.TestMilestones" name="test_pay_partial" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_opq.py:32: in cs_tok
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_opq.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_opq.TestMilestones" name="test_rbac_pay_requires_postsales_manage" time="0.555" /><testcase classname="tests.test_section_opq.TestDemandLetters" name="test_generate_and_interest" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_opq.py:32: in cs_tok
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_opq.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_opq.TestDemandLetters" name="test_422_on_not_overdue" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_opq.py:32: in cs_tok
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_opq.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_opq.TestDemandLetters" name="test_deliver_and_escalate" time="0.000"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_opq.py:32: in cs_tok
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_opq.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_opq.TestDemandLetters" name="test_rbac_demand_mutations" time="0.733" /><testcase classname="tests.test_section_opq.TestAllotmentAndAFS" name="test_allotment_auto_at_10pct" time="0.550" /><testcase classname="tests.test_section_opq.TestAllotmentAndAFS" name="test_allotment_idempotent" time="0.083" /><testcase classname="tests.test_section_opq.TestAllotmentAndAFS" name="test_afs_full_lifecycle" time="0.010"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_opq.py:32: in cs_tok
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_opq.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_opq.TestAllotmentAndAFS" name="test_afs_rbac" time="0.894" /><testcase classname="tests.test_section_r.TestChannelPartnerCommission" name="test_partner_seeded" time="0.336" /><testcase classname="tests.test_section_r.TestChannelPartnerCommission" name="test_partner_lead_won_creates_commission" time="0.178" /><testcase classname="tests.test_section_r.TestChannelPartnerCommission" name="test_commissions_admin_list_and_approve_pay" time="0.325" /><testcase classname="tests.test_section_r.TestSectionR_DNC_Invalid_Consent" name="test_dnc_marks_and_pauses" time="0.354" /><testcase classname="tests.test_section_r.TestSectionR_DNC_Invalid_Consent" name="test_invalid_spam_marks_and_transitions" time="0.311" /><testcase classname="tests.test_section_r.TestChannelPartnerCommission" name="test_exec_cannot_manage_commissions" time="0.308" /><testcase classname="tests.test_section_r2_automation.TestAutomationCRUD" name="test_index_ok" time="0.045" /><testcase classname="tests.test_section_r.TestSectionR_DNC_Invalid_Consent" name="test_consent_update" time="0.065" /><testcase classname="tests.test_section_r2_automation.TestAutomationCRUD" name="test_exec_forbidden_on_create" time="0.512" /><testcase classname="tests.test_section_r2_automation.TestAutomationCRUD" name="test_crud_lifecycle" time="0.127" /><testcase classname="tests.test_section_r.TestSectionR_DNC_Invalid_Consent" name="test_dnc_requires_leads_edit" time="0.555" /><testcase classname="tests.test_phase_b.TestPlotPhaseCrud" name="test_plot_create_update_delete_admin" time="0.104" /><testcase classname="tests.test_section_r2_automation.TestAutomationCRUD" name="test_created_rule_fires_on_status_change" time="1.250" /><testcase classname="tests.test_phase_b.TestPlotPhaseCrud" name="test_plot_create_forbidden_for_exec" time="0.066" /><testcase classname="tests.test_phase_b.TestPlotPhaseCrud" name="test_phase_create_update_admin" time="0.048" /><testcase classname="tests.test_phase_b.TestPlotPhaseCrud" name="test_phase_create_forbidden_for_exec" time="0.023" /><testcase classname="tests.test_section_l.TestCostSheetMath" name="test_within_5_auto_approved" time="0.021" /><testcase classname="tests.test_section_l.TestCostSheetMath" name="test_over_5_pending_creates_approval" time="0.030" /><testcase classname="tests.test_section_l.TestCostSheetMath" name="test_over_10_band" time="0.018" /><testcase classname="tests.test_section_opq.TestCollections" name="test_dashboard_shape" time="0.408" /><testcase classname="tests.test_section_opq.TestCollections" name="test_exec_can_read_collections" time="0.258" /><testcase classname="tests.test_section_opq.TestCollections" name="test_overdue_aging_bucket" time="0.010"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_opq.py:32: in cs_tok
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_opq.py:17: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_r2_automation.TestStakeholders" name="test_add_and_primary_demotes" time="0.058" /><testcase classname="tests.test_section_r2_automation.TestStakeholders" name="test_remove_by_index" time="0.077" /><testcase classname="tests.test_section_r2_automation.TestStakeholders" name="test_exec_can_add_stakeholder" time="0.055" /><testcase classname="tests.test_section_r2_automation.TestConcurrencyDedup" name="test_parallel_identical_creates_collapse_to_one" time="0.124" /><testcase classname="tests.test_section_l.TestPaymentPlans" name="test_list_seeded_plans" time="0.017" /><testcase classname="tests.test_section_r2_automation.TestConcurrencyDedup" name="test_sequential_duplicate_blocked" time="0.071" /><testcase classname="tests.test_section_l.TestPaymentPlans" name="test_admin_can_create_plan" time="0.054" /><testcase classname="tests.test_section_l.TestPaymentPlans" name="test_exec_forbidden_to_create_plan" time="0.017" /><testcase classname="tests.test_section_r2_automation.TestConcurrencyDedup" name="test_force_duplicate_creates_new" time="0.112" /><testcase classname="tests.test_section_l.TestSelectPlanShareList" name="test_select_plan_and_share" time="0.228" /><testcase classname="tests.test_section_t.TestAuditLogs" name="test_audit_index_shape" time="0.025" /><testcase classname="tests.test_section_t.TestAuditLogs" name="test_audit_generated_by_lead_action" time="0.108" /><testcase classname="tests.test_section_l.TestSelectPlanShareList" name="test_lead_cost_sheet_listing" time="0.018" /><testcase classname="tests.test_section_t.TestAuditLogs" name="test_audit_filter_action" time="0.020" /><testcase classname="tests.test_section_r.TestBookingCancel" name="test_cancel_releases_plot_and_cancels_milestones" time="0.520"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_r.py:41: in cs
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_r.py:16: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_r.TestPaymentFail" name="test_payment_fail_reverts_milestone" time="0.517"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_r.py:41: in cs
+    return _login("cs@crm.local", "Demo@12345")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_section_r.py:16: in _login
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_r.TestBookingCancel" name="test_cancel_requires_postsales_manage" time="0.535" /><testcase classname="tests.test_section_r.TestPaymentFail" name="test_payment_fail_requires_postsales_manage" time="0.534" /><testcase classname="tests.test_section_s.TestSlaEscalation" name="test_verify_task_2h_breach_escalates_to_manager" time="0.853" /><testcase classname="tests.test_section_t.TestSystemHealth" name="test_health_shape" time="0.043" /><testcase classname="tests.test_section_t.TestSystemHealth" name="test_health_integrations_all_mock" time="0.017" /><testcase classname="tests.test_phase_b.TestInventory" name="test_tree_shape_and_counts" time="0.015" /><testcase classname="tests.test_phase_b.TestInventory" name="test_available_plots_only_available" time="0.052" /><testcase classname="tests.test_phase_b.TestSiteVisitList" name="test_upcoming_filter" time="0.013" /><testcase classname="tests.test_phase_b.TestSiteVisitList" name="test_filter_by_status" time="0.012" /><testcase classname="tests.test_section_r.TestWhatsAppSuppression" name="test_whatsapp_service_skips_dnc" time="0.867" /><testcase classname="tests.test_section_s.TestSlaEscalation" name="test_overdue_follow_up_escalates_to_manager" time="0.784" /><testcase classname="tests.test_section_r.TestOverdueNudge" name="test_overdue_nudge_and_demand_letter" time="1.060" /><testcase classname="tests.test_section_t.TestRbac" name="test_marketing_can_access_all_three" time="0.010"><error message="failed on setup with &quot;requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login&quot;">backend/tests/test_section_t.py:17: in mkt_token
+    r.raise_for_status()
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1167: in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+E   requests.exceptions.HTTPError: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8000/api/v1/auth/login</error></testcase><testcase classname="tests.test_section_t.TestRbac" name="test_sales_exec_forbidden" time="0.086" /><testcase classname="tests.test_section_s.TestLeadCreatedEvent" name="test_lead_created_fires_welcome_whatsapp_and_verify_task" time="0.111" /><testcase classname="tests.test_section_t.TestPerformance" name="test_performance_shape" time="0.025" /><testcase classname="tests.test_phase_b.TestSlots" name="test_slots_shape" time="0.009" /><testcase classname="tests.test_section_r2_automation.TestInterestedUnits" name="test_set_and_dedup" time="0.048" /><testcase classname="tests.test_section_r2_automation.TestSwitchProject" name="test_switch_project_updates_and_audits" time="0.071" /></testsuite></testsuites>
