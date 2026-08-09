@@ -92,7 +92,7 @@ class BookingService
 
         // Post-sales handover + record lock (M1.4)
         $lead->forceFill(['locked' => true, 'locked_at' => now()])->save();
-        $postSales = User::whereHas('role', fn ($q) => $q->where('slug', 'post_sales'))->where('is_active', true)->value('id');
+        $postSales = User::whereHas('role', fn ($q) => $q->where('slug', 'crm_head'))->where('is_active', true)->value('id');
         Task::create([
             'lead_id' => $lead->id,
             'assigned_to' => $postSales ?: $lead->owner_id,

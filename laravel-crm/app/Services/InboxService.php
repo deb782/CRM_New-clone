@@ -39,7 +39,7 @@ class InboxService
         if (! \App\Models\WhatsappSetting::current()->auto_assign) {
             return null;
         }
-        $roleIds = \App\Models\Role::whereIn('slug', ['sales_exec', 'sales_manager'])->pluck('id');
+        $roleIds = \App\Models\Role::whereIn('slug', ['sales_bde', 'sales_bdm', 'sales_head'])->pluck('id');
         if ($roleIds->isEmpty()) {
             return null;
         }

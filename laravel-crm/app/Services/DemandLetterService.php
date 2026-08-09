@@ -78,7 +78,7 @@ class DemandLetterService
     public function escalate(DemandLetter $letter): DemandLetter
     {
         $letter->update(['status' => 'escalated', 'escalated_at' => now()]);
-        $manager = User::whereHas('role', fn ($q) => $q->whereIn('slug', ['sales_manager', 'admin']))
+        $manager = User::whereHas('role', fn ($q) => $q->whereIn('slug', ['sales_head', 'admin']))
             ->where('is_active', true)->value('id');
         Task::create([
             'lead_id' => $letter->lead_id,

@@ -78,6 +78,10 @@ class DatabaseSeeder extends Seeder
             'users.manage' => 'Manage users & roles', 'discounts.approve' => 'Approve discounts',
             'postsales.manage' => 'Manage post-sales / locked records',
             'partner.portal' => 'Channel-partner portal access',
+            'workflow.manage' => 'Design & manage lead-flow workflows',
+            'accounts.view' => 'View accounts / payments', 'accounts.manage' => 'Manage accounts / payments',
+            'legal.view' => 'View legal / agreements', 'legal.manage' => 'Manage legal / agreements',
+            'crm.view' => 'View customer relationship records', 'crm.manage' => 'Manage customer relationship records',
         ];
         foreach ($perms as $key => $label) {
             Permission::firstOrCreate(['key' => $key], ['label' => $label, 'group' => explode('.', $key)[0]]);
@@ -86,36 +90,53 @@ class DatabaseSeeder extends Seeder
 
     private function roles(): array
     {
+        // Heads get full department access; Support gets view/create only (no edit/delete/override).
         $map = [
-            'admin' => ['name' => 'Administrator', 'perms' => 'all'],
-            'sales_manager' => ['name' => 'Sales Manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'projects.manage', 'config.manage', 'discounts.approve', 'postsales.manage']],
-            'sales_exec' => ['name' => 'Sales Exec', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
-            'marketing' => ['name' => 'Marketing', 'perms' => ['leads.view', 'leads.create', 'config.manage']],
-            'crm_ops' => ['name' => 'CRM Ops', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'config.manage']],
-            'post_sales' => ['name' => 'Post-Sales / CS', 'perms' => ['leads.view', 'leads.edit', 'postsales.manage']],
-            'channel_partner' => ['name' => 'Channel Partner', 'perms' => ['partner.portal']],
+            'admin' => ['name' => 'Super Admin', 'department' => 'admin', 'tier' => 'super', 'perms' => 'all'],
+            'process_admin' => ['name' => 'Process Admin', 'department' => 'admin', 'tier' => 'process', 'perms' => ['config.manage', 'users.manage', 'projects.manage', 'workflow.manage', 'leads.view']],
+            'sales_head' => ['name' => 'Sales Head', 'department' => 'sales', 'tier' => 'head', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'discounts.approve', 'projects.manage']],
+            'sales_bdm' => ['name' => 'Business Development Manager', 'department' => 'sales', 'tier' => 'manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
+            'sales_bde' => ['name' => 'Business Development Executive', 'department' => 'sales', 'tier' => 'exec', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
+            'accounts_head' => ['name' => 'Accounts Head', 'department' => 'accounts', 'tier' => 'head', 'perms' => ['accounts.view', 'accounts.manage', 'postsales.manage', 'leads.view']],
+            'accounts_support' => ['name' => 'Accounts Support', 'department' => 'accounts', 'tier' => 'support', 'perms' => ['accounts.view', 'leads.view']],
+            'legal_head' => ['name' => 'Legal Head', 'department' => 'legal', 'tier' => 'head', 'perms' => ['legal.view', 'legal.manage', 'leads.view']],
+            'legal_support' => ['name' => 'Legal Support', 'department' => 'legal', 'tier' => 'support', 'perms' => ['legal.view', 'leads.view']],
+            'crm_head' => ['name' => 'CRM Head', 'department' => 'crm', 'tier' => 'head', 'perms' => ['crm.view', 'crm.manage', 'postsales.manage', 'leads.view', 'leads.edit']],
+            'crm_support' => ['name' => 'CRM Support', 'department' => 'crm', 'tier' => 'support', 'perms' => ['crm.view', 'leads.view']],
+            'channel_partner' => ['name' => 'Channel Partner', 'department' => 'partner', 'tier' => 'external', 'perms' => ['partner.portal']],
         ];
         $roles = [];
         foreach ($map as $slug => $cfg) {
-            $role = Role::firstOrCreate(['slug' => $slug], ['name' => $cfg['name']]);
+            $role = Role::updateOrCreate(['slug' => $slug], [
+                'name' => $cfg['name'],
+                'department' => $cfg['department'],
+                'tier' => $cfg['tier'],
+            ]);
             $ids = $cfg['perms'] === 'all'
                 ? Permission::pluck('id')->all()
                 : Permission::whereIn('key', $cfg['perms'])->pluck('id')->all();
             $role->permissions()->sync($ids);
             $roles[$slug] = $role;
         }
+
         return $roles;
     }
 
     private function users(array $roles): void
     {
         $users = [
-            ['name' => 'Admin', 'email' => 'admin@crm.local', 'password' => 'Admin@12345', 'role' => 'admin', 'phone' => '9000000001'],
-            ['name' => 'Priya Sharma', 'email' => 'priya@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_manager', 'phone' => '9000000002'],
-            ['name' => 'Rahul Verma', 'email' => 'rahul@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_exec', 'phone' => '9000000003'],
-            ['name' => 'Aisha Khan', 'email' => 'aisha@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_exec', 'phone' => '9000000004'],
-            ['name' => 'Marketing Team', 'email' => 'marketing@crm.local', 'password' => 'Demo@12345', 'role' => 'marketing', 'phone' => '9000000005'],
-            ['name' => 'Cust Success', 'email' => 'cs@crm.local', 'password' => 'Demo@12345', 'role' => 'post_sales', 'phone' => '9000000006'],
+            ['name' => 'Super Admin', 'email' => 'admin@crm.local', 'password' => 'Admin@12345', 'role' => 'admin', 'phone' => '9000000001'],
+            ['name' => 'Process Admin', 'email' => 'process@crm.local', 'password' => 'Demo@12345', 'role' => 'process_admin', 'phone' => '9000000010'],
+            ['name' => 'Priya Sharma', 'email' => 'priya@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_head', 'phone' => '9000000002'],
+            ['name' => 'Karan Malhotra', 'email' => 'bdm@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_bdm', 'phone' => '9000000008'],
+            ['name' => 'Rahul Verma', 'email' => 'rahul@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_bde', 'phone' => '9000000003'],
+            ['name' => 'Aisha Khan', 'email' => 'aisha@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_bde', 'phone' => '9000000004'],
+            ['name' => 'Anil Gupta', 'email' => 'accountshead@crm.local', 'password' => 'Demo@12345', 'role' => 'accounts_head', 'phone' => '9000000011'],
+            ['name' => 'Meena Rao', 'email' => 'accounts@crm.local', 'password' => 'Demo@12345', 'role' => 'accounts_support', 'phone' => '9000000012'],
+            ['name' => 'Vivek Nair', 'email' => 'legalhead@crm.local', 'password' => 'Demo@12345', 'role' => 'legal_head', 'phone' => '9000000013'],
+            ['name' => 'Sana Sheikh', 'email' => 'legal@crm.local', 'password' => 'Demo@12345', 'role' => 'legal_support', 'phone' => '9000000014'],
+            ['name' => 'Deepa Menon', 'email' => 'crmhead@crm.local', 'password' => 'Demo@12345', 'role' => 'crm_head', 'phone' => '9000000015'],
+            ['name' => 'Rohit Das', 'email' => 'crm@crm.local', 'password' => 'Demo@12345', 'role' => 'crm_support', 'phone' => '9000000016'],
             ['name' => 'Prime Realty (Partner)', 'email' => 'partner@crm.local', 'password' => 'Demo@12345', 'role' => 'channel_partner', 'phone' => '9000000007'],
         ];
         foreach ($users as $u) {
@@ -127,6 +148,10 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
             ]);
         }
+        // Remove retired demo users no longer in the hierarchy
+        User::whereIn('email', ['marketing@crm.local', 'cs@crm.local'])->delete();
+        // Retire legacy roles now that all users are reassigned
+        Role::whereIn('slug', ['sales_manager', 'sales_exec', 'marketing', 'crm_ops', 'post_sales'])->delete();
     }
 
     private function stages(): void

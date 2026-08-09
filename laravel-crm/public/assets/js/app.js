@@ -155,7 +155,7 @@
     // Role-based home: land each role on what they act on first (once per session)
     if ((route === 'dashboard' || !route) && !sessionStorage.getItem('crm_homed')) {
       sessionStorage.setItem('crm_homed', '1');
-      const home = { channel_partner: 'portal', post_sales: 'collections', sales_exec: 'callList' }[state.user.role];
+      const home = { channel_partner: 'portal', crm_head: 'collections', crm_support: 'collections', accounts_head: 'collections', accounts_support: 'collections', sales_bde: 'callList', sales_bdm: 'callList' }[state.user.role];
       if (home && ('#/' + home) !== location.hash) { location.hash = '#/' + home; return; }
     }
     if (route === 'dashboard' && !can('leads.view') && can('partner.portal')) { location.hash = '#/portal'; return; }

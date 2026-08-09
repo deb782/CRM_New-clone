@@ -177,6 +177,12 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - **UI**: analytics modal shows a "Send history (N)" table above the recipients list. Recurring campaigns (which stay `scheduled`) now also get a "Details" button once `sent_count > 0`, so their run history is viewable.
 - Migration `2026_01_21_...email_campaign_runs`; `EmailCampaignRun` model; JS bumped to v=19. Verified: weekly campaign run #1 = 2 opens/66.7%, run #2 = 0 opens — independent per-run tracking confirmed via API + UI.
 
+## Implemented — Phase 1: 12-Role Department Hierarchy + RBAC (2026-06, agent-tested)
+- **Roles** (migration `2026_01_22_...role_department_tier` adds roles.department + roles.tier): Super Admin, Process Admin (admin dept); Sales Head/BDM/BDE (sales); Accounts Head/Support (accounts); Legal Head/Support (legal); CRM Head/Support (crm); Channel Partner (external, retained for partner module). Legacy roles (sales_manager/sales_exec/marketing/crm_ops/post_sales) retired in seeder.
+- **Permissions**: added accounts.view/manage, legal.view/manage, crm.view/manage, workflow.manage (for Phase 3 builder). Heads = full dept access; Support = view/create only (NO edit/delete/override). `admin` slug keeps the full bypass.
+- **Wiring**: AuthController payload now returns department + tier. Backend role-slug refs updated (LeadService auto-assign → sales_bde/bdm; InboxService → sales_*; BookingService post-sales → crm_head; DemandLetter/RunReminders → sales_head). Frontend role-home routing updated to new slugs. app.js v=20.
+- **Verified**: all 13 users log in with correct perms; accounts_support edit→403, sales_head edit→200, partner /leads→403 & /partner/portal→200 (isolation intact); Process Admin UI smoke-tested. Credentials in test_credentials.md.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.

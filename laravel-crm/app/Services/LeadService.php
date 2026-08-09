@@ -164,7 +164,7 @@ class LeadService
     /** Round-robin owner assignment among pre-sales execs (A routing). */
     protected function assignOwner(): ?int
     {
-        $execs = User::whereHas('role', fn ($q) => $q->whereIn('slug', ['sales_exec', 'crm_ops']))
+        $execs = User::whereHas('role', fn ($q) => $q->whereIn('slug', ['sales_bde', 'sales_bdm']))
             ->where('is_active', true)->pluck('id');
         if ($execs->isEmpty()) {
             return User::whereHas('role', fn ($q) => $q->where('slug', 'admin'))->value('id');

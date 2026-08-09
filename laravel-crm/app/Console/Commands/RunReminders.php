@@ -19,7 +19,7 @@ class RunReminders extends Command
     {
         // C1.1 — Verify Lead tasks not started within 2h => escalate to manager
         $slaHours = config('integrations.sla.verify_hours', 2);
-        $managerId = \App\Models\User::whereHas('role', fn ($q) => $q->where('slug', 'sales_manager'))
+        $managerId = \App\Models\User::whereHas('role', fn ($q) => $q->where('slug', 'sales_head'))
             ->where('is_active', true)->value('id')
             ?? \App\Models\User::whereHas('role', fn ($q) => $q->where('slug', 'admin'))->value('id');
         $stale = Task::where('type', 'verify')

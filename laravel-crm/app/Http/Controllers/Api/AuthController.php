@@ -52,6 +52,8 @@ class AuthController extends Controller
             'phone' => $user->phone,
             'role' => $user->role?->slug,
             'role_name' => $user->role?->name,
+            'department' => $user->role?->department,
+            'tier' => $user->role?->tier,
             'permissions' => $user->role?->slug === 'admin'
                 ? ['*']
                 : ($user->role?->permissions->pluck('key')->all() ?? []),
