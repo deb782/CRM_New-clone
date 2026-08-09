@@ -54,17 +54,17 @@ Route::prefix('v1')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'stats']);
 
         // Leads
-        Route::get('leads', [LeadController::class, 'index']);
-        Route::get('leads/board', [LeadController::class, 'board']);
-        Route::get('leads/call-list', [LeadController::class, 'callList']);
-        Route::get('leads/check-duplicate', [LeadController::class, 'checkDuplicate']);
+        Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');
+        Route::get('leads/board', [LeadController::class, 'board'])->middleware('permission:leads.view');
+        Route::get('leads/call-list', [LeadController::class, 'callList'])->middleware('permission:leads.view');
+        Route::get('leads/check-duplicate', [LeadController::class, 'checkDuplicate'])->middleware('permission:leads.view');
         Route::post('leads', [LeadController::class, 'store'])->middleware('permission:leads.create');
-        Route::get('leads/{lead}', [LeadController::class, 'show']);
+        Route::get('leads/{lead}', [LeadController::class, 'show'])->middleware('permission:leads.view');
         Route::put('leads/{lead}', [LeadController::class, 'update'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/qualify', [LeadController::class, 'qualify'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/transition', [LeadController::class, 'transition'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/verify', [LeadController::class, 'verify'])->middleware('permission:leads.edit');
-        Route::post('leads/{lead}/recalculate', [LeadController::class, 'recalculate']);
+        Route::post('leads/{lead}/recalculate', [LeadController::class, 'recalculate'])->middleware('permission:leads.view');
         Route::post('leads/{lead}/merge', [LeadController::class, 'merge'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/dnc', [LeadController::class, 'markDnc'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/invalid', [LeadController::class, 'markInvalid'])->middleware('permission:leads.edit');

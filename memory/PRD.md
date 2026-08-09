@@ -80,10 +80,15 @@ Administrator · Sales Manager · Sales Exec · Marketing · CRM Ops (RBAC via p
 - **T3 Search performance**: `GET /system/performance` live probe. Added composite/secondary indexes (leads owner+status, source, created_at; audit/automation/comms log indexes) and a `crm:seed-leads {n}` load-test command. **Verified: 100,046 leads → lead search 0.5ms query / 85ms endpoint — well under the 2s acceptance target.**
 - All three endpoints gated by `config.manage` (403 for Sales Exec). New Configuration nav: System Health, Audit Log.
 
+## Implemented — Channel Partner Portal, Overdue Auto-Nudge & Section R edge cases (2026-06, verified 118/119)
+- **Channel Partner Portal**: partners (role `channel_partner`, user `partner@crm.local`) get a scoped **My Portal** page — only their own leads/bookings + commission summary (earned/pending). Marking a partner-attributed lead Won auto-computes commission (rate × deal value). Admin **Channel Partners** CRUD + **Commissions** page (approve → mark paid). RBAC hardened: all lead-read routes now require `leads.view` (partners correctly 403).
+- **Overdue Auto-Nudge**: `crm:reminders` sends a one-time friendly WhatsApp pay-link nudge the moment a milestone slips overdue (alongside the formal demand letter).
+- **Section R edge cases**: Do-Not-Contact (`/leads/{id}/dnc`), wrong-number/spam invalidation (`/leads/{id}/invalid` → not_interested + suppress outbound), consent changes (`/leads/{id}/consent`), booking cancellation (`/bookings/{id}/cancel` → release unit + cancel milestones/dues), bounced/failed payment (`/payments/{id}/fail` → reverses milestone allocation). Outbound WhatsApp already suppressed for DNC/opt-out leads. UI: lead-drawer DNC/Invalid buttons + flag banner, booking Cancel, payment Bounce/Fail.
+- New: migration `2026_01_08_...partner_and_edge_cases`, `ChannelPartnerController`, LeadController DNC/invalid/consent, BookingService.cancel, PaymentService.markFailed, frontend partner/commissions/portal pages.
+
 ## Backlog (prioritized)
-- **P2 (Phase D — R, S)**: Section R ~40 edge cases (DNC/wrong-number/spam, multiple decision-makers/units, competing project, cancellations, bounced/partial/discrepant payments, consent changes, concurrency de-dup); Section S full automation trigger acceptance tests against SLAs.
-- **Channel Partner portal**: scoped leads/bookings + basic commission visibility.
-- **Tech hardening**: serial-number generation uses COUNT+1 (unique constraint guards duplicates but throws under rare concurrency) — move to atomic counter/retry for multi-user. Fix pre-existing flaky `test_qualify_updates_score_status` (session-scoped shared fixture in test file).
+- **P2 (Phase D — R, S)**: remaining Section R scenarios (multiple decision-makers/units, competing project, discrepant-payment nuances, concurrency de-dup hardening); Section S full automation-trigger acceptance tests against SLAs.
+- **Tech hardening**: fix pre-existing flaky `test_qualify_updates_score_status` (session-scoped shared fixture — not an app bug); move serial-number generation to atomic counter for multi-user concurrency; WhatsAppService suppression currently logs a 'failed' row (semantically correct) rather than skipping entirely.
 - **Chatbot**: port from https://github.com/deb782/CRM_New-clone when prioritized.
 - **Integrations (live, when keys provided)**: Razorpay keys+webhook secret, WATI base URL+token, Gmail Workspace SMTP.
 
