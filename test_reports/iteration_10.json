@@ -1,0 +1,39 @@
+{
+  "summary": "Section R2 (Automation Builder + residual R edge cases) full acceptance. Backend: 12/12 new tests PASS in /app/backend/tests/test_section_r2_automation.py — Automation CRUD, config.manage gating (rahul->403), status.changed rule fires on transition (automation-log + create_task both verified), stakeholders (add + is_primary demotes prior, delete-by-index), interested-units (dedup), switch-project (updates lead.project_id + activity timeline entry), concurrency dedup (8-way parallel POST /leads collapses to exactly 1 create), sequential duplicate blocked (409), force=true creates a second lead. Full regression 140/141 (only pre-existing xdist-flaky test_verify_task_created failed, documented in iteration_9 and by main agent as known — unrelated to R2). Frontend: verified Automation Builder modal (Add Rule) — all data-testids present (auto-name, auto-event, auto-cond-to, auto-actions-host, auto-add-action, auto-save, auto-action-type-{i}, auto-f-title/due/prio-{i}, auto-del-action-{i}); auto-cond-to visibility correctly toggles by event (visible on status.changed, hidden on lead.created); add/remove action works; save creates rule (appears in list); pencil edit prefills name+event+actions. Verified lead drawer Qualify tab interests-panel — all 9 data-testids present, add stakeholder renders stakeholder-0 row, interested-units-save works, switch-project-select populated with project options.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_section_r2_automation.py",
+    "/app/test_reports/pytest/section_r2.xml",
+    "/app/test_reports/pytest/full_r2_regression.xml"
+  ],
+  "action_items": [
+    "OPTIONAL (pre-existing, unrelated to R2): fix test_laravel_crm.py::test_verify_task_created to filter GET /tasks by lead_id (documented in iteration_9 too)."
+  ],
+  "critical_code_review_comments": [
+    "LeadService::capture properly guards concurrent race via dedupe_key + QueryException catch — force=true intentionally sets key=null bypassing the guard so duplicate-force still creates.",
+    "AutomationController::store validates actions as required array but does not validate per-action shape (type/title/due_in_hours). Frontend builder enforces schema, but any raw POST could store malformed actions. Consider server-side per-action validation.",
+    "LeadController::addStakeholder: is_primary demotes all previous entries — good. However there's no server-side validation preventing duplicate phones across stakeholders and no explicit index bounds error on removeStakeholder (silently no-ops on invalid index — safe but not observable).",
+    "LeadController::switchProject uses AuditService via LeadService — activity log entry title contains 'Project switched'. Verified in timeline.",
+    "AutomationController::logs supports ?lead_id + ?status filter (was noted missing in prev iteration; already fixed).",
+    "config.js autoForm structured builder replaces JSON textarea (per requirement); no JSON input rendered — verified visually.",
+    "leads.js interestsPanel adds stakeholders/units/switch-project into Qualify tab — clean binding using api.post/api.del."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_section_r2_automation.py (new — 12 tests)"
+  ],
+  "success_rate": {"backend": "100% (12/12 R2) · 99.3% (140/141 full regression, single failure is pre-existing xdist flake)", "frontend": "100% (all R2 UI testids + flows verified)"},
+  "test_credentials": "admin@crm.local/Admin@12345 (config.manage), rahul@crm.local/Demo@12345 (leads.edit no config.manage → 403 verified)",
+  "seed_data_creation": "Fresh reseed via `cd /app/laravel-crm && php artisan migrate:fresh --seed --force` before pytest. Each test creates its own TEST_R2_<uuid> lead. UI Automation rule UI_TEST_<epoch> created — safe/inert.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "R2 suite lives at /app/backend/tests/test_section_r2_automation.py. Uses ThreadPoolExecutor(8) to hit POST /leads in parallel with the same phone; SQL UNIQUE constraint on dedupe_key (2026_01_09 migration) guarantees exactly 1 create. force=true zeros the key, so duplicate-force still creates. Session-scope conftest tokens re-used. UI verified via Playwright: log in with 'Sign in' text (no button[type=submit]), navigate via left nav (a:has-text), lead drawer tabs use [data-testid='tab-{key}']. Direct hash-route goto to #/automations without hydration returned 'Page not found' — always click nav first.",
+  "rca of the issue": "N/A — all R2 acceptance passes. Concurrency guarantee RCA: LeadService::capture computes normalized dedupe_key (last-10 phone digits or lowercased email), attempts INSERT, and on QueryException (unique-index violation from concurrent race) returns the winning lead. Verified: 8 parallel POSTs → exactly 1 x 201 + 7 x 409, and DB contains exactly 1 lead with the phone. Force flow sets key=null, bypassing constraint — verified second lead created."
+}

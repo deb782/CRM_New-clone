@@ -35,12 +35,24 @@ class LeadService
         $stage = PipelineStage::where('slug', 'new_lead')->first();
         $ownerId = $this->assignOwner();
 
-        $lead = Lead::create(array_merge([
-            'source' => 'Website Form',
-            'pipeline_stage_id' => $stage?->id,
-            'status' => 'new_lead',
-            'owner_id' => $ownerId,
-        ], $this->fillable($data)));
+        // R — concurrency-safe de-dup: normalized key + unique index catch.
+        // A manual force-create bypasses the guard (key left null).
+        $key = $force ? null : $this->dedupeKey($data['phone'] ?? null, $data['email'] ?? null);
+        try {
+            $lead = Lead::create(array_merge([
+                'source' => 'Website Form',
+                'pipeline_stage_id' => $stage?->id,
+                'status' => 'new_lead',
+                'owner_id' => $ownerId,
+                'dedupe_key' => $key,
+            ], $this->fillable($data)));
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Another concurrent request won the race — return the existing lead
+            if ($key && $existing = Lead::where('dedupe_key', $key)->first()) {
+                return ['status' => 'duplicate', 'duplicate' => ['block' => true, 'reason' => 'concurrent', 'lead' => $existing], 'lead' => $existing];
+            }
+            throw $e;
+        }
 
         $this->audit($lead, 'created', null, null, $lead->name, 'lead captured via '.$lead->source);
         $this->activity->log($lead, 'system', 'Lead captured', 'Source: '.$lead->source);
@@ -187,5 +199,31 @@ class LeadService
             'whatsapp_opt_out', 'do_not_contact', 'is_invalid', 'invalid_reason', 'owner_id', 'next_follow_up_at',
         ];
         return array_intersect_key($data, array_flip($keys));
+    }
+
+    /** R — normalized de-dup key: last-10 phone digits, else lowercased email. */
+    public function dedupeKey(?string $phone, ?string $email): ?string
+    {
+        if ($phone) {
+            $digits = preg_replace('/\D+/', '', $phone);
+            if (strlen($digits) >= 10) {
+                return 'p:'.substr($digits, -10);
+            }
+        }
+        if ($email) {
+            return 'e:'.strtolower(trim($email));
+        }
+        return null;
+    }
+
+    /** R — switch a lead's interest to a competing/other project (keeps history). */
+    public function switchProject(Lead $lead, int $projectId, ?string $reason = null): Lead
+    {
+        $from = $lead->project_id;
+        $lead->project_id = $projectId;
+        $lead->save();
+        $this->audit($lead, 'updated', 'project_id', (string) $from, (string) $projectId, $reason ?: 'project switch');
+        $this->activity->log($lead, 'system', 'Project switched', $reason);
+        return $lead->fresh();
     }
 }

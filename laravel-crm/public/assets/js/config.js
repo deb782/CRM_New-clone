@@ -81,25 +81,61 @@
         el('td', { style: 'color:var(--text-3)' }, CRM.timeAgo(l.executed_at || l.created_at))))));
 
     function autoForm(rule) {
-      const f = Object.assign({ event: 'status.changed', active: true }, rule || {});
-      const inp = (v) => { const i = el('input', { class: 'input', value: v || '', 'data-testid': 'auto-name' }); i.addEventListener('input', () => f.name = i.value); return i; };
-      const evSel = el('select', { class: 'select', 'data-testid': 'auto-event' }, ...['lead.created','status.changed','email.opened','email.clicked','whatsapp.replied'].map(e => el('option', { value: e, selected: f.event === e ? 'selected' : null }, e)));
-      evSel.addEventListener('change', () => f.event = evSel.value);
-      const cond = el('textarea', { class: 'input', rows: 2, 'data-testid': 'auto-cond' }, rule ? JSON.stringify(rule.conditions || {}) : '{"to":"interested"}');
-      const acts = el('textarea', { class: 'input', rows: 4, 'data-testid': 'auto-actions' }, rule ? JSON.stringify(rule.actions || [], null, 2) : JSON.stringify([{ type: 'create_task', title: 'Follow-up', due_in_hours: 24 }], null, 2));
+      const STAGES = ['new_lead', 'contacted', 'interested', 'opportunity', 'site_visit_scheduled', 'site_visit_completed', 'negotiation', 'won', 'lost', 'not_interested', 'no_response'];
+      const EVENTS = [['lead.created', 'Lead created'], ['status.changed', 'Status changed'], ['whatsapp.replied', 'WhatsApp reply received'], ['email.opened', 'Email opened'], ['email.clicked', 'Email link clicked']];
+      const ACTION_TYPES = [['create_task', 'Create task'], ['send_whatsapp', 'Send WhatsApp'], ['send_email', 'Send email'], ['enroll_sequence', 'Enroll in sequence'], ['pause_sequence', 'Pause sequences']];
+      const f = { name: rule?.name || '', event: rule?.event || 'status.changed', to: (rule?.conditions && rule.conditions.to) || 'interested' };
+      let actions = JSON.parse(JSON.stringify(rule?.actions || [{ type: 'create_task', title: '', due_in_hours: 24, priority: 'high' }]));
+
+      const nameInp = el('input', { class: 'input', value: f.name, placeholder: 'e.g. Handover on Opportunity', 'data-testid': 'auto-name' });
+      nameInp.addEventListener('input', () => f.name = nameInp.value);
+      const evSel = el('select', { class: 'select', 'data-testid': 'auto-event' }, ...EVENTS.map(([v, l]) => el('option', { value: v, selected: f.event === v ? 'selected' : null }, l)));
+      const condField = el('div', { class: 'field' });
+      const toSel = el('select', { class: 'select', 'data-testid': 'auto-cond-to' }, ...STAGES.map(s => el('option', { value: s, selected: f.to === s ? 'selected' : null }, s.replace(/_/g, ' '))));
+      toSel.addEventListener('change', () => f.to = toSel.value);
+      function renderCond() { condField.innerHTML = ''; if (f.event === 'status.changed') { condField.appendChild(el('label', {}, 'When status becomes')); condField.appendChild(toSel); } else { condField.appendChild(el('div', { class: 'help' }, 'Runs on every "' + f.event + '" event (no extra condition).')); } }
+      evSel.addEventListener('change', () => { f.event = evSel.value; renderCond(); });
+
+      const actionsHost = el('div', { 'data-testid': 'auto-actions-host' });
+      function actionRow(a, i) {
+        const row = el('div', { class: 'card', style: 'padding:12px;margin-bottom:10px', 'data-testid': 'auto-action-' + i });
+        const typeSel = el('select', { class: 'select', 'data-testid': 'auto-action-type-' + i }, ...ACTION_TYPES.map(([v, l]) => el('option', { value: v, selected: a.type === v ? 'selected' : null }, l)));
+        typeSel.addEventListener('change', () => { actions[i] = { type: typeSel.value }; renderActions(); });
+        const fields = el('div', { style: 'margin-top:8px;display:grid;gap:8px' });
+        const txt = (k, ph, val) => { const x = el('input', { class: 'input', placeholder: ph, value: a[k] ?? val ?? '', 'data-testid': 'auto-f-' + k + '-' + i }); x.addEventListener('input', () => a[k] = x.value); return x; };
+        if (a.type === 'create_task') {
+          fields.appendChild(txt('title', 'Task title'));
+          const due = el('input', { class: 'input', type: 'number', placeholder: 'Due in hours', value: a.due_in_hours ?? 24, 'data-testid': 'auto-f-due-' + i }); due.addEventListener('input', () => a.due_in_hours = Number(due.value));
+          const prio = el('select', { class: 'select', 'data-testid': 'auto-f-prio-' + i }, ...['low', 'medium', 'high'].map(p => el('option', { value: p, selected: (a.priority || 'high') === p ? 'selected' : null }, p))); prio.addEventListener('change', () => a.priority = prio.value);
+          fields.appendChild(el('div', { style: 'display:flex;gap:8px' }, el('div', { style: 'flex:1' }, el('label', { class: 'help' }, 'Due (hours)'), due), el('div', { style: 'flex:1' }, el('label', { class: 'help' }, 'Priority'), prio)));
+        } else if (a.type === 'send_whatsapp') { fields.appendChild(txt('body', 'WhatsApp message (use {{name}}, {{project}})')); }
+        else if (a.type === 'send_email') { fields.appendChild(txt('subject', 'Email subject')); fields.appendChild(txt('body', 'Email body')); }
+        else if (a.type === 'enroll_sequence') { const s = el('select', { class: 'select', 'data-testid': 'auto-f-temp-' + i }, ...['hot', 'warm', 'cold'].map(t => el('option', { value: t, selected: a.temperature === t ? 'selected' : null }, t))); s.addEventListener('change', () => a.temperature = s.value); fields.appendChild(el('label', { class: 'help' }, 'Sequence temperature')); fields.appendChild(s); }
+        else if (a.type === 'pause_sequence') { fields.appendChild(txt('reason', 'Reason')); }
+        const del = el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'auto-del-action-' + i, onclick: () => { actions.splice(i, 1); if (!actions.length) actions.push({ type: 'create_task', title: '', due_in_hours: 24, priority: 'high' }); renderActions(); } }, el('i', { class: 'fa-solid fa-trash' }), 'Remove');
+        row.appendChild(el('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px' }, typeSel, del));
+        row.appendChild(fields);
+        return row;
+      }
+      function renderActions() { actionsHost.innerHTML = ''; actions.forEach((a, i) => actionsHost.appendChild(actionRow(a, i))); }
+
+      const addActionBtn = el('button', { class: 'btn btn--sm', 'data-testid': 'auto-add-action', onclick: () => { actions.push({ type: 'send_whatsapp', body: '' }); renderActions(); } }, el('i', { class: 'fa-solid fa-plus' }), 'Add action');
       const body = el('div', {},
-        el('div', { class: 'field' }, el('label', {}, 'Name'), inp(f.name)),
-        el('div', { class: 'field' }, el('label', {}, 'Event'), evSel),
-        el('div', { class: 'field' }, el('label', {}, 'Conditions (JSON)'), cond),
-        el('div', { class: 'field' }, el('label', {}, 'Actions (JSON array)'), acts),
-        el('div', { class: 'help' }, 'Action types: create_task, send_email, send_whatsapp, enroll_sequence, pause_sequence'));
-      const save = el('button', { class: 'btn btn--primary', 'data-testid': 'auto-save' }, 'Save');
-      const m = modal({ title: rule ? 'Edit Automation' : 'New Automation', wide: true, bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+        el('div', { class: 'field' }, el('label', {}, 'Rule name'), nameInp),
+        el('div', { class: 'field' }, el('label', {}, 'Trigger event'), evSel),
+        condField,
+        el('div', { class: 'section-title', style: 'margin-top:6px' }, 'Actions'),
+        actionsHost, addActionBtn);
+      renderCond(); renderActions();
+
+      const save = el('button', { class: 'btn btn--primary', 'data-testid': 'auto-save' }, 'Save Rule');
+      const m = modal({ title: rule ? 'Edit Automation Rule' : 'New Automation Rule', wide: true, bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
       save.addEventListener('click', async () => {
-        let conditions, actions;
-        try { conditions = JSON.parse(cond.value || '{}'); actions = JSON.parse(acts.value || '[]'); }
-        catch (e) { toast('Invalid JSON', 'error'); return; }
-        const payload = { name: f.name, event: f.event, conditions, actions, active: true };
+        if (!f.name.trim()) { toast('Rule name required', 'error'); return; }
+        const conditions = f.event === 'status.changed' ? { to: f.to } : {};
+        const clean = actions.filter(a => a.type).map(a => { const o = { type: a.type }; ['title', 'due_in_hours', 'priority', 'body', 'subject', 'temperature', 'reason'].forEach(k => { if (a[k] !== undefined && a[k] !== '') o[k] = a[k]; }); return o; });
+        if (!clean.length) { toast('Add at least one action', 'error'); return; }
+        const payload = { name: f.name, event: f.event, conditions, actions: clean, active: rule ? rule.active : true };
         try { rule ? await api.put('/automation-rules/' + rule.id, payload) : await api.post('/automation-rules', payload); toast('Saved', 'success'); m.close(); CRM.render(); }
         catch (err) { toast(err.message, 'error'); }
       });

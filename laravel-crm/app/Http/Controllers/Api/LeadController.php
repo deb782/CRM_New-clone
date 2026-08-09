@@ -225,4 +225,48 @@ class LeadController extends Controller
         $lead->forceFill(array_filter($data, fn ($v) => $v !== null))->save();
         return response()->json(['lead' => $lead->fresh()]);
     }
+
+    /** R — multiple decision-makers / stakeholders on a lead. */
+    public function addStakeholder(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'name' => 'required|string',
+            'role' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email',
+            'is_primary' => 'nullable|boolean',
+        ]);
+        $list = $lead->stakeholders ?: [];
+        if (! empty($data['is_primary'])) {
+            $list = array_map(fn ($s) => array_merge($s, ['is_primary' => false]), $list);
+        }
+        $list[] = array_merge(['role' => 'decision_maker', 'is_primary' => false], $data);
+        $lead->forceFill(['stakeholders' => array_values($list)])->save();
+        return response()->json(['lead' => $lead->fresh()]);
+    }
+
+    public function removeStakeholder(Lead $lead, int $index)
+    {
+        $list = $lead->stakeholders ?: [];
+        if (isset($list[$index])) {
+            array_splice($list, $index, 1);
+            $lead->forceFill(['stakeholders' => array_values($list)])->save();
+        }
+        return response()->json(['lead' => $lead->fresh()]);
+    }
+
+    /** R — multiple units of interest. */
+    public function setInterestedUnits(Request $request, Lead $lead)
+    {
+        $data = $request->validate(['units' => 'present|array', 'units.*' => 'string']);
+        $lead->forceFill(['interested_units' => array_values(array_unique($data['units']))])->save();
+        return response()->json(['lead' => $lead->fresh()]);
+    }
+
+    /** R — switch to a competing/other project. */
+    public function switchProject(Request $request, Lead $lead)
+    {
+        $data = $request->validate(['project_id' => 'required|exists:projects,id', 'reason' => 'nullable|string']);
+        return response()->json(['lead' => $this->leads->switchProject($lead, (int) $data['project_id'], $data['reason'] ?? null)]);
+    }
 }

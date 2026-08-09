@@ -216,7 +216,42 @@
           mk('objection_severity', 'Objection Severity', [{v:'blocking',l:'Blocking'},{v:'manageable',l:'Manageable'},{v:'minor',l:'Minor'}]),
           el('div')),
         el('div', { class: 'field' }, el('label', {}, 'Primary Objection'), obj),
-        save);
+        save,
+        interestsPanel());
+    }
+
+    function interestsPanel() {
+      const wrap = el('div', { style: 'margin-top:22px;border-top:1px solid var(--border);padding-top:16px', 'data-testid': 'interests-panel' });
+      wrap.appendChild(el('div', { class: 'section-title' }, 'Decision Makers & Interests'));
+
+      // Stakeholders (multiple decision-makers)
+      const stakeHost = el('div', { 'data-testid': 'stakeholders-list' });
+      const renderStake = () => {
+        stakeHost.innerHTML = '';
+        (lead.stakeholders || []).forEach((s, i) => stakeHost.appendChild(el('div', { class: 'row', 'data-testid': 'stakeholder-' + i, style: 'display:flex;justify-content:space-between;align-items:center;padding:6px 0' },
+          el('div', {}, el('b', {}, s.name), el('span', { style: 'color:var(--text-3);font-size:12px;margin-left:6px' }, (s.role || '') + (s.phone ? (' · ' + s.phone) : '')), s.is_primary ? el('span', { class: 'chip', style: 'margin-left:6px;color:var(--won)' }, 'primary') : null),
+          el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'stakeholder-del-' + i, onclick: async () => { const r = await api.del('/leads/' + id + '/stakeholders/' + i); lead.stakeholders = r.lead.stakeholders; renderStake(); toast('Removed'); } }, el('i', { class: 'fa-solid fa-trash' })))));
+        if (!(lead.stakeholders || []).length) stakeHost.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px' }, 'No additional decision-makers'));
+      };
+      renderStake();
+      const sName = el('input', { class: 'input', placeholder: 'Name', 'data-testid': 'stakeholder-name' });
+      const sRole = el('input', { class: 'input', placeholder: 'Role (e.g. spouse)', 'data-testid': 'stakeholder-role' });
+      const sPhone = el('input', { class: 'input', placeholder: 'Phone', 'data-testid': 'stakeholder-phone' });
+      const sAdd = el('button', { class: 'btn btn--sm', 'data-testid': 'stakeholder-add', onclick: async () => { if (!sName.value.trim()) { toast('Name required', 'error'); return; } const r = await api.post('/leads/' + id + '/stakeholders', { name: sName.value, role: sRole.value, phone: sPhone.value }); lead.stakeholders = r.lead.stakeholders; sName.value = sRole.value = sPhone.value = ''; renderStake(); toast('Added', 'success'); } }, el('i', { class: 'fa-solid fa-user-plus' }), 'Add');
+      wrap.appendChild(stakeHost);
+      wrap.appendChild(el('div', { style: 'display:flex;gap:6px;margin:8px 0 18px' }, sName, sRole, sPhone, sAdd));
+
+      // Interested units (multiple)
+      const unitsInp = el('input', { class: 'input', value: (lead.interested_units || []).join(', '), placeholder: 'e.g. A-101, B-204', 'data-testid': 'interested-units-input' });
+      const unitsSave = el('button', { class: 'btn btn--sm', 'data-testid': 'interested-units-save', onclick: async () => { const units = unitsInp.value.split(',').map(u => u.trim()).filter(Boolean); const r = await api.post('/leads/' + id + '/interested-units', { units }); lead.interested_units = r.lead.interested_units; toast('Units saved', 'success'); } }, 'Save');
+      wrap.appendChild(el('div', { class: 'field' }, el('label', {}, 'Units of interest'), el('div', { style: 'display:flex;gap:6px' }, unitsInp, unitsSave)));
+
+      // Switch project (competing project)
+      const projSel = el('select', { class: 'select', 'data-testid': 'switch-project-select' }, el('option', { value: '' }, 'Select project…'));
+      api.get('/projects').then(r => { (r.data || r.projects || r || []).forEach(p => projSel.appendChild(el('option', { value: p.id, selected: lead.project_id === p.id ? 'selected' : null }, p.name))); }).catch(() => {});
+      const projSave = el('button', { class: 'btn btn--sm', 'data-testid': 'switch-project-save', onclick: async () => { if (!projSel.value) { toast('Pick a project', 'error'); return; } const reason = prompt('Reason for switch (optional)') || null; await api.post('/leads/' + id + '/switch-project', { project_id: Number(projSel.value), reason }); toast('Project switched', 'success'); reload(); } }, 'Switch');
+      wrap.appendChild(el('div', { class: 'field' }, el('label', {}, 'Switch to competing / other project'), el('div', { style: 'display:flex;gap:6px' }, projSel, projSave)));
+      return wrap;
     }
 
     function commsPanel() {

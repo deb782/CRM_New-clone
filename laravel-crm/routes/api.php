@@ -69,6 +69,10 @@ Route::prefix('v1')->group(function () {
         Route::post('leads/{lead}/dnc', [LeadController::class, 'markDnc'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/invalid', [LeadController::class, 'markInvalid'])->middleware('permission:leads.edit');
         Route::post('leads/{lead}/consent', [LeadController::class, 'consent'])->middleware('permission:leads.edit');
+        Route::post('leads/{lead}/stakeholders', [LeadController::class, 'addStakeholder'])->middleware('permission:leads.edit');
+        Route::delete('leads/{lead}/stakeholders/{index}', [LeadController::class, 'removeStakeholder'])->middleware('permission:leads.edit');
+        Route::post('leads/{lead}/interested-units', [LeadController::class, 'setInterestedUnits'])->middleware('permission:leads.edit');
+        Route::post('leads/{lead}/switch-project', [LeadController::class, 'switchProject'])->middleware('permission:leads.edit');
         Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->middleware('permission:leads.delete');
 
         // Communication + timeline

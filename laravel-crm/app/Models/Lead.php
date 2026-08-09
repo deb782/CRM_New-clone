@@ -11,6 +11,8 @@ class Lead extends Model
 
     protected $casts = [
         'meta' => 'array',
+        'stakeholders' => 'array',
+        'interested_units' => 'array',
         'contact_verified' => 'boolean',
         'whatsapp_opt_out' => 'boolean',
         'do_not_contact' => 'boolean',
