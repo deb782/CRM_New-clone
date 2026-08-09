@@ -22,6 +22,32 @@ class EmailCampaignController extends Controller
         return response()->json(['campaign' => $email_campaign]);
     }
 
+    public function analytics(EmailCampaign $email_campaign)
+    {
+        $messages = EmailMessage::where('campaign_id', $email_campaign->id)
+            ->orderByDesc('id')
+            ->limit(500)
+            ->get(['id', 'to_email', 'status', 'opened_at', 'clicked_at']);
+
+        $sent = (int) $email_campaign->sent_count;
+        $opens = (int) $email_campaign->open_count;
+        $clicks = (int) $email_campaign->click_count;
+
+        return response()->json([
+            'campaign' => $email_campaign,
+            'stats' => [
+                'recipients' => (int) $email_campaign->recipients,
+                'sent' => $sent,
+                'failed' => (int) $email_campaign->failed_count,
+                'opens' => $opens,
+                'clicks' => $clicks,
+                'open_rate' => $sent ? round($opens / $sent * 100, 1) : 0,
+                'click_rate' => $sent ? round($clicks / $sent * 100, 1) : 0,
+            ],
+            'recipients' => $messages,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $this->data($request);
@@ -67,6 +93,7 @@ class EmailCampaignController extends Controller
             $subject = $this->personalize($email_campaign->subject, $lead);
             $html = $this->personalize($email_campaign->html ?: '', $lead);
             $html = $this->injectTracking($html, $token, $appUrl);
+            $html = $this->injectUnsubscribe($html, $token, $appUrl, $email_campaign->from_name);
 
             $res = $mailer->send($lead->email, $subject, $html, $email_campaign->from_name, $email_campaign->from_email);
 
@@ -128,9 +155,26 @@ class EmailCampaignController extends Controller
         return $html.$pixel;
     }
 
+    private function injectUnsubscribe(string $html, string $token, string $appUrl, ?string $fromName): string
+    {
+        $sender = $fromName ? e($fromName) : 'us';
+        $link = $appUrl.'/api/v1/email/unsubscribe/'.$token;
+        $footer = '<div style="margin-top:28px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center;font-family:Arial,Helvetica,sans-serif">'
+            .'You are receiving this because you opted in to updates from '.$sender.'. '
+            .'<a href="'.$link.'" style="color:#64748b;text-decoration:underline">Unsubscribe</a>'
+            .'</div>';
+        if (stripos($html, '</body>') !== false) {
+            return str_ireplace('</body>', $footer.'</body>', $html);
+        }
+
+        return $html.$footer;
+    }
+
     private function audience(array $c)
     {
-        $q = Lead::whereNotNull('email')->where('email', '!=', '')->where('do_not_contact', false);
+        $q = Lead::whereNotNull('email')->where('email', '!=', '')
+            ->where('do_not_contact', false)
+            ->where('email_opt_out', false);
 
         return match ($c['audience_type'] ?? 'all') {
             'status' => $q->where('status', $c['audience_value'] ?? null),

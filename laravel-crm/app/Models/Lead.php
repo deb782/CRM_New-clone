@@ -16,6 +16,7 @@ class Lead extends Model
         'contact_verified' => 'boolean',
         'whatsapp_opt_out' => 'boolean',
         'do_not_contact' => 'boolean',
+        'email_opt_out' => 'boolean',
         'is_invalid' => 'boolean',
         'locked' => 'boolean',
         'locked_at' => 'datetime',

@@ -126,7 +126,7 @@
       const openRate = c.sent_count ? Math.round((c.open_count / c.sent_count) * 100) : 0;
       const clickRate = c.sent_count ? Math.round((c.click_count / c.sent_count) * 100) : 0;
       const action = c.status === 'sent'
-        ? el('span', { class: 'chip', style: 'color:var(--won)' }, 'sent ' + (c.sent_at ? timeAgo(c.sent_at) : ''))
+        ? el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-details-' + c.id, onclick: () => analyticsModal(c) }, el('i', { class: 'fa-solid fa-chart-simple' }), 'Details')
         : el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'email-camp-send-' + c.id, onclick: async () => { try { const r = await api.post('/email/campaigns/' + c.id + '/send'); toast('Sent to ' + r.sent + ' (failed ' + r.failed + ')', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, 'Send now');
       return el('tr', { 'data-testid': 'email-camp-row-' + c.id },
         el('td', {}, c.name), el('td', { style: 'color:var(--text-3)' }, c.subject),
@@ -137,6 +137,29 @@
     });
     view.appendChild(el('div', { style: 'color:var(--text-3);font-size:12px;margin-bottom:10px' }, 'Opens % / Clicks % are tracked per campaign.'));
     view.appendChild(tableWrap(['Name', 'Subject', 'Audience', 'Recipients', 'Sent', 'Open/Click', ''], rows));
+
+    async function analyticsModal(c) {
+        const res = await api.get('/email/campaigns/' + c.id + '/analytics');
+        const s = res.stats;
+        const stat = (label, val, color) => el('div', { style: 'flex:1;min-width:90px;background:var(--surface-2);border-radius:10px;padding:12px 14px' },
+            el('div', { style: 'font-size:20px;font-weight:700;color:' + (color || 'var(--text-1)') }, String(val)),
+            el('div', { style: 'font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px' }, label));
+        const cards = el('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px' },
+            stat('Recipients', s.recipients),
+            stat('Sent', s.sent, 'var(--won)'),
+            stat('Failed', s.failed, s.failed ? 'var(--lost)' : 'var(--text-1)'),
+            stat('Opens', s.opens + ' · ' + s.open_rate + '%'),
+            stat('Clicks', s.clicks + ' · ' + s.click_rate + '%'));
+        const recRows = res.recipients.map(r => el('tr', { 'data-testid': 'email-recipient-' + r.id },
+            el('td', {}, r.to_email),
+            el('td', {}, el('span', { class: 'chip', style: 'color:' + (r.status === 'sent' ? 'var(--won)' : 'var(--lost)') }, r.status)),
+            el('td', {}, r.opened_at ? '✓ ' + timeAgo(r.opened_at) : '—'),
+            el('td', {}, r.clicked_at ? '✓ ' + timeAgo(r.clicked_at) : '—')));
+        const body = el('div', { 'data-testid': 'email-analytics-body' }, cards,
+            recRows.length ? tableWrap(['Recipient', 'Status', 'Opened', 'Clicked'], recRows)
+                : el('div', { class: 'empty', style: 'padding:20px' }, 'No recipients recorded.'));
+        const m = modal({ title: 'Campaign Analytics · ' + c.name, bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Close')] });
+    }
 
     async function campaignModal() {
       const { templates } = await api.get('/email/templates');

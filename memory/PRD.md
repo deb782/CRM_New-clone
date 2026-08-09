@@ -157,6 +157,10 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - **Tracking**: 1x1 open pixel + click-rewrite links (public, Sanctum-bypassed); click no longer counted when the `u` param is missing/invalid. Rendered `body_html` now persisted on `email_messages` for audit (migration `2026_01_17_...email_message_body`).
 - Nav entries `Email Templates` / `Email Campaigns` under Configuration group. Remaining 1 test "failure" is a cosmetic curl redirect-url normalization (actual Location header is exact). Live Gmail Workspace SMTP pending user credentials.
 
+## Implemented — Email Unsubscribe/Consent + Campaign Analytics (2026-06, agent-tested)
+- **One-click unsubscribe**: every broadcast now appends a compliant footer with a tokenized `email/unsubscribe/{token}` link (public, no auth). Hitting it sets the lead's new `email_opt_out`/`email_opt_out_at` (migration `2026_01_18_...lead_email_optout`) and shows a confirmation page. `audience()` now excludes `do_not_contact` AND `email_opt_out` (verified: audience 4→3 after unsubscribe).
+- **Campaign analytics**: `GET email/campaigns/{id}/analytics` (config.manage) returns campaign stats (recipients/sent/failed/opens/clicks + open_rate/click_rate) and a recipient-level breakdown (to_email/status/opened_at/clicked_at, up to 500). Frontend "Details" button on sent campaigns opens an analytics modal with stat cards + recipient table. email.js/app.js bumped to v=15.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.

@@ -48,6 +48,7 @@ Route::prefix('v1')->group(function () {
         // Email open/click tracking (public, no auth)
         Route::get('email/open/{token}', [\App\Http\Controllers\Api\EmailTrackingController::class, 'open']);
         Route::get('email/click/{token}', [\App\Http\Controllers\Api\EmailTrackingController::class, 'click']);
+        Route::get('email/unsubscribe/{token}', [\App\Http\Controllers\Api\EmailTrackingController::class, 'unsubscribe']);
     });
     // Public booking form (token link)
     Route::middleware('throttle:60,1')->group(function () {
@@ -260,6 +261,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('email/templates/{email_template}', [\App\Http\Controllers\Api\EmailTemplateController::class, 'destroy']);
             Route::get('email/campaigns', [\App\Http\Controllers\Api\EmailCampaignController::class, 'index']);
             Route::get('email/campaigns/{email_campaign}', [\App\Http\Controllers\Api\EmailCampaignController::class, 'show']);
+            Route::get('email/campaigns/{email_campaign}/analytics', [\App\Http\Controllers\Api\EmailCampaignController::class, 'analytics']);
             Route::post('email/campaigns', [\App\Http\Controllers\Api\EmailCampaignController::class, 'store']);
             Route::put('email/campaigns/{email_campaign}', [\App\Http\Controllers\Api\EmailCampaignController::class, 'update']);
             Route::delete('email/campaigns/{email_campaign}', [\App\Http\Controllers\Api\EmailCampaignController::class, 'destroy']);
