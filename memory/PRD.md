@@ -166,6 +166,12 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - **Auto-dispatch**: new console command `crm:email-scheduled` (registered `everyMinute` in routes/console.php) sends campaigns with `status=scheduled` and `scheduled_at <= now`, then marks them sent and clears the schedule. Verified: future schedule not sent; past schedule dispatched 3, status→sent.
 - **Refactor**: extracted the send pipeline (audience + personalize + tracking + unsubscribe + message records) into `App\Services\CampaignDispatcher`, reused by the controller `send()` and the scheduled command (DRY). Migration `2026_01_19_...email_campaign_schedule` (email_campaigns.scheduled_at). email.js/app.js bumped to v=16. RBAC verified (non-config user → 403).
 
+## Implemented — Recurring Email Campaigns (2026-06, agent-tested)
+- **Repeat weekly/monthly**: campaigns have a `recurrence` field (none/weekly/monthly). Set it in the create modal ("Repeat" dropdown, requires a start date) or the Schedule modal. Endpoints `store`/`update`/`schedule` accept `recurrence`; `unschedule` resets it.
+- **Auto-reschedule**: `CampaignDispatcher::dispatch()` now increments (accumulates) sent/failed counts; for recurring campaigns it sets the next `scheduled_at` (loops +1 week/+1 month until future) and keeps status `scheduled` instead of `sent`. One-offs still finalize as `sent`.
+- The `crm:email-scheduled` command drives both one-off and recurring sends. Status column shows a repeat badge for recurring campaigns. Migration `2026_01_20_...email_campaign_recurrence`; JS bumped to v=17.
+- Verified: weekly campaign dispatched (3 sent) → status stays scheduled, next_sched +7 days; immediate re-run does nothing (future); second cycle accumulates sent_count 3→6.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.

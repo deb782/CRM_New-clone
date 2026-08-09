@@ -138,9 +138,12 @@
           sendBtn,
           el('button', { class: 'btn btn--sm', 'data-testid': 'email-camp-schedule-' + c.id, onclick: () => scheduleModal(c) }, el('i', { class: 'fa-solid fa-clock' }), 'Schedule'));
       }
+      const recurBadge = (c.recurrence && c.recurrence !== 'none')
+        ? el('span', { class: 'chip', style: 'color:var(--hot);margin-left:4px', 'data-testid': 'email-camp-recur-badge-' + c.id }, el('i', { class: 'fa-solid fa-repeat', style: 'margin-right:4px' }), c.recurrence)
+        : null;
       const statusCell = c.status === 'scheduled'
-        ? el('span', { class: 'chip', style: 'color:var(--warm)' }, el('i', { class: 'fa-solid fa-clock', style: 'margin-right:4px' }), fmtDate(c.scheduled_at))
-        : (c.status === 'sent' ? el('span', { class: 'chip', style: 'color:var(--won)' }, 'sent') : el('span', { class: 'chip' }, 'draft'));
+        ? el('span', {}, el('span', { class: 'chip', style: 'color:var(--warm)' }, el('i', { class: 'fa-solid fa-clock', style: 'margin-right:4px' }), fmtDate(c.scheduled_at)), recurBadge)
+        : (c.status === 'sent' ? el('span', {}, el('span', { class: 'chip', style: 'color:var(--won)' }, 'sent'), recurBadge) : el('span', { class: 'chip' }, 'draft'));
       return el('tr', { 'data-testid': 'email-camp-row-' + c.id },
         el('td', {}, c.name), el('td', { style: 'color:var(--text-3)' }, c.subject),
         el('td', {}, c.audience_type + (c.audience_value ? (':' + c.audience_value) : '')), el('td', {}, String(c.recipients)),
@@ -156,11 +159,12 @@
     async function scheduleModal(c) {
       const dt = el('input', { class: 'input', type: 'datetime-local', 'data-testid': 'email-camp-schedule-input' });
       const now = new Date(Date.now() + 5 * 60000); dt.value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      const recur = el('select', { class: 'input', 'data-testid': 'email-camp-schedule-recurrence' }, ...[['none', 'One-off (no repeat)'], ['weekly', 'Repeat weekly'], ['monthly', 'Repeat monthly']].map(([v, l]) => el('option', { value: v }, l)));
       const save = el('button', { class: 'btn btn--primary', 'data-testid': 'email-camp-schedule-save' }, 'Schedule campaign');
-      const m = modal({ title: 'Schedule · ' + c.name, bodyNode: el('div', {}, el('div', { class: 'field' }, el('label', {}, 'Send date & time'), dt), el('div', { style: 'font-size:12px;color:var(--text-3)' }, 'The campaign will be sent automatically at this time.')), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+      const m = modal({ title: 'Schedule · ' + c.name, bodyNode: el('div', {}, el('div', { class: 'field' }, el('label', {}, 'Send date & time'), dt), el('div', { class: 'field' }, el('label', {}, 'Repeat'), recur), el('div', { style: 'font-size:12px;color:var(--text-3)' }, 'The campaign sends automatically at this time' + '; repeating campaigns re-send each cycle.')), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
       save.addEventListener('click', async () => {
         if (!dt.value) { toast('Pick a date & time', 'error'); return; }
-        try { await api.post('/email/campaigns/' + c.id + '/schedule', { scheduled_at: new Date(dt.value).toISOString() }); toast('Campaign scheduled', 'success'); m.close(); CRM.render(); }
+        try { await api.post('/email/campaigns/' + c.id + '/schedule', { scheduled_at: new Date(dt.value).toISOString(), recurrence: recur.value }); toast('Campaign scheduled', 'success'); m.close(); CRM.render(); }
         catch (e) { toast(e.message, 'error'); }
       });
     }
@@ -203,6 +207,7 @@
       const fromN = el('input', { class: 'input', placeholder: 'Sales Team', 'data-testid': 'email-camp-fromname' }); fromN.addEventListener('input', () => f.from_name = fromN.value);
       const fromE = el('input', { class: 'input', placeholder: 'hello@yourco.com', 'data-testid': 'email-camp-fromemail' }); fromE.addEventListener('input', () => f.from_email = fromE.value);
       const schedI = el('input', { class: 'input', type: 'datetime-local', 'data-testid': 'email-camp-scheduled' }); schedI.addEventListener('input', () => f.scheduled_at = schedI.value);
+      const recur = el('select', { class: 'input', 'data-testid': 'email-camp-recurrence' }, ...[['none', 'One-off (no repeat)'], ['weekly', 'Repeat weekly'], ['monthly', 'Repeat monthly']].map(([v, l]) => el('option', { value: v }, l))); recur.addEventListener('change', () => f.recurrence = recur.value);
       const save = el('button', { class: 'btn btn--primary', 'data-testid': 'email-camp-save' }, 'Create campaign');
       const m = modal({ title: 'New Email Campaign', bodyNode: el('div', {},
         el('div', { class: 'field' }, el('label', {}, 'Name'), nameI),
@@ -211,12 +216,13 @@
         el('div', { class: 'field' }, el('label', {}, 'Audience'), audType),
         el('div', { class: 'field' }, audVal),
         el('div', { style: 'display:flex;gap:10px' }, el('div', { class: 'field', style: 'flex:1' }, el('label', {}, 'From name'), fromN), el('div', { class: 'field', style: 'flex:1' }, el('label', {}, 'From email'), fromE)),
-        el('div', { class: 'field' }, el('label', {}, 'Schedule for later (optional)'), schedI)),
+        el('div', { style: 'display:flex;gap:10px' }, el('div', { class: 'field', style: 'flex:1' }, el('label', {}, 'Schedule for later (optional)'), schedI), el('div', { class: 'field', style: 'flex:1' }, el('label', {}, 'Repeat'), recur))),
         footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
       save.addEventListener('click', async () => {
         if (!f.name || !f.subject) { toast('Name & subject required', 'error'); return; }
         if (!f.html) { toast('Pick a template', 'error'); return; }
-        try { await api.post('/email/campaigns', { name: f.name, subject: f.subject, template_id: f.template_id || null, html: f.html, audience_type: f.audience_type, audience_value: f.audience_value || null, from_name: f.from_name || null, from_email: f.from_email || null, scheduled_at: f.scheduled_at ? new Date(f.scheduled_at).toISOString() : null }); toast(f.scheduled_at ? 'Campaign scheduled' : 'Campaign created', 'success'); m.close(); CRM.render(); }
+        if ((f.recurrence && f.recurrence !== 'none') && !f.scheduled_at) { toast('Pick a start date & time for a repeating campaign', 'error'); return; }
+        try { await api.post('/email/campaigns', { name: f.name, subject: f.subject, template_id: f.template_id || null, html: f.html, audience_type: f.audience_type, audience_value: f.audience_value || null, from_name: f.from_name || null, from_email: f.from_email || null, scheduled_at: f.scheduled_at ? new Date(f.scheduled_at).toISOString() : null, recurrence: f.recurrence || 'none' }); toast((f.scheduled_at || (f.recurrence && f.recurrence !== 'none')) ? 'Campaign scheduled' : 'Campaign created', 'success'); m.close(); CRM.render(); }
         catch (e) { toast(e.message, 'error'); }
       });
     }

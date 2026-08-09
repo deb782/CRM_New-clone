@@ -56,14 +56,30 @@ class CampaignDispatcher
             $res['status'] === 'sent' ? $sent++ : $failed++;
         }
 
-        $campaign->update([
-            'status' => 'sent',
-            'recipients' => $targets->count(),
-            'sent_count' => $sent,
-            'failed_count' => $failed,
-            'sent_at' => now(),
-            'scheduled_at' => null,
-        ]);
+        $campaign->increment('sent_count', $sent);
+        $campaign->increment('failed_count', $failed);
+
+        $recurrence = $campaign->recurrence ?? 'none';
+        if (in_array($recurrence, ['weekly', 'monthly'], true)) {
+            $next = ($campaign->scheduled_at ?: now())->copy();
+            do {
+                $next = $recurrence === 'weekly' ? $next->addWeek() : $next->addMonth();
+            } while ($next->lte(now()));
+
+            $campaign->update([
+                'status' => 'scheduled',
+                'recipients' => $targets->count(),
+                'sent_at' => now(),
+                'scheduled_at' => $next,
+            ]);
+        } else {
+            $campaign->update([
+                'status' => 'sent',
+                'recipients' => $targets->count(),
+                'sent_at' => now(),
+                'scheduled_at' => null,
+            ]);
+        }
 
         return ['sent' => $sent, 'failed' => $failed, 'total' => $targets->count()];
     }

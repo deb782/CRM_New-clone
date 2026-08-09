@@ -53,8 +53,12 @@ class EmailCampaignController extends Controller
         $data = $this->data($request);
         $data['created_by'] = $request->user()->id;
         $data['recipients'] = $this->dispatcher->audience($data)->count();
-        if (! empty($data['scheduled_at'])) {
+        $recurring = ($data['recurrence'] ?? 'none') !== 'none';
+        if (! empty($data['scheduled_at']) || $recurring) {
             $data['status'] = 'scheduled';
+            if (empty($data['scheduled_at']) && $recurring) {
+                $data['scheduled_at'] = now();
+            }
         }
 
         return response()->json(['campaign' => EmailCampaign::create($data)], 201);
@@ -67,7 +71,11 @@ class EmailCampaignController extends Controller
         }
         $data = $this->data($request);
         $data['recipients'] = $this->dispatcher->audience($data)->count();
-        $data['status'] = ! empty($data['scheduled_at']) ? 'scheduled' : 'draft';
+        $recurring = ($data['recurrence'] ?? 'none') !== 'none';
+        $data['status'] = (! empty($data['scheduled_at']) || $recurring) ? 'scheduled' : 'draft';
+        if (empty($data['scheduled_at']) && $recurring) {
+            $data['scheduled_at'] = now();
+        }
         $email_campaign->update($data);
 
         return response()->json(['campaign' => $email_campaign->fresh()]);
@@ -87,9 +95,11 @@ class EmailCampaignController extends Controller
         }
         $data = $request->validate([
             'scheduled_at' => 'required|date|after:now',
+            'recurrence' => 'nullable|in:none,weekly,monthly',
         ]);
         $email_campaign->update([
             'scheduled_at' => $data['scheduled_at'],
+            'recurrence' => $data['recurrence'] ?? 'none',
             'status' => 'scheduled',
         ]);
 
@@ -101,7 +111,7 @@ class EmailCampaignController extends Controller
         if ($email_campaign->status !== 'scheduled') {
             return response()->json(['message' => 'Campaign is not scheduled'], 422);
         }
-        $email_campaign->update(['scheduled_at' => null, 'status' => 'draft']);
+        $email_campaign->update(['scheduled_at' => null, 'recurrence' => 'none', 'status' => 'draft']);
 
         return response()->json(['campaign' => $email_campaign->fresh()]);
     }
@@ -129,6 +139,7 @@ class EmailCampaignController extends Controller
             'from_name' => 'nullable|string|max:120',
             'from_email' => 'nullable|email',
             'scheduled_at' => 'nullable|date|after:now',
+            'recurrence' => 'nullable|in:none,weekly,monthly',
         ]);
         if (empty($data['html'])) {
             abort(422, 'Email content is required');
