@@ -139,6 +139,17 @@ Built mock-first (WHATSAPP_DRIVER=mock), real-time via ~4s polling. Ported & imp
 - **Assignment Routing**: new WhatsApp conversations auto-assign to the least-busy active sales_exec/sales_manager (`InboxService::pickAgent()`), toggleable via `whatsapp/settings` (GET leads.view, PUT config.manage) with a switch on WA Analytics. New: `whatsapp_settings` (auto_assign, default on), `WhatsappSetting`.
 - New migration `2026_01_14_...whatsapp_canned_and_settings`; `Contract::sendTemplate()` added to all drivers; nav item WA Canned Replies; blade v=12.
 
+## Environment recovery note (2026-06)
+The preview container reset to the default (Node/Python/Mongo) image mid-session, wiping system packages (PHP, MariaDB) — only `/app` persists (code + Laravel `vendor/`). Recovered by reinstalling PHP 8.2 + MariaDB and re-seeding. Durability added:
+- `/app/laravel-crm/setup.sh` — one-command recovery (installs PHP+MariaDB, starts DB, migrates/seeds, storage:link).
+- Supervisor programs `mariadb` (`/usr/sbin/mariadbd`) + `laravel` (`php artisan serve --host=0.0.0.0 --port=8000`) at `/etc/supervisor/conf.d/laravel.conf`.
+- If the app is ever down after a reset: run `bash /app/laravel-crm/setup.sh` then `sudo supervisorctl reread && sudo supervisorctl update`.
+
+## Implemented — WhatsApp Notes & Tags (2026-06, verified 21/21 backend + 100% frontend, iteration_17)
+- **Private notes**: internal-only notes per conversation (`whatsapp/conversations/{id}/notes` GET/POST/DELETE, leads.view) with author; delete allowed for the author or config.manage. Inbox shows a Notes modal (list + add + delete).
+- **Tags**: freeform conversation labels (`PUT whatsapp/conversations/{id}/tags`, trim+de-dupe); tags bar in the thread + chips on the conversation list. Included in `present()`.
+- New migration `2026_01_15_...whatsapp_notes_tags` (conversations.tags json; whatsapp_notes); `WhatsappNote` model; blade v=13.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.
