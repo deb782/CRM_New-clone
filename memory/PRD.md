@@ -150,6 +150,13 @@ The preview container reset to the default (Node/Python/Mongo) image mid-session
 - **Tags**: freeform conversation labels (`PUT whatsapp/conversations/{id}/tags`, trim+de-dupe); tags bar in the thread + chips on the conversation list. Included in `present()`.
 - New migration `2026_01_15_...whatsapp_notes_tags` (conversations.tags json; whatsapp_notes); `WhatsappNote` model; blade v=13.
 
+## Implemented — Email Broadcast module (Mailchimp-style) (2026-06, verified 27/28 backend + 100% frontend, iteration_18 + self-test)
+- **Templates**: visual designer (`#/emailTemplates`) with formatting toolbar (headings/bold/links/images/buttons), merge-tag dropdown, right-side live preview, raw-HTML paste + `.html` import, 5 starter templates (Welcome, New Launch, Site Visit Reminder, Festive Offer, Blank). CRUD via `email/templates` (config.manage).
+- **Campaigns**: `email/campaigns` CRUD + `POST email/campaigns/{id}/send`; audience segmentation by all/status/temperature/source; mock-first send via separate `BroadcastMailer` (EmailService untouched).
+- **Merge tags**: `personalize()` now resolves BOTH `{name}` and `{{name}}` forms (name/email/phone/project); `{project}` pulls the lead's real project name (`lead->project->name`), falling back to "our projects".
+- **Tracking**: 1x1 open pixel + click-rewrite links (public, Sanctum-bypassed); click no longer counted when the `u` param is missing/invalid. Rendered `body_html` now persisted on `email_messages` for audit (migration `2026_01_17_...email_message_body`).
+- Nav entries `Email Templates` / `Email Campaigns` under Configuration group. Remaining 1 test "failure" is a cosmetic curl redirect-url normalization (actual Location header is exact). Live Gmail Workspace SMTP pending user credentials.
+
 ## Backlog (prioritized)
 - **P3 nice-to-haves**: commission monthly statements; SLA board synthetic-deadline flag in UI; partner self-registration; honeypot/captcha on public referral for real-domain anti-spam.
 - **Tech hardening**: move serial-number generation (receipts/letters/AFS/demand) to an atomic counter for heavy multi-user concurrency.

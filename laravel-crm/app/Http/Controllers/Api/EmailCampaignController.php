@@ -75,6 +75,7 @@ class EmailCampaignController extends Controller
                 'lead_id' => $lead->id,
                 'to_email' => $lead->email,
                 'subject' => $subject,
+                'body_html' => $html,
                 'status' => $res['status'],
                 'open_token' => $token,
                 'provider_id' => $res['provider_id'],
@@ -95,12 +96,20 @@ class EmailCampaignController extends Controller
 
     private function personalize(string $text, Lead $lead): string
     {
-        return strtr($text, [
-            '{{name}}' => $lead->name ?: 'there',
-            '{{email}}' => (string) $lead->email,
-            '{{phone}}' => (string) $lead->phone,
-            '{{project}}' => 'our projects',
-        ]);
+        $values = [
+            'name' => $lead->name ?: 'there',
+            'email' => (string) $lead->email,
+            'phone' => (string) $lead->phone,
+            'project' => optional($lead->project)->name ?: 'our projects',
+        ];
+
+        $map = [];
+        foreach ($values as $tag => $value) {
+            $map['{{'.$tag.'}}'] = $value; // double-brace mustache
+            $map['{'.$tag.'}'] = $value;   // single-brace shorthand
+        }
+
+        return strtr($text, $map);
     }
 
     private function injectTracking(string $html, string $token, string $appUrl): string

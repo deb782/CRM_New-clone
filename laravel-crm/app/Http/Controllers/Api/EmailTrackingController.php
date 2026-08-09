@@ -28,8 +28,9 @@ class EmailTrackingController extends Controller
     public function click(Request $request, string $token)
     {
         $url = $request->query('u');
+        $validUrl = $url && filter_var($url, FILTER_VALIDATE_URL);
         $msg = EmailMessage::where('open_token', $token)->first();
-        if ($msg) {
+        if ($msg && $validUrl) {
             if (! $msg->opened_at) {
                 $msg->opened_at = now();
                 EmailCampaign::where('id', $msg->campaign_id)->increment('open_count');
@@ -41,6 +42,6 @@ class EmailTrackingController extends Controller
             $msg->save();
         }
 
-        return redirect()->away($url && filter_var($url, FILTER_VALIDATE_URL) ? $url : (config('app.url') ?: '/'));
+        return redirect()->away($validUrl ? $url : (config('app.url') ?: '/'));
     }
 }
