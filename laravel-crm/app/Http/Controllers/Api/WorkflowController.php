@@ -36,6 +36,37 @@ class WorkflowController extends Controller
         return response()->json(['workflow' => $workflow->fresh()]);
     }
 
+    /** Read-only journey of a lead along the active flow (train-tracker for reps). */
+    public function leadJourney(\App\Models\Lead $lead)
+    {
+        $wf = Workflow::where('status', 'active')->latest('id')->first() ?: Workflow::latest('id')->first();
+        if (! $wf) {
+            return response()->json(['workflow' => null]);
+        }
+        $run = \App\Models\WorkflowRun::where('workflow_id', $wf->id)->where('lead_id', $lead->id)->latest('id')->first();
+        $done = [];
+        if ($run) {
+            foreach (($run->log ?? []) as $s) {
+                if (! empty($s['node'])) { $done[(string) $s['node']] = true; }
+            }
+        }
+        $nodeCount = count((array) data_get($wf->graph, 'drawflow.Home.data', []));
+
+        return response()->json([
+            'workflow' => ['id' => $wf->id, 'name' => $wf->name, 'status' => $wf->status, 'graph' => $wf->graph],
+            'lead' => ['id' => $lead->id, 'name' => $lead->name, 'status' => $lead->status, 'temperature' => $lead->temperature],
+            'run' => $run ? [
+                'status' => $run->status,
+                'current_node' => $run->current_node,
+                'done' => array_keys($done),
+                'resume_at' => $run->resume_at,
+                'updated_at' => $run->updated_at,
+                'log' => $run->log,
+            ] : null,
+            'progress' => ['done' => count($done), 'total' => $nodeCount],
+        ]);
+    }
+
     public function activate(Workflow $workflow)
     {
         $workflow->update(['status' => 'active']);
