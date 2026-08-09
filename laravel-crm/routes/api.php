@@ -18,11 +18,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // --- Public ---
-    Route::post('auth/login', [AuthController::class, 'login']);
-    Route::post('webhooks/lead-form', [WebhookController::class, 'leadForm']);
-    Route::post('webhooks/whatsapp', [WebhookController::class, 'whatsapp']);
-    Route::post('webhooks/telephony', [WebhookController::class, 'telephony']);
-    Route::get('track/email/{event}/{emailId}', [WebhookController::class, 'emailEvent']);
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::post('webhooks/lead-form', [WebhookController::class, 'leadForm']);
+        Route::post('webhooks/whatsapp', [WebhookController::class, 'whatsapp']);
+        Route::post('webhooks/telephony', [WebhookController::class, 'telephony']);
+        Route::get('track/email/{event}/{emailId}', [WebhookController::class, 'emailEvent']);
+    });
 
     // --- Authenticated ---
     Route::middleware('auth:sanctum')->group(function () {
