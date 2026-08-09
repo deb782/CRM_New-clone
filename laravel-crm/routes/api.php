@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CommunicationController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\CostSheetController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DealBookingController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\InventoryController;
@@ -29,6 +30,11 @@ Route::prefix('v1')->group(function () {
         Route::post('webhooks/whatsapp', [WebhookController::class, 'whatsapp']);
         Route::post('webhooks/telephony', [WebhookController::class, 'telephony']);
         Route::get('track/email/{event}/{emailId}', [WebhookController::class, 'emailEvent']);
+    });
+    // Public booking form (token link)
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::get('booking-form/{token}', [DealBookingController::class, 'publicShow']);
+        Route::post('booking-form/{token}', [DealBookingController::class, 'publicSubmit']);
     });
 
     // --- Authenticated ---
@@ -120,6 +126,14 @@ Route::prefix('v1')->group(function () {
 
         Route::get('discount-approvals', [DiscountController::class, 'index']);
         Route::post('discount-approvals/{approval}/decide', [DiscountController::class, 'decide'])->middleware('permission:discounts.approve');
+
+        // Deal closure & booking (Section M)
+        Route::post('leads/{lead}/won', [DealBookingController::class, 'markWon'])->middleware('permission:leads.edit');
+        Route::post('leads/{lead}/lost', [DealBookingController::class, 'markLost'])->middleware('permission:leads.edit');
+        Route::get('bookings', [DealBookingController::class, 'index']);
+        Route::get('bookings/{booking}', [DealBookingController::class, 'show']);
+        Route::post('bookings/{booking}/verify', [DealBookingController::class, 'verify']);
+        Route::post('bookings/{booking}/pay-token', [DealBookingController::class, 'payToken']);
 
         // Config (admin)
         Route::get('scoring-rules', [ScoringController::class, 'index']);

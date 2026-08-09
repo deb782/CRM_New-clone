@@ -96,7 +96,7 @@ class LeadController extends Controller
 
     public function show(Lead $lead)
     {
-        $lead->load(['stage', 'owner', 'project', 'contact', 'tasks.assignee', 'calls', 'whatsappMessages', 'emails', 'enrollments.sequence', 'siteVisits.project', 'siteVisits.plot']);
+        $lead->load(['stage', 'owner', 'project', 'contact', 'tasks.assignee', 'calls', 'whatsappMessages', 'emails', 'enrollments.sequence', 'siteVisits.project', 'siteVisits.plot', 'bookings.plot', 'bookings.project']);
         return response()->json([
             'lead' => $lead,
             'timeline' => $lead->activities()->with('user')->limit(100)->get(),
@@ -105,6 +105,9 @@ class LeadController extends Controller
 
     public function update(Request $request, Lead $lead)
     {
+        if ($lead->locked && ! $request->user()->hasPermission('postsales.manage')) {
+            abort(423, 'This record is locked (post-sales handover). Contact post-sales to edit.');
+        }
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'nullable|email',
@@ -124,6 +127,9 @@ class LeadController extends Controller
 
     public function qualify(Request $request, Lead $lead)
     {
+        if ($lead->locked && ! $request->user()->hasPermission('postsales.manage')) {
+            abort(423, 'This record is locked (post-sales handover).');
+        }
         $data = $request->validate([
             'interest_level' => 'nullable|in:very_high,high,medium,low',
             'budget_min' => 'nullable|integer',

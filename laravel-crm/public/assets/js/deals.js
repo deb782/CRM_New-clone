@@ -157,4 +157,83 @@
       save.addEventListener('click', async () => { let milestones; try { milestones = JSON.parse(ms.value); } catch (e) { toast('Invalid milestones JSON', 'error'); return; } try { await api.post('/payment-plans', { name: f.name, code: f.code, description: f.description, milestones }); toast('Saved', 'success'); m.close(); CRM.render(); } catch (err) { toast(err.message, 'error'); } });
     }
   };
+
+  // ===== Deal closure (Won / Lost) =====
+  CRM.markWon = async function (lead, onDone) {
+    const f = {};
+    const plots = await api.get('/inventory/available-plots' + (lead.project_id ? '?project_id=' + lead.project_id : '')).then(r => r.data).catch(() => []);
+    const plotSel = el('select', { class: 'select', 'data-testid': 'won-plot' }, el('option', { value: '' }, 'Use held unit / none'), ...plots.map(p => el('option', { value: p.id }, p.number + ' · ' + (p.unit_type || '') + ' · ' + money(p.price))));
+    plotSel.addEventListener('change', () => f.plot_id = plotSel.value || null);
+    const token = el('input', { class: 'input', type: 'number', placeholder: 'Auto = 10% of deal', 'data-testid': 'won-token' }); token.addEventListener('input', () => f.token_amount = token.value);
+    const body = el('div', {},
+      el('div', { class: 'field' }, el('label', {}, 'Unit'), plotSel),
+      el('div', { class: 'field' }, el('label', {}, 'Token / EOI amount (₹)'), token),
+      el('div', { class: 'help' }, 'Marking Won initiates the booking, auto-sends the booking form (WhatsApp + email), holds the unit, hands over to post-sales and locks the lead record.'));
+    const save = el('button', { class: 'btn btn--primary', 'data-testid': 'won-confirm' }, el('i', { class: 'fa-solid fa-trophy' }), 'Confirm Deal Won');
+    const m = modal({ title: 'Close Deal — Won', bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+    save.addEventListener('click', async () => { try { await api.post('/leads/' + lead.id + '/won', { plot_id: f.plot_id || null, token_amount: f.token_amount ? Number(f.token_amount) : null }); toast('Deal won — booking initiated', 'success'); m.close(); if (onDone) onDone(); } catch (err) { toast(err.message, 'error'); } });
+  };
+
+  CRM.markLost = function (lead, onDone) {
+    const reason = el('textarea', { class: 'input', rows: 3, placeholder: 'Reason for loss (e.g. price, chose competitor, financing)…', 'data-testid': 'lost-reason' });
+    const save = el('button', { class: 'btn btn--danger', 'data-testid': 'lost-confirm' }, 'Confirm Deal Lost');
+    const m = modal({ title: 'Close Deal — Lost', bodyNode: el('div', {}, el('div', { class: 'field' }, el('label', {}, 'Loss reason'), reason), el('div', { class: 'help' }, 'The unit is released back to inventory and the lead enters long-term re-engagement.')), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+    save.addEventListener('click', async () => { try { await api.post('/leads/' + lead.id + '/lost', { reason: reason.value }); toast('Deal marked lost', 'success'); m.close(); if (onDone) onDone(); } catch (err) { toast(err.message, 'error'); } });
+  };
+
+  // ===== Booking tab in the lead drawer =====
+  CRM.leadBookingTab = function (lead, reload) {
+    const wrap = el('div', { 'data-testid': 'booking-tab' }, el('div', { class: 'spinner' }));
+    (async () => {
+      const full = await api.get('/leads/' + lead.id);
+      const bookings = full.lead.bookings || [];
+      wrap.innerHTML = '';
+      if (!bookings.length) {
+        wrap.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-contract' }), el('div', {}, 'No booking yet — mark the deal Won to initiate one')));
+        return;
+      }
+      bookings.forEach(b => wrap.appendChild(bookingCard(b, reload)));
+    })();
+    return wrap;
+  };
+
+  function bookingCard(b, reload) {
+    const line = (l, v) => el('div', { class: 'row' }, el('span', { class: 'l' }, l), el('span', { class: 'r' }, v));
+    const statusColor = { initiated: 'var(--text-3)', form_sent: 'var(--accent)', form_submitted: 'var(--warm)', verified: 'var(--accent)', confirmed: 'var(--won)', cancelled: 'var(--hot)' }[b.status] || 'var(--text-2)';
+    const btns = el('div', { style: 'display:flex;gap:8px;margin-top:12px;flex-wrap:wrap' });
+    if (['form_submitted'].includes(b.status)) btns.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'bk-verify-' + b.id, onclick: async () => { await api.post('/bookings/' + b.id + '/verify'); toast('Booking verified', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-clipboard-check' }), 'Verify Form'));
+    if (b.token_status !== 'paid') btns.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'bk-pay-' + b.id, onclick: async () => { await api.post('/bookings/' + b.id + '/pay-token'); toast('Token payment recorded', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-indian-rupee-sign' }), 'Record Token (mock)'));
+    const fd = b.form_data || {};
+    return el('div', { class: 'card', 'data-testid': 'booking-' + b.id },
+      el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px' },
+        el('b', { class: 'mono' }, b.booking_ref), el('span', { class: 'chip', style: 'color:' + statusColor }, CRM.stageName(b.status))),
+      el('div', { class: 'detail-grid' },
+        line('Deal Value', money(b.deal_value)), line('Token / EOI', money(b.token_amount)),
+        line('Token Status', b.token_status), line('Unit', b.plot ? b.plot.number : '—'),
+        line('Form', b.form_submitted_at ? 'Submitted' : 'Awaiting'), line('Verified', b.verified_at ? 'Yes' : 'No')),
+      b.payment_link ? el('div', { class: 'help', style: 'margin-top:8px' }, 'Payment link: ' + b.payment_link) : null,
+      Object.keys(fd).length ? el('div', { style: 'margin-top:10px' }, el('div', { class: 'section-title', style: 'margin:6px 0' }, 'Submitted details'),
+        ...Object.entries(fd).map(([k, v]) => el('div', { style: 'font-size:12.5px;color:var(--text-2);display:flex;justify-content:space-between;padding:3px 0' }, el('span', {}, k.replace(/_/g, ' ')), el('b', {}, String(v))))) : null,
+      btns);
+  }
+
+  // ===== Bookings page =====
+  CRM.pages.bookings = async function (view) {
+    CRM.setActions(null);
+    const res = await api.get('/bookings');
+    view.innerHTML = '';
+    if (!res.data.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-contract' }), el('div', {}, 'No bookings yet'))); return; }
+    const tbody = el('tbody', { 'data-testid': 'bookings-tbody' });
+    res.data.forEach(b => {
+      const statusColor = { initiated: 'var(--text-3)', form_sent: 'var(--accent)', form_submitted: 'var(--warm)', verified: 'var(--accent)', confirmed: 'var(--won)', cancelled: 'var(--hot)' }[b.status] || 'var(--text-2)';
+      tbody.appendChild(el('tr', { 'data-testid': 'booking-row-' + b.id, onclick: () => b.lead && (location.hash = '#/leads/' + b.lead.id) },
+        el('td', { class: 'mono' }, b.booking_ref),
+        el('td', {}, b.lead ? b.lead.name : '—'),
+        el('td', {}, b.project ? b.project.name : '—', b.plot ? el('div', { style: 'font-size:12px;color:var(--text-3)' }, 'Unit ' + b.plot.number) : null),
+        el('td', {}, money(b.deal_value)),
+        el('td', {}, money(b.token_amount) + ' · ' + b.token_status),
+        el('td', {}, el('span', { class: 'chip', style: 'color:' + statusColor }, CRM.stageName(b.status)))));
+    });
+    view.appendChild(el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Ref'), el('th', {}, 'Customer'), el('th', {}, 'Project / Unit'), el('th', {}, 'Deal Value'), el('th', {}, 'Token'), el('th', {}, 'Status'))), tbody)));
+  };
 })();

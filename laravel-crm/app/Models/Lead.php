@@ -15,6 +15,8 @@ class Lead extends Model
         'whatsapp_opt_out' => 'boolean',
         'do_not_contact' => 'boolean',
         'is_invalid' => 'boolean',
+        'locked' => 'boolean',
+        'locked_at' => 'datetime',
         'verified_at' => 'datetime',
         'last_contacted_at' => 'datetime',
         'next_follow_up_at' => 'datetime',
@@ -79,5 +81,10 @@ class Lead extends Model
     public function costSheets()
     {
         return $this->hasMany(CostSheet::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class)->latest();
     }
 }

@@ -62,6 +62,7 @@ class DatabaseSeeder extends Seeder
             'leads.delete' => 'Delete leads', 'leads.override' => 'Override/downgrade status',
             'projects.manage' => 'Manage projects', 'config.manage' => 'Manage configuration',
             'users.manage' => 'Manage users & roles', 'discounts.approve' => 'Approve discounts',
+            'postsales.manage' => 'Manage post-sales / locked records',
         ];
         foreach ($perms as $key => $label) {
             Permission::firstOrCreate(['key' => $key], ['label' => $label, 'group' => explode('.', $key)[0]]);
@@ -72,10 +73,11 @@ class DatabaseSeeder extends Seeder
     {
         $map = [
             'admin' => ['name' => 'Administrator', 'perms' => 'all'],
-            'sales_manager' => ['name' => 'Sales Manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'projects.manage', 'config.manage', 'discounts.approve']],
+            'sales_manager' => ['name' => 'Sales Manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'projects.manage', 'config.manage', 'discounts.approve', 'postsales.manage']],
             'sales_exec' => ['name' => 'Sales Exec', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
             'marketing' => ['name' => 'Marketing', 'perms' => ['leads.view', 'leads.create', 'config.manage']],
             'crm_ops' => ['name' => 'CRM Ops', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'config.manage']],
+            'post_sales' => ['name' => 'Post-Sales / CS', 'perms' => ['leads.view', 'leads.edit', 'postsales.manage']],
         ];
         $roles = [];
         foreach ($map as $slug => $cfg) {
@@ -97,6 +99,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Rahul Verma', 'email' => 'rahul@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_exec', 'phone' => '9000000003'],
             ['name' => 'Aisha Khan', 'email' => 'aisha@crm.local', 'password' => 'Demo@12345', 'role' => 'sales_exec', 'phone' => '9000000004'],
             ['name' => 'Marketing Team', 'email' => 'marketing@crm.local', 'password' => 'Demo@12345', 'role' => 'marketing', 'phone' => '9000000005'],
+            ['name' => 'Cust Success', 'email' => 'cs@crm.local', 'password' => 'Demo@12345', 'role' => 'post_sales', 'phone' => '9000000006'],
         ];
         foreach ($users as $u) {
             User::updateOrCreate(['email' => $u['email']], [

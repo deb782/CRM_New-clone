@@ -187,6 +187,7 @@
       if (activeTab === 'qualify') return qualifyForm();
       if (activeTab === 'comms') return commsPanel();
       if (activeTab === 'quote') return CRM.leadQuoteTab(lead, reload);
+      if (activeTab === 'booking') return CRM.leadBookingTab(lead, reload);
     }
 
     function qualifyForm() {
@@ -269,11 +270,18 @@
     actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'recalc-btn', onclick: async () => { const r = await api.post('/leads/' + id + '/recalculate'); toast('Score: ' + r.result.total + ' (' + r.result.temperature + ')', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-arrows-rotate' }), 'Recalculate'));
     actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'enroll-btn', onclick: async () => { await api.post('/leads/' + id + '/enroll', {}); toast('Enrolled in ' + lead.temperature + ' cadence', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-seedling' }), 'Enroll Nurture'));
     actionRow.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'schedule-visit-btn', onclick: () => CRM.scheduleVisit(lead, reload) }, el('i', { class: 'fa-solid fa-calendar-check' }), 'Schedule Visit'));
+    if (!lead.locked && lead.status !== 'won' && lead.status !== 'lost') {
+      actionRow.appendChild(el('button', { class: 'btn btn--sm', style: 'color:var(--won);border-color:var(--won)', 'data-testid': 'won-btn', onclick: () => CRM.markWon(lead, reload) }, el('i', { class: 'fa-solid fa-trophy' }), 'Mark Won'));
+      actionRow.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'lost-btn', onclick: () => CRM.markLost(lead, reload) }, el('i', { class: 'fa-solid fa-xmark' }), 'Mark Lost'));
+    }
+    if (lead.locked) {
+      main.appendChild(el('div', { class: 'dup-alert', 'data-testid': 'lock-banner', style: 'display:flex;align-items:center;gap:8px' }, el('i', { class: 'fa-solid fa-lock' }), el('span', {}, 'Record locked — deal won and handed over to post-sales. Editing is restricted.')));
+    }
     main.appendChild(actionRow);
 
     const tabsBar = el('div', { class: 'tabs' });
     const content = el('div', { 'data-testid': 'tab-content' });
-    [['timeline', 'Activity'], ['qualify', 'Qualify'], ['comms', 'Communicate'], ['quote', 'Quote']].forEach(([key, label]) => {
+    [['timeline', 'Activity'], ['qualify', 'Qualify'], ['comms', 'Communicate'], ['quote', 'Quote'], ['booking', 'Booking']].forEach(([key, label]) => {
       const t = el('div', { class: 'tab ' + (activeTab === key ? 'active' : ''), 'data-testid': 'tab-' + key, onclick: () => { activeTab = key; [...tabsBar.children].forEach(c => c.classList.remove('active')); t.classList.add('active'); content.innerHTML = ''; content.appendChild(tabContent()); } }, label);
       tabsBar.appendChild(t);
     });

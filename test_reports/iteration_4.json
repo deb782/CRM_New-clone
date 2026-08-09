@@ -1,0 +1,39 @@
+{
+  "summary": "Section M (Deal Won/Lost + Booking + Public Form + Verify/Pay + Record Lock + RBAC) end-to-end tested against Laravel 11 CRM at http://127.0.0.1:8000. Added /app/backend/tests/test_section_m.py with 7 pytest cases: (1) POST /leads/{id}/won returns 201 with booking.booking_ref='BKG-...', form_token, status='form_sent', token_amount=800000, payment_link set; lead becomes locked and stage.slug='won'; post-sales onboarding task is created. (2) Lock enforcement: rahul@crm.local (Sales Exec, leads.edit but no postsales.manage) PUT /leads/{id} and POST /leads/{id}/qualify BOTH return 423 as required; cs@crm.local (postsales.manage) and admin succeed with 200. (3) Public booking form: GET /booking-form/{token} (no-auth) returns booking_ref, lead, project, plot, token_amount; POST /booking-form/{token} (no-auth) sets status='form_submitted'; then POST /bookings/{id}/verify -> verified, POST /bookings/{id}/pay-token -> token_status='paid' and status='confirmed'. (4) LOST: POST /leads/{id}/lost sets stage.slug='lost' and lost_reason='chose competitor'. (5) Bookings listing: GET /bookings returns paginated data[], GET /bookings/{id} returns detail with lead. (6) RBAC: marketing@crm.local -> 403 on /won. (7) rahul@crm.local can initiate /won (201). RESULT: 7/7 Section M PASS. Regression: 26/26 Phase A PASS, 17/18 Phase B PASS (pre-existing failure test_outcome_interested_handover_and_hold — GET /tasks is paginated and its filter query does not filter by lead_id; unrelated to Section M), 14/14 Section L PASS. Total 64/65 (1 pre-existing regression noted). FRONTEND (Playwright, admin@crm.local): login OK, /#/leads renders 25 lead rows, opened non-won lead 'TEST_SV_4e79d04c' — 'Mark Won' (won-btn) and 'Mark Lost' (lost-btn) present in drawer action row; Mark Won -> modal with won-token accepted 750000 -> won-confirm -> lock-banner 'Record locked — deal won and handed over to post-sales' rendered, stage dropdown reads 'Won', toast 'Deal won — booking initiated' shown, Open Tasks now includes 'Post-sales onboarding & document collection: TEST_SV_4e79d04c'; Booking tab (tab-booking) shows card booking-17 with ref BKG-20260809-P4WI, Deal Value ₹81,00,000, Token ₹7,50,000, Token Status 'pending', payment link visible, 'Record Token (mock)' button (bk-pay-<id>) present. Bookings page (nav-bookings) renders 17 booking-row entries with status pills (Form Sent, Confirmed after verify+pay for TEST_M_5b2e7471/CPUX/YLWF etc.). Mark Lost flow on another lead ('TEST_SV_001bedd5'): lost-btn -> lost-reason='chose competitor' -> lost-confirm -> stage becomes 'lost', activity timeline shows 'Deal LOST · chose competitor' + 'Nurturing paused', and 'Re-engage lost lead' task created; toast 'Deal marked lost' displayed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/v1/tasks?lead_id={id}", "issue": "Filter parameter appears to be ignored — returns tasks for other leads on first page. Phase-B test_outcome_interested_handover_and_hold fails due to task not being on first page. Pre-existing (unrelated to Section M)."},
+      {"endpoint": "POST /api/v1/leads/{id}/won", "issue": "Returns 201 (correct RESTful), but iteration_3 tests / spec examples showed 200. Documented in test contract note. Minor consistency: /lost returns 200, /won returns 201."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_section_m.py",
+    "/app/test_reports/pytest/section_m_results.xml",
+    "/app/test_reports/pytest/all_results.xml"
+  ],
+  "action_items": [
+    "(Optional/pre-existing) Support ?lead_id filter on GET /api/v1/tasks so downstream UIs and tests can page-independently locate lead-scoped tasks; or return non-paginated slice when filtering."
+  ],
+  "critical_code_review_comments": [
+    "Response envelope inconsistency continues in Section M: /leads/{id}/won -> 201 + {booking:{...}} while /leads/{id}/lost -> 200 + {lead:{...}}. Consider standardising (e.g., 200 for both or wrap in {data:...}).",
+    "Bookings list returns Laravel paginator top-level (current_page/data), whereas /bookings/{id} returns {booking:{...}}. Unify shape or document explicitly.",
+    "Public booking-form GET returns a flat object without envelope, which differs from authenticated show; documented in prev context and confirmed here — worth aligning.",
+    "Lock enforcement correctly returns 423 for both PUT /leads/{id} and POST /leads/{id}/qualify; ensure the same guard is applied to any bulk-edit / merge endpoints if added later."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_section_m.py"
+  ],
+  "success_rate": {"backend": "100% (7/7 Section M); 98.5% overall (64/65 including regression, 1 pre-existing Phase-B failure)", "frontend": "100% of exercised Section M flows (Mark Won modal + lock banner + Booking tab card, Bookings page listing, Mark Lost flow)"},
+  "test_credentials": "admin@crm.local/Admin@12345 (all perms); rahul@crm.local/Demo@12345 (Sales Exec — 423 on locked lead PUT + qualify confirmed); cs@crm.local/Demo@12345 (Post-Sales/CS — 200 on locked lead PUT confirmed, id=6); marketing@crm.local/Demo@12345 (403 on /won confirmed).",
+  "seed_data_creation": "Each test creates a fresh TEST_M_<uuid> lead via /api/v1/leads. Booking records with BKG-<date>-<code> refs created via /won. No manual cleanup; data namespaced with TEST_M_.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Section M contract confirmed: POST /leads/{id}/won -> 201 {booking:{booking_ref,form_token,status:'form_sent',token_amount,payment_link,...}}; lead becomes locked=true with stage.slug='won' (stage is nested object with {id,name,slug,sort_order}). POST /leads/{id}/lost -> 200 {lead:{stage:{slug:'lost'},lost_reason,...}}. Lock guard returns 423 for non-postsales users on PUT /leads/{id} and POST /leads/{id}/qualify (postsales.manage or admin bypasses). Public routes /booking-form/{form_token} GET+POST require NO auth and return flat object (no envelope). POST /bookings/{id}/verify -> {booking:{status:'verified'|'confirmed'}}, /pay-token -> {booking:{token_status:'paid',status:'confirmed'}}. GET /bookings paginated (top-level current_page/data), GET /bookings/{id} -> {booking:{...,lead,project,plot}}. Frontend data-testids verified live: nav-bookings, lead-row-<id>, won-btn, lost-btn, won-token, won-confirm, lost-reason, lost-confirm, lock-banner, tab-booking, booking-<id> (card), bk-pay-<id>, booking-row-<id>. Pre-existing minor regression: GET /api/v1/tasks does not honor ?lead_id filter (test_phase_b::test_outcome_interested_handover_and_hold fails because handover task is not on first page); not caused by Section M.",
+  "rca_of_the_issue": "N/A — all Section M acceptance criteria pass end-to-end. Only pre-existing minor regression: /api/v1/tasks ignores lead_id query parameter — Phase-B assertion cannot find the handover task on paginated first page. Mitigation: implement lead_id/type filters on TaskController@index (Task::when($request->lead_id, ...)) or bump default per_page for filtered queries."
+}
