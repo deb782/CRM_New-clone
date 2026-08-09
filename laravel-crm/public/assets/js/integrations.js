@@ -80,6 +80,7 @@
         try { await api.put('/integrations/' + it.key, draft); const r = await api.post('/integrations/' + it.key + '/test', {}); result.className = 'ig-result ig-result--ok'; result.textContent = '✓ ' + (r.message || 'Connected'); }
         catch (e) { result.className = 'ig-result ig-result--err'; result.textContent = '✕ ' + (e.message || 'Connection failed'); }
         testBtn.disabled = false;
+        try { items = (await api.get('/integrations')).data; render(); } catch (_) {}
       });
 
       const body = el('div', {},
