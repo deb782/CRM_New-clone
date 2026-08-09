@@ -171,6 +171,18 @@
       if (home && ('#/' + home) !== location.hash) { location.hash = '#/' + home; return; }
     }
     if (route === 'dashboard' && !can('leads.view') && can('partner.portal')) { location.hash = '#/portal'; return; }
+    // Chromeless full-screen routes (no sidebar/topbar) — e.g. onboarding wizard
+    const CHROMELESS = ['onboarding'];
+    if (CHROMELESS.includes(route)) {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      const fsView = el('div', { class: 'chromeless', id: 'view' }, el('div', { class: 'spinner' }));
+      app.appendChild(fsView);
+      const fsPage = CRM.pages[route];
+      try { await fsPage(fsView, id); }
+      catch (err) { fsView.innerHTML = ''; fsView.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-triangle-exclamation' }), el('div', {}, err.message || 'Failed to load'))); }
+      return;
+    }
     const view = renderShell(route);
     CRM.renderImpersonationBanner();
     const page = CRM.pages[route];
