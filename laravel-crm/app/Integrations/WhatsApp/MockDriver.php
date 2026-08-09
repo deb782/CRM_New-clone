@@ -14,4 +14,9 @@ class MockDriver implements Contract
             'status' => 'sent',
         ];
     }
+
+    public function markRead(string $messageId): void
+    {
+        // no-op in mock
+    }
 }

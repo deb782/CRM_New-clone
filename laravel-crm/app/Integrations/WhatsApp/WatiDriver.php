@@ -26,7 +26,13 @@ class WatiDriver implements Contract
             ];
         } catch (\Throwable $e) {
             Log::error('WATI send failed: '.$e->getMessage());
+
             return ['provider_id' => null, 'status' => 'failed'];
         }
+    }
+
+    public function markRead(string $messageId): void
+    {
+        // WATI marks messages read via its own dashboard; no-op here.
     }
 }

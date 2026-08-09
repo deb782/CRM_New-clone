@@ -1,0 +1,36 @@
+{
+  "summary": "Verified WhatsApp module end-to-end (mock driver). Backend pytest suite (10/10 passing) covers inbox conversations shape+filters, simulate-inbound, thread/reply within 24h window, window enforcement (text=422, template=200 after tinker sets last_inbound_at -30h), mark-read/assign/toggle, auto-replies CRUD + firing on keyword 'price', broadcasts create+send (recipients count + sent/failed/total + duplicate-send 422), Meta webhook GET verify (200 with challenge, 403 wrong token), Meta webhook POST inbound auto-creates lead+conversation, STOP opt-out ack. RBAC verified: partner (no leads.view) -> 403 on /whatsapp/conversations; Sales Exec (no config.manage) -> 403 on /whatsapp/broadcasts and /whatsapp/auto-replies but 200 on /whatsapp/conversations. Frontend UI verified as priya: nav-inbox loads wa-conv-list with wa-conv-{id}, thread renders (wa-thread/wa-messages), reply input+send work, wa-simulate opens modal with wa-sim-input/wa-sim-send and injects inbound (auto-reply fired on 'price' visible as reply), wa-assign present, nav-broadcasts and nav-waAutomations render tables with existing entries. Frontend RBAC: Sales Exec (rahul) sees nav-inbox=1, nav-broadcasts=0, nav-waAutomations=0 (correct). Channel Partner sees only Partner Portal (no whatsapp nav).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/v1/whatsapp/simulate-inbound", "issue": "When lead has whatsapp_opt_out/do_not_contact, endpoint returns HTTP 500 with body 'Contact has opted out / is do-not-contact.' instead of a proper 4xx (422 or 409). Consent guard exception is not mapped to a validation response. Reproduce: simulate-inbound against a lead previously opted out via STOP webhook."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Send reply from inbox after clicking first conversation", "issue": "Observed one 422 in console when sending on a conversation that was aged beyond the 24h window from prior tests. Behavior is correct (window enforcement) but the wa-window-banner + disabled send state was not visually verified for the aged conversation — worth a spot check.", "affected_selectors": ["[data-testid=wa-window-banner]", "[data-testid=wa-send]", "[data-testid=wa-send-template]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/whatsapp_test.py",
+    "/app/test_reports/pytest/whatsapp.xml"
+  ],
+  "action_items": [
+    "Map InboxService consent guard exception (opted-out / do-not-contact) to HTTP 422 in WhatsAppInboxController::simulateInbound to avoid 500s. Currently surfaces as generic 500 with descriptive message."
+  ],
+  "critical_code_review_comments": [
+    "Consent-guard should throw a ValidationException (or return 422) rather than a generic exception that Laravel renders as 500.",
+    "Response shapes are inconsistent across endpoints: auto-reply store returns {rule:{...}}, broadcasts likely {broadcast:{...}}, conversations returns flat keys. Consider standardising resource keys.",
+    "Simulate-inbound is powerful test tool — ensure it is either gated behind config.manage or a debug env flag before production."
+  ],
+  "updated_files": ["/app/tests/whatsapp_test.py"],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% key flows"},
+  "test_credentials": "priya@crm.local/Demo@12345 (Sales Manager), rahul@crm.local/Demo@12345 (Sales Exec), partner@crm.local/Demo@12345 (Channel Partner). Webhook verify token: crm_wa_verify.",
+  "seed_data_creation": "Created ephemeral: TEST_price_rule auto-reply (deleted at test end), TEST_bcast broadcasts (2 sent), several simulated inbound messages + one webhook-created lead 'WebhookTest' with dynamic phone 91987600xxxx.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression file /app/tests/whatsapp_test.py (pytest). Requires Laravel dev server on 127.0.0.1:8000 (not REACT_APP_BACKEND_URL). Uses `php artisan tinker --execute` for time travel on last_inbound_at (see test_window_enforcement). The auto-reply store response uses key 'rule' (not 'auto_reply'). Simulate-inbound against an opted-out lead currently returns 500 — pick a lead where whatsapp_opt_out=false (fixture already does).",
+  "rca of the issue": "Only minor issue: 500 on simulate-inbound for opted-out lead. RCA: InboxService::recordInbound (or upstream in simulateInbound) throws a runtime exception on consent block; controller does not catch and convert to 422. Fix: wrap in try/catch mapping to ValidationException::withMessages(['lead'=>'...'])->status(422), or use abort(422, '...')."
+}

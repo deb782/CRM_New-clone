@@ -16,12 +16,13 @@
     <div id="modal-root"></div>
 
     <script>window.CRM = { API: '/api/v1', asset: '{{ asset('assets') }}' };</script>
-    <script src="{{ asset('assets/js/api.js') }}?v=9"></script>
-    <script src="{{ asset('assets/js/dashboard.js') }}?v=9"></script>
-    <script src="{{ asset('assets/js/leads.js') }}?v=9"></script>
-    <script src="{{ asset('assets/js/inventory.js') }}?v=9"></script>
-    <script src="{{ asset('assets/js/deals.js') }}?v=9"></script>
-    <script src="{{ asset('assets/js/config.js') }}?v=9"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=9"></script>
+    <script src="{{ asset('assets/js/api.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/dashboard.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/leads.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/inventory.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/deals.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/config.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/whatsapp.js') }}?v=10"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=10"></script>
 </body>
 </html>

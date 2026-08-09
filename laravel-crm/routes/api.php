@@ -27,6 +27,9 @@ use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Api\WhatsAppAutoReplyController;
+use App\Http\Controllers\Api\WhatsAppBroadcastController;
+use App\Http\Controllers\Api\WhatsAppInboxController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -34,6 +37,7 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:60,1');
     Route::middleware('throttle:60,1')->group(function () {
         Route::post('webhooks/lead-form', [WebhookController::class, 'leadForm']);
+        Route::get('webhooks/whatsapp', [WebhookController::class, 'whatsappVerify']);
         Route::post('webhooks/whatsapp', [WebhookController::class, 'whatsapp']);
         Route::post('webhooks/telephony', [WebhookController::class, 'telephony']);
         Route::post('webhooks/razorpay', [WebhookController::class, 'razorpay']);
@@ -209,6 +213,27 @@ Route::prefix('v1')->group(function () {
         // Channel partners + commissions (admin) & partner portal (Section: Channel Partner)
         Route::get('partner/portal', [ChannelPartnerController::class, 'portal'])->middleware('permission:partner.portal');
         Route::put('partner/branding', [ChannelPartnerController::class, 'updateBranding'])->middleware('permission:partner.portal');
+
+        // --- WhatsApp Business: team inbox (Meta Cloud API, mock-ready) ---
+        Route::middleware('permission:leads.view')->group(function () {
+            Route::get('whatsapp/conversations', [WhatsAppInboxController::class, 'conversations']);
+            Route::get('whatsapp/conversations/{conversation}/messages', [WhatsAppInboxController::class, 'messages']);
+            Route::post('whatsapp/conversations/{conversation}/reply', [WhatsAppInboxController::class, 'reply']);
+            Route::post('whatsapp/conversations/{conversation}/assign', [WhatsAppInboxController::class, 'assign']);
+            Route::post('whatsapp/conversations/{conversation}/read', [WhatsAppInboxController::class, 'read']);
+            Route::post('whatsapp/conversations/{conversation}/toggle', [WhatsAppInboxController::class, 'toggle']);
+            Route::post('whatsapp/simulate-inbound', [WhatsAppInboxController::class, 'simulateInbound']);
+        });
+        // Broadcasts + auto-replies (manager/config)
+        Route::middleware('permission:config.manage')->group(function () {
+            Route::get('whatsapp/broadcasts', [WhatsAppBroadcastController::class, 'index']);
+            Route::post('whatsapp/broadcasts', [WhatsAppBroadcastController::class, 'store']);
+            Route::post('whatsapp/broadcasts/{broadcast}/send', [WhatsAppBroadcastController::class, 'send']);
+            Route::get('whatsapp/auto-replies', [WhatsAppAutoReplyController::class, 'index']);
+            Route::post('whatsapp/auto-replies', [WhatsAppAutoReplyController::class, 'store']);
+            Route::put('whatsapp/auto-replies/{auto_reply}', [WhatsAppAutoReplyController::class, 'update']);
+            Route::delete('whatsapp/auto-replies/{auto_reply}', [WhatsAppAutoReplyController::class, 'destroy']);
+        });
         Route::get('partners', [ChannelPartnerController::class, 'index'])->middleware('permission:config.manage');
         Route::post('partners', [ChannelPartnerController::class, 'store'])->middleware('permission:config.manage');
         Route::put('partners/{channelPartner}', [ChannelPartnerController::class, 'update'])->middleware('permission:config.manage');

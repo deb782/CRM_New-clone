@@ -14,6 +14,7 @@
       { route: 'collections', icon: 'fa-indian-rupee-sign', name: 'Collections' },
       { route: 'demands', icon: 'fa-file-invoice-dollar', name: 'Demand Letters' },
       { route: 'callList', icon: 'fa-phone-volume', name: 'Call List' },
+      { route: 'inbox', icon: 'fa-whatsapp', iconStyle: 'brand', name: 'WhatsApp Inbox' },
       { route: 'slaBoard', icon: 'fa-gauge-high', name: 'SLA Board' },
       { route: 'tasks', icon: 'fa-list-check', name: 'Tasks' },
       { route: 'import', icon: 'fa-file-arrow-up', name: 'Import' },
@@ -26,6 +27,8 @@
       { route: 'templates', icon: 'fa-comment-dots', name: 'Templates' },
       { route: 'partners', icon: 'fa-handshake', name: 'Channel Partners' },
       { route: 'commissions', icon: 'fa-hand-holding-dollar', name: 'Commissions' },
+      { route: 'broadcasts', icon: 'fa-bullhorn', name: 'WA Broadcasts' },
+      { route: 'waAutomations', icon: 'fa-robot', name: 'WA Auto-Replies' },
       { route: 'chatbot', icon: 'fa-robot', name: 'Chat Widget' },
       { route: 'health', icon: 'fa-heart-pulse', name: 'System Health' },
       { route: 'audit', icon: 'fa-clipboard-list', name: 'Audit Log' },
@@ -36,7 +39,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
@@ -105,7 +108,7 @@
       const g = el('div', { class: 'nav__group' }, el('div', { class: 'nav__label' }, group.label));
       items.forEach(i => {
         g.appendChild(el('a', { class: 'nav__item ' + (i.route === active ? 'active' : ''), href: '#/' + i.route, 'data-testid': 'nav-' + i.route },
-          el('i', { class: 'fa-solid ' + i.icon }), i.name));
+          el('i', { class: (i.iconStyle === 'brand' ? 'fa-brands ' : 'fa-solid ') + i.icon }), i.name));
       });
       nav.appendChild(g);
     });

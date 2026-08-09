@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\WhatsappMessage;
 use App\Services\ActivityService;
 use App\Services\AutomationService;
+use App\Services\InboxService;
 use App\Services\LeadService;
 use App\Services\ScoringService;
 use App\Services\WhatsAppService;
@@ -41,6 +42,10 @@ class WebhookController extends Controller
     /** WhatsApp inbound + delivery receipts + STOP opt-out (C1.3 / R8.2). */
     public function whatsapp(Request $request, WhatsAppService $wa, ActivityService $activity)
     {
+        // Meta WhatsApp Cloud API webhook format (entry/changes)
+        if ($request->has('entry')) {
+            return $this->handleMetaWhatsapp($request, app(InboxService::class));
+        }
         if (! $this->verifySignature($request)) {
             return response()->json(['message' => 'invalid signature'], 401);
         }
@@ -75,6 +80,89 @@ class WebhookController extends Controller
         $wa->import($lead, $body, $request->input('provider_id'));
         app(AutomationService::class)->fire('whatsapp.replied', $lead);
         return response()->json(['message' => 'imported']);
+    }
+
+    /** Meta webhook GET verification handshake (hub.mode / hub.verify_token / hub.challenge). */
+    public function whatsappVerify(Request $request)
+    {
+        $mode = $request->query('hub_mode');
+        $token = $request->query('hub_verify_token');
+        $challenge = $request->query('hub_challenge');
+        if ($mode === 'subscribe' && hash_equals((string) config('integrations.whatsapp.cloud.verify_token'), (string) $token)) {
+            return response((string) $challenge, 200);
+        }
+        return response('forbidden', 403);
+    }
+
+    private function handleMetaWhatsapp(Request $request, InboxService $inbox)
+    {
+        $secret = config('integrations.whatsapp.cloud.app_secret');
+        if ($secret) { // only enforce when live app secret is configured
+            $given = (string) $request->header('X-Hub-Signature-256', '');
+            $expected = 'sha256='.hash_hmac('sha256', $request->getContent(), $secret);
+            if (! $given || ! hash_equals($expected, $given)) {
+                return response()->json(['message' => 'invalid signature'], 401);
+            }
+        }
+
+        foreach ($request->input('entry', []) as $entry) {
+            foreach ($entry['changes'] ?? [] as $change) {
+                $value = $change['value'] ?? [];
+                $contactName = data_get($value, 'contacts.0.profile.name');
+
+                foreach ($value['messages'] ?? [] as $m) {
+                    $from = $m['from'] ?? null;
+                    if (! $from) continue;
+                    $lead = Lead::where('phone', $from)->latest()->first();
+                    if (! $lead) {
+                        $res = app(LeadService::class)->capture(['name' => $contactName ?: $from, 'phone' => $from, 'source' => 'WhatsApp']);
+                        $lead = $res['lead'] ?? Lead::where('phone', $from)->latest()->first();
+                    }
+                    if (! $lead) continue;
+
+                    [$body, $type, $media] = $this->extractMetaMessage($m);
+                    if (strtoupper(trim($body)) === 'STOP') {
+                        $lead->update(['whatsapp_opt_out' => true]);
+                        continue;
+                    }
+                    $conv = $inbox->getOrCreateForLead($lead);
+                    if ($contactName && ! $conv->contact_name) {
+                        $conv->update(['contact_name' => $contactName]);
+                    }
+                    $inbox->recordInbound($conv, $body, $type, $media, $m['id'] ?? null);
+                    app(AutomationService::class)->fire('whatsapp.replied', $lead);
+                    $inbox->runAutoReplies($conv, $body);
+                }
+
+                foreach ($value['statuses'] ?? [] as $s) {
+                    $msg = WhatsappMessage::where('provider_id', $s['id'] ?? null)->first();
+                    if ($msg) {
+                        $msg->status = $s['status'] ?? $msg->status;
+                        if (($s['status'] ?? null) === 'delivered') $msg->delivered_at = now();
+                        if (($s['status'] ?? null) === 'read') $msg->read_at = now();
+                        $msg->save();
+                    }
+                }
+            }
+        }
+
+        return response()->json(['message' => 'EVENT_RECEIVED']);
+    }
+
+    private function extractMetaMessage(array $m): array
+    {
+        $type = $m['type'] ?? 'text';
+
+        return match ($type) {
+            'text' => [$m['text']['body'] ?? '', 'text', null],
+            'image' => [$m['image']['caption'] ?? '[Image received]', 'image', $m['image']['link'] ?? null],
+            'document' => [$m['document']['caption'] ?? '[Document received]', 'document', $m['document']['link'] ?? null],
+            'video' => [$m['video']['caption'] ?? '[Video received]', 'video', $m['video']['link'] ?? null],
+            'audio' => ['[Voice message received]', 'audio', null],
+            'location' => ['Location: '.data_get($m, 'location.latitude').', '.data_get($m, 'location.longitude'), 'location', null],
+            'interactive' => [data_get($m, 'interactive.button_reply.title') ?? data_get($m, 'interactive.list_reply.title') ?? '[Interactive reply]', 'interactive', null],
+            default => ['['.$type.' message]', $type, null],
+        };
     }
 
     /** Telephony call-status webhook. */

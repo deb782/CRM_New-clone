@@ -8,9 +8,15 @@ return [
             'token' => env('WATI_API_TOKEN'),
         ],
         'cloud' => [
+            'base_url' => env('META_GRAPH_BASE_URL', 'https://graph.facebook.com'),
+            'version' => env('META_GRAPH_VERSION', 'v20.0'),
             'token' => env('CLOUD_API_TOKEN'),
             'phone_id' => env('CLOUD_API_PHONE_ID'),
+            'waba_id' => env('META_WABA_ID'),
+            'verify_token' => env('META_WEBHOOK_VERIFY_TOKEN', 'crm_wa_verify'),
+            'app_secret' => env('META_APP_SECRET'),
         ],
+        'session_window_hours' => (int) env('WHATSAPP_SESSION_WINDOW_HOURS', 24),
     ],
 
     'telephony' => [

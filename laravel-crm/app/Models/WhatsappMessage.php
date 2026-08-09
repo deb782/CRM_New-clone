@@ -14,4 +14,9 @@ class WhatsappMessage extends Model
     {
         return $this->belongsTo(Lead::class);
     }
+
+    public function conversation()
+    {
+        return $this->belongsTo(WhatsappConversation::class, 'conversation_id');
+    }
 }
