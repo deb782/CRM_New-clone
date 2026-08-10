@@ -322,6 +322,7 @@ Route::prefix('v1')->group(function () {
             Route::put('integrations/{key}', [\App\Http\Controllers\Api\IntegrationController::class, 'update']);
             Route::post('integrations/{key}/test', [\App\Http\Controllers\Api\IntegrationController::class, 'test']);
             Route::post('integrations/{key}/toggle', [\App\Http\Controllers\Api\IntegrationController::class, 'toggle']);
+            Route::post('integrations/meta_lead_ads/oauth', [\App\Http\Controllers\Api\IntegrationController::class, 'metaOauth']);
         });
 
         // Notifications (per-user)

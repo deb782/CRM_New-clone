@@ -2,6 +2,19 @@
 (function () {
   const { el, api, toast, modal } = CRM;
 
+  function loadFB(appId, version) {
+    return new Promise((resolve) => {
+      const v = version || 'v21.0';
+      if (window.FB) { try { FB.init({ appId: String(appId), version: v, xfbml: false, cookie: true }); } catch (e) {} resolve(); return; }
+      window.fbAsyncInit = function () { try { FB.init({ appId: String(appId), version: v, xfbml: false, cookie: true }); } catch (e) {} resolve(); };
+      const s = document.createElement('script');
+      s.async = true; s.defer = true; s.crossOrigin = 'anonymous';
+      s.src = 'https://connect.facebook.net/en_US/sdk.js';
+      s.onerror = function () { resolve(); };
+      document.body.appendChild(s);
+    });
+  }
+
   const STATUS = {
     connected: { l: 'Connected', c: 'ig-status--ok' },
     error: { l: 'Error', c: 'ig-status--err' },
@@ -84,6 +97,28 @@
       });
 
       const body = el('div', {},
+        it.key === 'meta_lead_ads' ? el('div', { class: 'ig-fb' },
+          el('button', {
+            class: 'btn', style: 'width:100%;background:#0866FF;border-color:#0866FF;color:#fff;justify-content:center',
+            'data-testid': 'ig-fb-connect',
+            onclick: async () => {
+              const appId = draft.app_id || (it.fields.find(f => f.key === 'app_id') || {}).value;
+              const configId = draft.config_id || (it.fields.find(f => f.key === 'config_id') || {}).value;
+              if (!appId || !configId) { toast('Enter App ID and Config ID, click Save, then Connect', 'error'); return; }
+              try { await api.put('/integrations/' + it.key, draft); } catch (e) {}
+              await loadFB(appId, draft.graph_version || 'v21.0');
+              if (!window.FB) { toast('Could not load the Facebook SDK', 'error'); return; }
+              FB.login(async (response) => {
+                const code = response && response.authResponse && response.authResponse.code;
+                if (!code) { toast('Facebook login was cancelled', 'error'); return; }
+                try {
+                  const r = await api.post('/integrations/meta_lead_ads/oauth', { code });
+                  toast(r.message || 'Connected', 'success'); await refresh(); m.close();
+                } catch (e) { toast(e.message || 'Connection failed', 'error'); }
+              }, { config_id: configId, response_type: 'code', override_default_response_type: true });
+            }
+          }, el('i', { class: 'fa-brands fa-facebook' }), ' Connect with Facebook'),
+          el('div', { class: 'help', style: 'margin:8px 0 14px;text-align:center' }, 'Recommended. Or fill the Page fields below to connect a token manually.')) : null,
         it.configured ? enableRow : el('div', { class: 'help', style: 'margin-bottom:8px' }, 'Fill the required fields, Save, then Test to go live.'),
         ...fieldEls,
         result,

@@ -83,6 +83,66 @@ class MetaLeadService
         return ['captured' => $captured, 'duplicates' => $dupes];
     }
 
+    /**
+     * Embedded Signup / Login for Business: exchange the authorization code for a
+     * long-lived token, list Pages, subscribe each to leadgen, and store tokens.
+     * @return array list of connected pages [{id,name}]
+     */
+    public function connectWithCode(string $code): array
+    {
+        $row = \App\Models\Integration::firstOrNew(['key' => 'meta_lead_ads']);
+        $c = $row->config ?? [];
+        $appId = $c['app_id'] ?? null;
+        $secret = $c['app_secret'] ?? null;
+        if (! $appId || ! $secret) {
+            throw new \RuntimeException('Save your App ID and App Secret first.');
+        }
+        $version = $c['graph_version'] ?: 'v21.0';
+        $base = "https://graph.facebook.com/{$version}";
+        $redirect = rtrim((string) config('app.url'), '/').'/oauth/facebook/callback';
+
+        $short = Http::timeout(20)->get("{$base}/oauth/access_token", [
+            'client_id' => $appId, 'client_secret' => $secret,
+            'redirect_uri' => $redirect, 'code' => $code,
+        ])->throw()->json('access_token');
+
+        $userToken = Http::timeout(20)->get("{$base}/oauth/access_token", [
+            'grant_type' => 'fb_exchange_token', 'client_id' => $appId,
+            'client_secret' => $secret, 'fb_exchange_token' => $short,
+        ])->throw()->json('access_token');
+
+        $pages = Http::timeout(20)->get("{$base}/me/accounts", [
+            'fields' => 'id,name,access_token', 'access_token' => $userToken,
+        ])->throw()->json('data', []);
+
+        $connected = [];
+        foreach ($pages as $pg) {
+            if (empty($pg['access_token'])) {
+                continue;
+            }
+            try {
+                Http::asForm()->timeout(20)->post("{$base}/{$pg['id']}/subscribed_apps", [
+                    'subscribed_fields' => 'leadgen', 'access_token' => $pg['access_token'],
+                ])->throw();
+            } catch (\Throwable $e) {
+                Log::warning('meta_lead_ads subscribe failed for page '.$pg['id'].': '.$e->getMessage());
+            }
+            $connected[] = ['id' => $pg['id'], 'name' => $pg['name'] ?? null];
+        }
+
+        if (! empty($pages)) {
+            $c['page_id'] = $pages[0]['id'];
+            $c['page_access_token'] = $pages[0]['access_token'];
+        }
+        $c['pages'] = $connected;
+        $row->config = $c;
+        $row->status = 'connected';
+        $row->enabled = true;
+        $row->save();
+
+        return $connected;
+    }
+
     /** GET /{leadgen_id}?fields=... returns field_data[]. */
     private function fetchLead(string $leadgenId, array $config): array
     {

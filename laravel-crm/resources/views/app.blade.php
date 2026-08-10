@@ -38,7 +38,7 @@
     <script src="{{ asset('assets/js/workflow.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
-    <script src="{{ asset('assets/js/integrations.js') }}?v=2"></script>
+    <script src="{{ asset('assets/js/integrations.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/notifications.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/reports.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/app.js') }}?v=28"></script>

@@ -158,6 +158,20 @@ class IntegrationController extends Controller
         return 'SMTP authenticated as '.$c['username'].'.';
     }
 
+    /** Embedded Signup: receive the authorization code and provision Page tokens. */
+    public function metaOauth(Request $request, \App\Services\MetaLeadService $meta)
+    {
+        $data = $request->validate(['code' => 'required|string']);
+        try {
+            $pages = $meta->connectWithCode($data['code']);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Facebook connection failed: '.$e->getMessage()], 422);
+        }
+        return response()->json(['pages' => $pages, 'message' => 'Connected '.count($pages).' page(s)']);
+    }
+
     private function testMcube(array $c): string
     {
         $url = $c['base_url'] ?? '';
