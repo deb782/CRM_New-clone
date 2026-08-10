@@ -1,0 +1,35 @@
+{
+  "summary": "Wave-1 (Reports & Analytics, In-app Notifications, Payment receipt PDF) tested end-to-end. Backend: 15/15 pytest tests pass, covering report shape, CSV export content-type, per-department RBAC on /reports/{sales,financial,activity} for admin/sales-head/accounts-head/legal-head/crm-head/BDE, notification listing+scoping+ownership+mark-all, payment creation notification for Accounts Head (title contains amount), and receipt PDF starting with %PDF. Frontend: verified nav-reports, tabs (report-tab-sales/financial/activity), export CSV/PDF buttons, ₹ rendering, notif-bell + notif-panel + notif-mark-all clearing notif-badge, and RBAC (Sales Head sees only Sales+Activity, Accounts Head sees only Financial+Activity, Admin sees all).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/v1/bookings/{id}/payments", "issue": "Response shape is {payment: {...}} (wrapped) instead of returning the created resource at top level; other endpoints often use {data: {...}}. Not incorrect but inconsistent."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Admin post-login routing", "issue": "Admin is auto-routed to #/onboarding on fresh sessions which hides the sidebar/topbar. Reports and bell are only reachable after completing/skipping onboarding or navigating to #/reports directly. Not a wave-1 bug but affects first-run UX for admin.", "affected_selectors": ["#/onboarding"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_wave1_features.py", "/app/test_reports/pytest/wave1_results.xml"],
+  "action_items": [
+    "Optional: standardize payment create response envelope ({data:{...}} or top-level) for API consistency.",
+    "Optional: for admins with must_change_password=false and onboarding already completed, skip the #/onboarding auto-redirect on login."
+  ],
+  "critical_code_review_comments": [
+    "RBAC on /reports/* correctly enforced via permission middleware (reports.sales / reports.financial / reports.activity) — verified 200/403 across 6 roles.",
+    "Notification ownership check on POST /notifications/{id}/read correctly returns 403 for non-owner.",
+    "Payment creation triggers notifyPermission to Accounts Head — verified unread increment and INR amount rendered in title.",
+    "Receipt endpoint returns application/pdf with proper %PDF header (~108KB via headless Chrome). Consider caching or timeout guard for cold Chrome start."
+  ],
+  "updated_files": ["/app/backend/tests/test_wave1_features.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin/Sales-Head/Accounts-Head/Legal-Head/CRM-Head/BDE credentials from /app/memory/test_credentials.md",
+  "seed_data_creation": "Test payment created with reference prefix QA-TEST-<hex> against an existing booking; attempted DELETE cleanup best-effort. Notifications generated for accounts head users during test (small residual).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Wave-1 backend + frontend verified. Test file at /app/backend/tests/test_wave1_features.py can be reused. Note: Laravel app is served at http://localhost:8000 (not React on 3000); the preview URL only proxies frontend port. Use localhost:8000 for Playwright. Admin lands on #/onboarding after login — navigate to #/reports for direct testing.",
+  "rca of the issue": "N/A — no functional defects found."
+}

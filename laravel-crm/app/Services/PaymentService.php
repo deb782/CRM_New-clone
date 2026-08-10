@@ -11,6 +11,7 @@ class PaymentService
     public function __construct(
         private ActivityService $activity,
         private PostSalesService $postSales,
+        private NotificationService $notify,
     ) {}
 
     /** Record a payment against a booking and issue a serial receipt (N). */
@@ -48,7 +49,13 @@ class PaymentService
         if ($booking->lead) {
             $this->activity->log($booking->lead, 'system', 'Payment received · '.$payment->receipt_no,
                 '₹'.number_format($amount).' ('.$type.' · '.$payment->method.')');
+            $this->notify->notify($booking->lead->owner_id, 'payment',
+                'Payment received · ₹'.number_format($amount),
+                $booking->lead->name.' · '.$payment->receipt_no, '#/collections');
         }
+        $this->notify->notifyPermission('accounts.manage', 'payment',
+            'New payment to verify · ₹'.number_format($amount),
+            ($booking->lead->name ?? 'Customer').' · '.$payment->receipt_no, '#/collections');
         return $payment->fresh();
     }
 

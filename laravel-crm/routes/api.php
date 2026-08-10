@@ -321,6 +321,20 @@ Route::prefix('v1')->group(function () {
             Route::post('integrations/{key}/test', [\App\Http\Controllers\Api\IntegrationController::class, 'test']);
             Route::post('integrations/{key}/toggle', [\App\Http\Controllers\Api\IntegrationController::class, 'toggle']);
         });
+
+        // Notifications (per-user)
+        Route::get('notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
+        Route::get('notifications/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
+        Route::post('notifications/{notification}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
+        Route::post('notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAll']);
+
+        // Reports & analytics (Admins + department Heads)
+        Route::get('reports/sales', [\App\Http\Controllers\Api\ReportController::class, 'sales'])->middleware('permission:reports.sales');
+        Route::get('reports/financial', [\App\Http\Controllers\Api\ReportController::class, 'financial'])->middleware('permission:reports.financial');
+        Route::get('reports/activity', [\App\Http\Controllers\Api\ReportController::class, 'activity'])->middleware('permission:reports.activity');
+
+        // Payment receipt (branded PDF acknowledgement)
+        Route::get('payments/{payment}/receipt', [PaymentController::class, 'receipt']);
         }); // end force_pw group
     });
 });

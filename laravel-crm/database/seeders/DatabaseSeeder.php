@@ -82,6 +82,8 @@ class DatabaseSeeder extends Seeder
             'accounts.view' => 'View accounts / payments', 'accounts.manage' => 'Manage accounts / payments',
             'legal.view' => 'View legal / agreements', 'legal.manage' => 'Manage legal / agreements',
             'crm.view' => 'View customer relationship records', 'crm.manage' => 'Manage customer relationship records',
+            'reports.sales' => 'View sales reports', 'reports.financial' => 'View financial reports',
+            'reports.activity' => 'View activity & SLA reports',
         ];
         foreach ($perms as $key => $label) {
             Permission::firstOrCreate(['key' => $key], ['label' => $label, 'group' => explode('.', $key)[0]]);
@@ -93,15 +95,15 @@ class DatabaseSeeder extends Seeder
         // Heads get full department access; Support gets view/create only (no edit/delete/override).
         $map = [
             'admin' => ['name' => 'Super Admin', 'department' => 'admin', 'tier' => 'super', 'perms' => 'all'],
-            'process_admin' => ['name' => 'Process Admin', 'department' => 'admin', 'tier' => 'process', 'perms' => ['config.manage', 'users.manage', 'projects.manage', 'workflow.manage', 'leads.view']],
-            'sales_head' => ['name' => 'Sales Head', 'department' => 'sales', 'tier' => 'head', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'discounts.approve', 'projects.manage']],
+            'process_admin' => ['name' => 'Process Admin', 'department' => 'admin', 'tier' => 'process', 'perms' => ['config.manage', 'users.manage', 'projects.manage', 'workflow.manage', 'leads.view', 'reports.sales', 'reports.financial', 'reports.activity']],
+            'sales_head' => ['name' => 'Sales Head', 'department' => 'sales', 'tier' => 'head', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'discounts.approve', 'projects.manage', 'reports.sales', 'reports.activity']],
             'sales_bdm' => ['name' => 'Business Development Manager', 'department' => 'sales', 'tier' => 'manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
             'sales_bde' => ['name' => 'Business Development Executive', 'department' => 'sales', 'tier' => 'exec', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
-            'accounts_head' => ['name' => 'Accounts Head', 'department' => 'accounts', 'tier' => 'head', 'perms' => ['accounts.view', 'accounts.manage', 'postsales.manage', 'leads.view']],
+            'accounts_head' => ['name' => 'Accounts Head', 'department' => 'accounts', 'tier' => 'head', 'perms' => ['accounts.view', 'accounts.manage', 'postsales.manage', 'leads.view', 'reports.financial', 'reports.activity']],
             'accounts_support' => ['name' => 'Accounts Support', 'department' => 'accounts', 'tier' => 'support', 'perms' => ['accounts.view', 'leads.view']],
-            'legal_head' => ['name' => 'Legal Head', 'department' => 'legal', 'tier' => 'head', 'perms' => ['legal.view', 'legal.manage', 'leads.view']],
+            'legal_head' => ['name' => 'Legal Head', 'department' => 'legal', 'tier' => 'head', 'perms' => ['legal.view', 'legal.manage', 'leads.view', 'reports.activity']],
             'legal_support' => ['name' => 'Legal Support', 'department' => 'legal', 'tier' => 'support', 'perms' => ['legal.view', 'leads.view']],
-            'crm_head' => ['name' => 'CRM Head', 'department' => 'crm', 'tier' => 'head', 'perms' => ['crm.view', 'crm.manage', 'postsales.manage', 'leads.view', 'leads.edit']],
+            'crm_head' => ['name' => 'CRM Head', 'department' => 'crm', 'tier' => 'head', 'perms' => ['crm.view', 'crm.manage', 'postsales.manage', 'leads.view', 'leads.edit', 'reports.activity']],
             'crm_support' => ['name' => 'CRM Support', 'department' => 'crm', 'tier' => 'support', 'perms' => ['crm.view', 'leads.view']],
             'channel_partner' => ['name' => 'Channel Partner', 'department' => 'partner', 'tier' => 'external', 'perms' => ['partner.portal']],
         ];

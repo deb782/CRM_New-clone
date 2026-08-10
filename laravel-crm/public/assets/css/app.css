@@ -507,3 +507,45 @@ tbody tr:last-child td { border-bottom: none; }
 .ig-result--err { color: var(--hot); font-weight: 600; }
 .ig-docs { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: var(--text-2); text-decoration: none; }
 .ig-docs:hover { color: var(--text); }
+
+/* ===== Notifications bell ===== */
+.notif__btn { position: relative; }
+.notif__badge { position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 100px; background: #d64545; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.notif__panel { position: absolute; top: 46px; right: 0; width: 360px; max-width: 92vw; background: var(--surface, #fff); border: 1px solid var(--line, #e5e7d8); border-radius: 14px; box-shadow: 0 18px 50px rgba(20,22,15,.16); z-index: 1200; overflow: hidden; }
+.notif__head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--line, #eee); }
+.notif__head b { font-size: 13px; }
+.notif__all { background: none; border: 0; color: var(--olive, #4F5823); font-size: 12px; font-weight: 600; cursor: pointer; }
+.notif__list { max-height: 62vh; overflow-y: auto; }
+.notif__loading, .notif__empty { padding: 34px 16px; text-align: center; color: var(--text-3, #9a9d8c); font-size: 13px; }
+.notif__empty i { font-size: 26px; display: block; margin-bottom: 8px; opacity: .5; }
+.notif__item { display: flex; gap: 11px; padding: 12px 16px; border-bottom: 1px solid var(--line, #f1f1ea); text-decoration: none; color: inherit; transition: background-color .15s; }
+.notif__item:hover { background: var(--cream, #f7f6f0); }
+.notif__item--unread { background: #f4f6ea; }
+.notif__ico { width: 32px; height: 32px; flex: none; border-radius: 9px; background: #EEF0E2; color: #4F5823; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.notif__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.notif__txt b { font-size: 12.5px; font-weight: 700; }
+.notif__body { font-size: 12px; color: var(--text-2, #6b6f5f); }
+.notif__time { font-size: 10.5px; color: var(--text-3, #9a9d8c); margin-top: 1px; }
+
+/* ===== Reports & Analytics ===== */
+.rep-wrap { display: flex; flex-direction: column; gap: 18px; }
+.rep-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.rep-tab { padding: 9px 18px; border-radius: 100px; border: 1px solid var(--line, #e5e7d8); background: transparent; color: var(--text-2, #6b6f5f); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.rep-tab:hover { border-color: #4F5823; color: #4F5823; }
+.rep-tab--active { background: #4F5823; color: #fff; border-color: #4F5823; }
+.rep-body { display: flex; flex-direction: column; gap: 18px; }
+.rep-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+.rep-kpi { background: var(--surface, #fff); border: 1px solid var(--line, #e5e7d8); border-radius: 16px; padding: 20px 22px; }
+.rep-kpi--accent { background: #EEF0E2; border-color: #dfe1d2; }
+.rep-kpi__v { font-size: 28px; font-weight: 800; color: #39401a; letter-spacing: -.01em; }
+.rep-kpi__l { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--text-3, #8a8d7c); margin-top: 6px; }
+.rep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+.rep-card { padding: 20px 22px; }
+.rep-h { font-size: 14px; margin: 0 0 14px; color: #39401a; }
+.rep-bars { display: flex; flex-direction: column; gap: 11px; }
+.rep-bar { display: grid; grid-template-columns: 130px 1fr auto; align-items: center; gap: 12px; }
+.rep-bar__lbl { font-size: 12px; color: var(--text-2, #6b6f5f); text-transform: capitalize; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rep-bar__track { height: 9px; background: #eef0e2; border-radius: 100px; overflow: hidden; }
+.rep-bar__fill { height: 100%; background: linear-gradient(90deg, #6E7A3A, #4F5823); border-radius: 100px; transition: width .5s ease; }
+.rep-bar__val { font-size: 12.5px; font-weight: 700; color: #39401a; min-width: 54px; text-align: right; }
+@media print { .nav, .topbar, .rep-tabs { display: none !important; } .main, .content { margin: 0 !important; padding: 0 !important; } }

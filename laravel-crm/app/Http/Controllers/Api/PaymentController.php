@@ -75,4 +75,15 @@ class PaymentController extends Controller
         $data = $request->validate(['reason' => 'nullable|string']);
         return response()->json(['payment' => $this->service->markFailed($payment, $data['reason'] ?? null)]);
     }
+
+    /** Branded PDF acknowledgement / receipt (durably stored). */
+    public function receipt(Payment $payment, \App\Services\ReceiptService $receipts)
+    {
+        $bytes = $receipts->pdf($payment);
+        $isPdf = strncmp($bytes, '%PDF', 4) === 0;
+        return response($bytes, 200, [
+            'Content-Type' => $isPdf ? 'application/pdf' : 'text/html',
+            'Content-Disposition' => 'inline; filename="'.$payment->receipt_no.'.pdf"',
+        ]);
+    }
 }

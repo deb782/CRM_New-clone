@@ -9,6 +9,9 @@
       { route: 'slaBoard', icon: 'fa-fire-flame-curved', name: 'SLA Board' },
       { route: 'tasks', icon: 'fa-list-check', name: 'Tasks' },
     ]},
+    { label: 'Insights', perm: 'reports.activity', items: [
+      { route: 'reports', icon: 'fa-chart-column', name: 'Reports & Analytics', perm: 'reports.activity' },
+    ]},
     { label: 'Sales', perm: 'leads.view', items: [
       { route: 'leads', icon: 'fa-users', name: 'Leads' },
       { route: 'pipeline', icon: 'fa-diagram-project', name: 'Pipeline' },
@@ -58,7 +61,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', preview: 'Preview Roles', onboarding: 'Welcome & Setup', workflows: 'Lead-Flow Builder', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal', profile: 'Account Settings', access: 'Roles & Access', integrations: 'Integrations' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', preview: 'Preview Roles', onboarding: 'Welcome & Setup', workflows: 'Lead-Flow Builder', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal', profile: 'Account Settings', access: 'Roles & Access', integrations: 'Integrations', reports: 'Reports & Analytics' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');
@@ -150,6 +153,7 @@
       el('div', { class: 'spacer' }),
       el('button', { class: 'cmdk-trigger', 'data-testid': 'cmdk-trigger', onclick: openPalette },
         el('i', { class: 'fa-solid fa-magnifying-glass' }), el('span', {}, 'Search'), el('kbd', {}, '⌘K')),
+      el('span', { id: 'topbar-bell' }),
       el('span', { id: 'topbar-actions' }));
 
     app.innerHTML = '';
@@ -211,6 +215,7 @@
     }
     const view = renderShell(route);
     CRM.renderImpersonationBanner();
+    if (CRM.renderBell) CRM.renderBell();
     const page = CRM.pages[route];
     if (!page) { view.innerHTML = ''; view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-compass' }), el('div', {}, 'Page not found'))); return; }
     try {

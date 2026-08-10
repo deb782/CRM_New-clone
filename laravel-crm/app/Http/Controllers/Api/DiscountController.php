@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class DiscountController extends Controller
 {
-    public function __construct(private CostSheetService $service) {}
+    public function __construct(private CostSheetService $service, private \App\Services\NotificationService $notify) {}
 
     public function index(Request $request)
     {
@@ -25,6 +25,9 @@ class DiscountController extends Controller
             'note' => 'nullable|string',
             'counter_pct' => 'nullable|numeric|min:0|max:100',
         ]);
-        return response()->json(['approval' => $this->service->decide($approval, $data['decision'], $data['note'] ?? null, $data['counter_pct'] ?? null)]);
+        $result = $this->service->decide($approval, $data['decision'], $data['note'] ?? null, $data['counter_pct'] ?? null);
+        $this->notify->notify($approval->requested_by ?? $approval->requester_id ?? null, 'discount',
+            'Discount '.$data['decision'], ($approval->lead->name ?? 'Lead').' · your discount request was '.$data['decision'], '#/leads');
+        return response()->json(['approval' => $result]);
     }
 }
