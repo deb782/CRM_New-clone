@@ -735,6 +735,10 @@ const ChatbotBuilderView = {
           } catch (e) { toast(e.message || 'Submission failed', 'error'); }
         }
       }, res.submit_label || 'Submit'));
+      form.appendChild(h('button', {
+        style: 'width:100%;padding:8px;background:transparent;border:none;color:#6b7280;font-size:12px;cursor:pointer;margin-top:8px',
+        onclick: () => { form.remove(); if (menuEl) { body.appendChild(menuEl); body.scrollTop = 99999; } }
+      }, '← Back to menu'));
       body.appendChild(form);
       body.scrollTop = 99999;
       return;

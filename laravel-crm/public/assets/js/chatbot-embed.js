@@ -279,6 +279,12 @@
       } catch (e) { btn.disabled = false; btn.textContent = res.submit_label || 'Submit'; alert('Sorry, could not submit. Please try again.'); }
     };
     form.appendChild(btn);
+    var backBtn = document.createElement('button');
+    backBtn.className = 'cb-back';
+    backBtn.textContent = '\u2190 Back to menu';
+    backBtn.setAttribute('data-testid', 'cb-form-back');
+    backBtn.onclick = function () { form.remove(); renderMenu(); };
+    form.appendChild(backBtn);
     body.appendChild(form);
     body.scrollTop = 99999;
   }
