@@ -25,7 +25,7 @@
     <div id="modal-root"></div>
 
     <script src="{{ asset('assets/vendor/drawflow.min.js') }}"></script>
-    <script>window.CRM = { API: '/api/v1', asset: '{{ asset('assets') }}' };</script>
+    <script>window.CRM = { API: (location.port === '8000' ? '/api/v1' : '/crm-api/v1'), asset: '{{ asset('assets') }}' };</script>
     <script src="{{ asset('assets/js/api.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/leads.js') }}?v=14"></script>
