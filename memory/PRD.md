@@ -300,3 +300,20 @@ Verified (no live Meta app): Hub fields, OAuth endpoint 422 guard + message, RBA
 - MetaLeadService::connectWithCode(code): code->short token->long-lived (fb_exchange_token)->/me/accounts->POST /{page_id}/subscribed_apps leadgen->store page_id+page_access_token+pages, status=connected, enabled=true. redirect_uri = APP_URL/oauth/facebook/callback (must be whitelisted in Meta app Valid OAuth Redirect URIs).
 - IntegrationController::metaOauth (POST integrations/meta_lead_ads/oauth, integrations.manage). Frontend integrations.js v3: loadFB() SDK loader + "Connect with Facebook" FB.login({config_id,response_type:code,override_default_response_type:true}) -> POST code. Manual Page-token fallback retained.
 - Go-live needs: Meta Business app, App Review for leads_retrieval+pages_manage_ads, Business Verification; enter App ID/Config ID/App Secret in Hub; whitelist APP_URL and the redirect URI; subscribe Page to leadgen.
+
+---
+
+## 2026-06 — Website Form Builder + Website Chatbot (ported feature) [DONE, test-agent verified]
+Scope (user): port ONLY the Form Builder and Website Chatbot functionality + UI from the uploaded source project; skip source in-app chat; place nav under the Integrations area; leave everything else unchanged.
+
+Delivered & verified (iteration_31: frontend 100%, backend 6/6 pytest iteration_30):
+- DB: new migration 2026_06_10_000000_create_web_capture_tables (forms, form_fields, chatbots, chatbot_nodes, chatbot_sessions). Self-contained — dropped source dependency on campaigns/lead_sources tables.
+- Forms: FormBuilderController admin CRUD + public schema()/submit(); submit maps fields via maps_to_field and captures a lead through App\Services\LeadService::capture (dedupe/routing/ack/automation). 2-step wizard UI (forms-ui.js) + embed snippet.
+- Chatbot: ChatbotController admin CRUD + public runtime (config/session/action/form/message); convertToLead rewritten to use LeadService::capture + ActivityService::log; qualified options set lead temperature='hot'. Menu-driven builder UI (chatbot-ui.js) + embed snippet + in-CRM Live Test.
+- Public embed: PublicFormCors middleware (alias 'form-cors'); routes at /api/v1/public/forms/* and /api/v1/public/chatbots/*. Embed scripts (form-embed.js, chatbot-embed.js) + generated snippets use /crm-api/v1 so they work through the preview proxy (config app.public_api_prefix, env PUBLIC_API_PREFIX=/crm-api/v1).
+- Frontend integration: webcapture.js shim maps source globals (Api/h/toast/Modal/setTitle/setTopbarActions) onto the current CRM micro-framework and registers CRM.pages.webforms + CRM.pages.webchatbot. Scoped styling in webcapture.css (all under .wc). Nav items 'Website Forms' (nav-webforms) + 'Website Chatbot' (nav-webchatbot) added under Administration/Integrations with perm integrations.manage.
+- RBAC verified: BDE (rahul@crm.local) cannot see nav items and gets 403 on /forms & /chatbots.
+
+Bugs fixed during QA: (1) forms-ui.js projects envelope (items||data||[]); (2) webcapture.js window.toast shadowed by <div id=toast> — now unconditional assignment.
+
+Known pre-existing (out of scope, app-wide): unauthenticated /api/* returns 500 ("Route [login] not defined") instead of 401 when no Bearer header is sent. Real clients always send Bearer; not introduced by this change.

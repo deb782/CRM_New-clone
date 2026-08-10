@@ -1,0 +1,35 @@
+{
+  "summary": "RETEST of iteration_30 CRITICAL frontend bugs — BOTH FIXED and verified via Playwright end-to-end. (1) New Form wizard Step 1 now renders 24 controls (was blank). (2) Chatbot 'Create Chatbot' no longer throws 'toast is not a function'. Full Form Builder flow (Create → Step1 → Next → Palette add Email → Save Changes → embed-snippet modal → list → Edit pre-fill → Delete) works with ZERO page errors. Full Chatbot Builder flow (New → chatbot-name-input → Create Chatbot → chatbot-embed-snippet + chatbot-copy-close-btn → list → Delete) works with ZERO page errors. Public form submit creates a CRM lead (verified). RBAC: BDE has nav-webforms/nav-webchatbot hidden AND GET /api/v1/forms & /api/v1/chatbots return 403 with Bearer token (as expected). Regression: /#/chatbot (Chat Widget) and /#/integrations still load. Backend already 6/6 pytest in iteration_30 — no regression detected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/v1/forms (unauthenticated)", "issue": "Returns HTTP 500 with 'Route [login] not defined' instead of 401 JSON when request lacks Bearer token and Accept:application/json is set. Laravel's Authenticate middleware tries to redirect to the non-existent web-side `login` named route. Only observed when Authorization header is missing entirely; requests WITH a Bearer token correctly get 403 (RBAC works). Recommend updating bootstrap/app.php to force JSON 401 for /api/* on unauthenticated. Not blocking (real UI clients always send Bearer)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_webcapture.py",
+    "/app/test_reports/pytest/webcapture_results.xml"
+  ],
+  "action_items": [
+    "(Optional, low priority) Force JSON 401 for /api/* when unauthenticated to avoid the 'Route [login] not defined' 500 fallback. Add in bootstrap/app.php: `$exceptions->shouldRenderJsonWhen(fn($req) => $req->is('api/*'))` or override AuthenticationException render for api paths."
+  ],
+  "critical_code_review_comments": [
+    "forms-ui.js: envelope-agnostic fix `projects.items || projects.data || []` is applied and works. Consider a shared helper `unwrap(res)` to be reused across other list endpoints so future envelope drift doesn't break UI.",
+    "webcapture.js: unconditional `window.toast = (m,t) => CRM.toast(m,t)` and `window.h = CRM.el` correctly override the DOM-id shadow (window.toast === <div id=toast>). Good comment worth adding inline about the HTML5 named-access-on-window collision.",
+    "forms-ui.js still >800 lines — consider splitting FormBuilderView / CsvImportView / ProfileView into separate files per the >700-line guideline.",
+    "Unauth API 500 (Route [login] not defined) is a latent hazard once anyone starts calling /api/* without Bearer. Address before any public-facing API doc is shipped."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (pre-existing 6/6 pytest, both CRITICAL frontend fixes re-verified)", "frontend": "100% for retest scope (Form builder + Chatbot builder + RBAC + regression all pass)"},
+  "test_credentials": "admin@crm.local / Admin@12345 ; rahul@crm.local / Demo@12345",
+  "seed_data_creation": "Playwright created & deleted TEST_FormPW1 (via UI), TEST_BotPW3 (via UI), TEST_LeadForm2 (via API for lead-capture test) — all cleaned up. Also created TEST_leadform2@example.com lead via public form submit (verified visible in /leads); left in DB for main-agent inspection (safe to delete).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Two CRITICAL bugs from iteration_30 are confirmed fixed and end-to-end user flows are green. Only outstanding note is a 500 (should be 401) for unauth API requests — cosmetic since real clients always send Bearer. Chatbot end-to-end lead-capture over the /public/chatbots/{slug}/session/{uuid}/form path requires the bot's `config.options[].mark_qualified=true` and correct `option_id` (server-generated); backend pytest already covers this path (6/6 pass in iteration_30). If retesting lead 'temperature=hot', use the in-CRM Live Test/Preview widget (chatbot-embed.js) rather than raw fetch — it wires the correct option_id/values shape automatically.",
+  "rca of the issue": "Both iteration_30 bugs were shim issues at the presentation layer. BUG#1: forms-ui.js used `projects.items` while /api/v1/projects returns `{data:[…]}`; fix in forms-ui.js line 82 now falls back through items||data||[]. BUG#2: window.toast was shadowed by <div id=toast> via HTML5 named-access; webcapture.js:16 now unconditionally reassigns `window.toast = (m,t)=>CRM.toast(m,t)`. Both fixes verified live in this iteration with zero pageerrors during Save flows."
+}

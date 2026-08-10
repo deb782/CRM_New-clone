@@ -67,6 +67,11 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
+    // Path prefix used when generating public embed URLs (forms & chatbot).
+    // Preview routes Laravel behind /crm-api; a real deploy on its own domain uses /api/v1.
+    'public_api_prefix' => env('PUBLIC_API_PREFIX', '/crm-api/v1'),
+
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

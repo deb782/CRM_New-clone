@@ -1,0 +1,58 @@
+{
+  "summary": "Tested Website Form Builder & Website Chatbot Builder (imported UI via webcapture shim). Backend admin CRUD + public form/chatbot flows + RBAC all pass (6/6 pytest). Frontend: nav items render for admin only (RBAC OK on FE + BE 403 for BDE). However two CRITICAL frontend bugs block the primary user flows: (1) New Form wizard Step 1 renders blank (0 form fields) due to unhandled projects API shape; (2) Chatbot 'Create Chatbot' save throws 'toast is not a function' because window.toast is shadowed by a DOM element with id='toast' (window.toast === <div id=toast>). Embed snippet modal is therefore never shown for chatbot save. Regression: existing 'Chat Widget' (#/chatbot) and Integrations pages still load fine.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/v1/projects", "issue": "Returns {data:[...]} while forms-ui.js expects {items:[...]} — inconsistency between resource-list envelopes across the API (forms uses items, projects uses data). Consider standardising."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "FormBuilderView (public/assets/js/forms-ui.js:82-91)",
+        "issue": "New Form wizard Step 1 renders completely EMPTY (Name/Description/Source/Sub-source/Project/Styling/Submit-button fields never appear). PAGEERROR: 'Cannot read properties of undefined (reading map)'. Root cause: `this._projects = projects.items;` — but GET /api/v1/projects returns `{data:[...]}` (no `items`), so this._projects is undefined and the subsequent this._projects.map(...) at line 258 crashes rendering. This blocks ALL new-form creation and Edit-form flows from the UI.",
+        "selector": "#page (FormBuilder wizard)",
+        "priority": "CRITICAL",
+        "suggested_fix": "In /app/laravel-crm/public/assets/js/forms-ui.js change `this._projects = projects.items;` to `this._projects = projects.items || projects.data || [];` (also apply to CsvImportView at ~line 620 which does projects.items.map)."
+      },
+      {
+        "component": "ChatbotBuilderView save (public/assets/js/chatbot-ui.js) + shim (webcapture.js:16)",
+        "issue": "Clicking 'Create Chatbot' throws PAGEERROR: 'toast is not a function'. `typeof window.toast === 'object'` (it is the <div id=\"toast\"> element from app.blade.php — browsers expose named ids as window properties). The shim `window.toast = window.toast || ((m,t)=>CRM.toast(m,t));` short-circuits because window.toast is already truthy (the DIV). Result: the chatbot embed snippet modal ([data-testid=chatbot-embed-snippet], [data-testid=chatbot-copy-close-btn]) is NEVER shown, and any toast() call from forms/chatbot UI will crash the handler.",
+        "selector": "[data-testid=chatbot-embed-snippet]",
+        "priority": "CRITICAL",
+        "suggested_fix": "In webcapture.js line 16 use unconditional assignment: `window.toast = (m,t) => CRM.toast(m,t);` (remove the `|| ...` guard). Same pattern-check for window.setTitle/window.setTopbarActions if any DOM ids collide."
+      }
+    ],
+    "integration_issues": [
+      {"flow": "Create Form via wizard", "issue": "Blocked at Step 1 — no fields to fill (see bug #1). User cannot create a form through the UI at all; backend endpoint works fine when called directly (verified via pytest).", "affected_selectors": ["[data-testid=embed-snippet]", "[data-testid=embed-copy-close-btn]"]},
+      {"flow": "Create Chatbot via builder", "issue": "Blocked at Save — 'toast is not a function' error prevents modal (see bug #2). Backend creation works when API is hit directly.", "affected_selectors": ["[data-testid=chatbot-embed-snippet]", "[data-testid=chatbot-copy-close-btn]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_webcapture.py",
+    "/app/test_reports/pytest/webcapture_results.xml"
+  ],
+  "action_items": [
+    "FIX (1-line): forms-ui.js — handle projects API envelope (`projects.items || projects.data || []`) so wizard Step 1 renders. This is the single blocker for the entire Form Builder UI.",
+    "FIX (1-line): webcapture.js — assign window.toast unconditionally to avoid DOM-id shadowing (`window.toast = (m,t)=>CRM.toast(m,t);`). Blocks Chatbot save flow and any future toast() calls from the ported UI.",
+    "Consider adding a browser-side integration test that opens the wizard and asserts >0 inputs render, to catch envelope regressions.",
+    "After both fixes, re-run playwright to verify: (a) Step 1 fields present, Step 2 palette add + Save → embed-snippet modal, (b) Chatbot Save → chatbot-embed-snippet modal, (c) Public form/chatbot submissions create leads (backend already verified)."
+  ],
+  "critical_code_review_comments": [
+    "forms-ui.js: mixing `.items` and `.data` list envelopes without a defensive fallback is fragile. The catch-block on Api.get failures only shows 'Admin access required.' which masks real errors like this shape mismatch; consider logging e in console for debugging.",
+    "webcapture.js shim: guarding `window.toast = window.toast || fn` is unsafe because HTML elements with id become window properties. Prefer explicit unconditional assignment or `window.toast = fn` after checking typeof === 'function'.",
+    "forms-ui.js is 899 lines — over the 700-line guideline; consider splitting FormBuilderView, CsvImportView, ProfileView into separate files.",
+    "Both files reference `Router` in the /* global */ header but Router isn't provided by the shim — check for latent references."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_webcapture.py (new test file with 6 tests, all passing)"
+  ],
+  "success_rate": {"backend": "100% (6/6 pytest passed)", "frontend": "40% (nav visibility + RBAC OK; New Form wizard and Chatbot Save flows BROKEN)"},
+  "test_credentials": "admin@crm.local / Admin@12345 (admin, perms=['*']); rahul@crm.local / Demo@12345 (BDE, no integrations.manage — correctly hidden nav & 403 on APIs)",
+  "seed_data_creation": "Pytest creates/deletes TEST_-prefixed forms and chatbots; nothing left behind.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Both critical bugs are 1-line shim fixes. After main agent applies them, re-run the full UI flow: login as admin → onboarding.skip via sessionStorage → #/webforms → +New Form → fill name/desc → Next → click 'Email' palette → Save → assert [data-testid=embed-snippet] & [data-testid=embed-copy-close-btn]. Then #/webchatbot → [data-testid=chatbot-new-btn] → fill Bot Name → Create Chatbot → assert [data-testid=chatbot-embed-snippet] & [data-testid=chatbot-copy-close-btn]. Then Edit + Delete round-trip. Backend tests already at /app/backend/tests/test_webcapture.py.",
+  "rca of the issue": "BUG#1 RCA: /api/v1/projects returns {data:[...]} but forms-ui.js code (originally written for a different API) reads projects.items. Since Promise.all resolved fine, no catch triggered; then this._projects = undefined, which caused this._projects.map(...) inside detailsStep() to throw during React-less DOM build, aborting Step 1 render mid-way — hence a blank wizard. Reproduction: login admin → #/webforms → click '+ New Form' → observe empty step. Mitigation: change to `projects.items || projects.data || []`. BUG#2 RCA: The <div id=\"toast\"> in app.blade.php auto-populates window.toast (HTML5 named-access-on-window). webcapture.js used `window.toast = window.toast || fn`, so the DIV won → toast() calls throw. Reproduction: any code path in forms-ui.js / chatbot-ui.js that calls toast(...) — e.g. ChatbotBuilderView save handler on success. Mitigation: unconditional `window.toast = (m,t)=>CRM.toast(m,t)` in webcapture.js."
+}

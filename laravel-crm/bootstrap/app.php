@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => CheckPermission::class,
             'force_pw' => ForcePasswordChange::class,
+            'form-cors' => \App\Http\Middleware\PublicFormCors::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

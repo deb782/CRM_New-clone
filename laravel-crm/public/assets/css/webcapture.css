@@ -1,0 +1,84 @@
+/* webcapture.css — scoped styling for the ported Form Builder + Chatbot UI.
+ * Everything the imported views render lives inside `.wc`, so these rules
+ * never leak into the rest of the CRM. Colours map onto the existing tokens. */
+.wc {
+  --primary: var(--accent);
+  --primary-soft: var(--accent-soft);
+  --text-muted: var(--text-2);
+  color: var(--text);
+}
+
+.wc .card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.wc .card-header { padding: 16px 18px 0; }
+.wc .card-title { font-weight: 700; font-size: 15px; color: var(--text); }
+.wc .card-body { padding: 18px; }
+.wc .mb-16 { margin-bottom: 16px; }
+
+.wc label {
+  display: block; font-size: 13px; font-weight: 600;
+  color: var(--text-2); margin: 0 0 6px;
+}
+.wc input, .wc select, .wc textarea {
+  width: 100%; padding: 9px 11px; font-size: 14px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: 9px; outline: none; transition: border-color .15s, box-shadow .15s;
+  font-family: inherit;
+}
+.wc input:focus, .wc select:focus, .wc textarea:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.wc textarea { min-height: 74px; resize: vertical; }
+.wc input[type=color] { padding: 2px; height: 38px; }
+.wc input[type=file] { border: 1px dashed var(--border-strong); background: var(--surface-2); }
+
+.wc .grid { display: grid; gap: 14px; }
+.wc .grid-2 { grid-template-columns: 1fr 1fr; }
+.wc .col-span-2 { grid-column: 1 / -1; }
+.wc .flex { display: flex; }
+.wc .gap-8 { gap: 8px; }
+.wc .gap-16 { gap: 16px; }
+
+.wc .btn-primary, .wc .btn-secondary, .wc .btn-sm, .wc .btn-xs {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-weight: 600; font-size: 14px; padding: 9px 16px; border-radius: 10px;
+  cursor: pointer; border: 1px solid transparent; transition: transform .12s, background .15s, border-color .15s;
+  font-family: inherit; line-height: 1.2;
+}
+.wc .btn-primary { background: var(--accent); color: var(--on-accent); }
+.wc .btn-primary:hover { background: var(--accent-press); transform: translateY(-1px); }
+.wc .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+.wc .btn-secondary:hover { border-color: var(--accent); transform: translateY(-1px); }
+.wc .btn-sm { padding: 6px 12px; font-size: 13px; background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+.wc .btn-sm:hover { border-color: var(--accent); }
+.wc .btn-xs { padding: 3px 8px; font-size: 12px; background: transparent; border: 0; }
+.wc .btn-icon { background: transparent; border: 0; cursor: pointer; color: var(--text-3); font-size: 16px; padding: 4px 8px; }
+.wc .btn-icon:hover { color: var(--hot); }
+
+.wc .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.wc .table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.wc .table td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+.wc .table tr:last-child td { border-bottom: 0; }
+
+.wc .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.wc .badge-won { background: rgba(47,158,68,.12); color: var(--won); }
+.wc .badge-lost { background: rgba(229,72,77,.12); color: var(--hot); }
+
+.wc .empty { text-align: center; color: var(--text-3); padding: 36px 16px; font-size: 14px; }
+.wc .muted, .wc .text-sm.muted { color: var(--text-2); }
+.wc .text-sm { font-size: 13px; }
+.wc code { background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 12px; color: var(--text); }
+.wc pre { margin: 0; }
+.wc h4 { font-size: 14px; font-weight: 700; color: var(--text); margin: 0; }
+
+.wc .spinner {
+  width: 26px; height: 26px; margin: 40px auto; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  animation: wc-spin .7s linear infinite;
+}
+@keyframes wc-spin { to { transform: rotate(360deg); } }

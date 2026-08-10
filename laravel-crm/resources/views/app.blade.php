@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/workflow.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=12">
+    <link rel="stylesheet" href="{{ asset('assets/css/webcapture.css') }}?v=1">
 </head>
 <body>
     <div id="app"></div>
@@ -35,12 +36,15 @@
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=15"></script>
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
     <script src="{{ asset('assets/js/onboarding.js') }}?v=23"></script>
-    <script src="{{ asset('assets/js/workflow.js') }}?v=2"></script>
+    <script src="{{ asset('assets/js/workflow.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/integrations.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/notifications.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/reports.js') }}?v=1"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=28"></script>
+    <script src="{{ asset('assets/js/forms-ui.js') }}?v=2"></script>
+    <script src="{{ asset('assets/js/chatbot-ui.js') }}?v=2"></script>
+    <script src="{{ asset('assets/js/webcapture.js') }}?v=2"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=30"></script>
 </body>
 </html>

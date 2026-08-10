@@ -58,6 +58,20 @@ Route::prefix('v1')->group(function () {
         Route::post('booking-form/{token}', [DealBookingController::class, 'publicSubmit']);
     });
 
+    // Public website Form Builder + Chatbot (embeddable on external sites; CORS enabled)
+    Route::middleware(['form-cors', 'throttle:120,1'])->group(function () {
+        Route::get('public/forms/{slug}/schema',  [\App\Http\Controllers\Api\FormBuilderController::class, 'schema']);
+        Route::post('public/forms/{slug}/submit', [\App\Http\Controllers\Api\FormBuilderController::class, 'submit']);
+        Route::options('public/forms/{slug}/{any?}', fn () => response('', 204))->where('any', '.*');
+
+        Route::get ('public/chatbots/{slug}/config',                       [\App\Http\Controllers\Api\ChatbotController::class, 'publicConfig']);
+        Route::post('public/chatbots/{slug}/session',                      [\App\Http\Controllers\Api\ChatbotController::class, 'startSession']);
+        Route::post('public/chatbots/{slug}/session/{sessionUuid}/action', [\App\Http\Controllers\Api\ChatbotController::class, 'submitAction']);
+        Route::post('public/chatbots/{slug}/session/{sessionUuid}/form',   [\App\Http\Controllers\Api\ChatbotController::class, 'submitForm']);
+        Route::post('public/chatbots/{slug}/session/{sessionUuid}/message',[\App\Http\Controllers\Api\ChatbotController::class, 'submitMessage']);
+        Route::options('public/chatbots/{slug}/{any?}', fn () => response('', 204))->where('any', '.*');
+    });
+
     // --- Authenticated ---
     Route::middleware('auth:sanctum')->group(function () {
         // Always allowed (even when a password change is pending)
@@ -75,6 +89,22 @@ Route::prefix('v1')->group(function () {
         Route::get('onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'show']);
         Route::put('onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'update'])->middleware('permission:config.manage');
         Route::post('onboarding/reset', [\App\Http\Controllers\Api\OnboardingController::class, 'reset'])->middleware('permission:config.manage');
+
+        // Website Form Builder + Chatbot admin CRUD (grouped under Integrations)
+        Route::middleware('permission:integrations.manage')->group(function () {
+            Route::get   ('forms',        [\App\Http\Controllers\Api\FormBuilderController::class, 'index']);
+            Route::post  ('forms',        [\App\Http\Controllers\Api\FormBuilderController::class, 'store']);
+            Route::get   ('forms/{form}', [\App\Http\Controllers\Api\FormBuilderController::class, 'show']);
+            Route::put   ('forms/{form}', [\App\Http\Controllers\Api\FormBuilderController::class, 'update']);
+            Route::delete('forms/{form}', [\App\Http\Controllers\Api\FormBuilderController::class, 'destroy']);
+
+            Route::get   ('chatbots',           [\App\Http\Controllers\Api\ChatbotController::class, 'index']);
+            Route::post  ('chatbots',           [\App\Http\Controllers\Api\ChatbotController::class, 'store']);
+            Route::post  ('chatbots/upload',    [\App\Http\Controllers\Api\ChatbotController::class, 'uploadAsset']);
+            Route::get   ('chatbots/{chatbot}', [\App\Http\Controllers\Api\ChatbotController::class, 'show']);
+            Route::put   ('chatbots/{chatbot}', [\App\Http\Controllers\Api\ChatbotController::class, 'update']);
+            Route::delete('chatbots/{chatbot}', [\App\Http\Controllers\Api\ChatbotController::class, 'destroy']);
+        });
 
         // Workflow builder (Process Admin USP)
         Route::middleware('permission:workflow.manage')->group(function () {

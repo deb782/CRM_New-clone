@@ -43,7 +43,43 @@
   };
   const CATS = ['Triggers', 'Flow', 'Communications', 'Logic'];
 
-  let editor = null, current = null, selectedId = null;
+  let editor = null, current = null, selectedId = null, importTrigger = null;
+
+  // ---- Import a predefined flow (JSON) ----
+  function validateGraph(graph) {
+    const data = graph && graph.drawflow && graph.drawflow.Home && graph.drawflow.Home.data;
+    if (!data || typeof data !== 'object') return { ok: false, error: 'Invalid flow file — expected a Flow Builder export (drawflow.Home.data missing).' };
+    const nodes = Object.values(data);
+    if (!nodes.length) return { ok: false, error: 'The flow file has no nodes.' };
+    const known = Object.keys(T);
+    let hasTrigger = false;
+    for (const n of nodes) {
+      const t = n && n.data && n.data.node_type;
+      if (!t || known.indexOf(t) === -1) return { ok: false, error: 'Unknown node type "' + (t || '?') + '" in the file.' };
+      if (t === 'trigger') hasTrigger = true;
+      if (typeof n.html !== 'string' || typeof n.class !== 'string') return { ok: false, error: 'The file is missing node display data — export it from the Flow Builder (Save) to get a valid file.' };
+    }
+    if (!hasTrigger) return { ok: false, error: 'Every flow must contain a Trigger node.' };
+    return { ok: true, count: nodes.length };
+  }
+
+  function onImportFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let graph;
+      try { graph = JSON.parse(reader.result); } catch (err) { toast('That is not a valid JSON file', 'error'); return; }
+      const v = validateGraph(graph);
+      if (!v.ok) { toast(v.error, 'error'); return; }
+      try { editor.clear(); editor.import(graph); } catch (err) { toast('Could not load the flow: ' + err.message, 'error'); return; }
+      selectedId = null; renderConfigEmpty(); toggleEmpty(); recomputeTally();
+      toast('Flow imported (' + v.count + ' nodes) — review, then Save or Activate', 'success');
+    };
+    reader.readAsText(file);
+  }
+
 
   CRM.pages.workflows = async function (view) {
     CRM.setActions(null);
@@ -75,6 +111,11 @@
   function buildShell() {
     const root = el('div', { class: 'wf-root', 'data-testid': 'workflow-builder' });
 
+    const importFileInput = el('input', { type: 'file', accept: '.json,application/json', style: 'display:none', 'data-testid': 'wf-import-file' });
+    importFileInput.addEventListener('change', onImportFile);
+    root.appendChild(importFileInput);
+    importTrigger = () => importFileInput.click();
+
     // topbar
     const nameInput = el('input', { id: 'wf-name', style: 'background:#1e293b;border:1px solid #334155;color:#fff;border-radius:6px;padding:6px 10px;font-size:13px;width:220px', value: current?.name || 'Lead Flow Journey', 'data-testid': 'wf-name-input' });
     const statusBadge = el('span', { class: 'wf-badge' + (current?.status === 'active' ? ' active' : ''), id: 'wf-status' }, current?.status || 'draft');
@@ -82,6 +123,7 @@
       el('span', { class: 'wf-title' }, el('i', { class: 'fa-solid fa-diagram-project', style: 'margin-right:8px' }), 'FLOW BUILDER'),
       nameInput, statusBadge,
       el('span', { class: 'wf-spacer' }),
+      el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-import', onclick: () => importTrigger && importTrigger() }, el('i', { class: 'fa-solid fa-file-import' }), 'Import JSON'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-templates', onclick: openStarterPicker }, el('i', { class: 'fa-solid fa-layer-group' }), 'Starter flows'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-testrun', onclick: testRun }, el('i', { class: 'fa-solid fa-play' }), 'Test run'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-validate', onclick: validate }, el('i', { class: 'fa-solid fa-circle-check' }), 'Validate'),
