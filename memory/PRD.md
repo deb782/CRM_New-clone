@@ -286,3 +286,10 @@ Tested: iteration_29.json — 100% backend (15/15) + 100% frontend, no functiona
 - Optional: standardize payment-create response envelope; skip admin #/onboarding auto-redirect when already completed.
 - Extend notification triggers to booking confirmed / new WhatsApp inbound / SLA breach + visit reminders (scheduler command).
 
+
+## 2026-06 — Native Meta Lead Ads connector
+Self-tested via curl (Hub listing, verify handshake +/-, signature enforcement, mock+real paths, dedupe, name mapping).
+- New Integrations Hub provider `meta_lead_ads` (config/integration_hub.php): fields page_id, page_access_token(secret), verify_token, app_secret(secret), graph_version(v21.0). Card shows exact callback URL.
+- `app/Services/MetaLeadService.php`: GET verify (hub.challenge), POST handler (X-Hub-Signature-256 enforced when app_secret set), Graph API fetchLead by leadgen_id, field_data->lead mapping (full_name/first+last, email, phone_number, city; source="Meta Lead Ads", campaign=campaign_id/ad_id, ad_set=form_id), feeds LeadService::capture (dedupe/scoring/routing).
+- Routes: GET/POST /api/v1/webhooks/meta-leads (public). `WebhookController::metaLeadsVerify/metaLeads`. IntegrationController::testMetaLeads validates Page + leadgen subscription.
+- Mock-first: payloads carrying field_data capture directly without Graph; real retrieval when page_access_token present. Ready for live once Admin enters Meta credentials + subscribes the Page.

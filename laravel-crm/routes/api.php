@@ -39,6 +39,8 @@ Route::prefix('v1')->group(function () {
         Route::post('webhooks/lead-form', [WebhookController::class, 'leadForm']);
         Route::get('webhooks/whatsapp', [WebhookController::class, 'whatsappVerify']);
         Route::post('webhooks/whatsapp', [WebhookController::class, 'whatsapp']);
+        Route::get('webhooks/meta-leads', [WebhookController::class, 'metaLeadsVerify']);
+        Route::post('webhooks/meta-leads', [WebhookController::class, 'metaLeads']);
         Route::post('webhooks/telephony', [WebhookController::class, 'telephony']);
         Route::post('webhooks/razorpay', [WebhookController::class, 'razorpay']);
         Route::post('chatbot', [WebhookController::class, 'chatbot']);

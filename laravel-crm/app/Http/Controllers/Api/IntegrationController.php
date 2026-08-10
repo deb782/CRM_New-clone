@@ -108,6 +108,7 @@ class IntegrationController extends Controller
                 'meta_whatsapp' => $this->testMeta($config),
                 'google_email' => $this->testSmtp($config),
                 'mcube' => $this->testMcube($config),
+                'meta_lead_ads' => $this->testMetaLeads($config),
                 default => 'No connection test available for this integration.',
             };
             $row->status = 'connected';
@@ -167,5 +168,26 @@ class IntegrationController extends Controller
         $r = Http::timeout(12)->withToken($c['auth_token'] ?? '')->get($url);
 
         return 'Endpoint reachable (HTTP '.$r->status().').';
+    }
+
+    private function testMetaLeads(array $c): string
+    {
+        $pid = $c['page_id'] ?? '';
+        $token = $c['page_access_token'] ?? '';
+        if (! $pid || ! $token) {
+            throw new \RuntimeException('Page ID and Page Access Token are required.');
+        }
+        $version = $c['graph_version'] ?: 'v21.0';
+        $r = Http::timeout(12)->get("https://graph.facebook.com/{$version}/{$pid}", [
+            'fields' => 'name',
+            'access_token' => $token,
+        ]);
+        if ($r->failed()) {
+            throw new \RuntimeException('Meta rejected the credentials: '.($r->json('error.message') ?? ('HTTP '.$r->status())));
+        }
+        $sub = Http::timeout(12)->get("https://graph.facebook.com/{$version}/{$pid}/subscribed_apps", ['access_token' => $token]);
+        $subscribed = collect($sub->json('data', []))->pluck('subscribed_fields')->flatten()->contains('leadgen');
+
+        return 'Connected to Page "'.($r->json('name') ?? $pid).'". '.($subscribed ? 'leadgen webhook subscribed.' : 'Note: Page is not yet subscribed to the leadgen field.');
     }
 }

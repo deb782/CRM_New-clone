@@ -276,4 +276,29 @@ class WebhookController extends Controller
             'need' => ['name', 'phone_or_email'],
         ]);
     }
+
+    /** Meta Lead Ads webhook — GET verification handshake. */
+    public function metaLeadsVerify(Request $request, \App\Services\MetaLeadService $meta)
+    {
+        $challenge = $meta->verify(
+            (string) $request->query('hub_mode', $request->query('hub.mode')),
+            $request->query('hub_verify_token', $request->query('hub.verify_token')),
+            $request->query('hub_challenge', $request->query('hub.challenge'))
+        );
+        if ($challenge === null) {
+            return response('Forbidden', 403);
+        }
+        return response($challenge, 200)->header('Content-Type', 'text/plain');
+    }
+
+    /** Meta Lead Ads webhook — POST leadgen notifications. */
+    public function metaLeads(Request $request, \App\Services\MetaLeadService $meta)
+    {
+        try {
+            $result = $meta->handle($request->getContent(), $request->header('X-Hub-Signature-256'), $request->all());
+        } catch (\RuntimeException $e) {
+            return response('Invalid signature', 403);
+        }
+        return response()->json(array_merge(['message' => 'EVENT_RECEIVED'], $result), 200);
+    }
 }

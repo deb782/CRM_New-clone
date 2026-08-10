@@ -50,4 +50,20 @@ return [
             ['key' => 'caller_id', 'label' => 'Outbound Caller ID (DID)', 'type' => 'text'],
         ],
     ],
+    'meta_lead_ads' => [
+        'name' => 'Meta Lead Ads',
+        'category' => 'Lead Capture',
+        'icon' => 'fa-facebook',
+        'icon_style' => 'brand',
+        'accent' => '#0866FF',
+        'description' => 'Auto-capture leads from Facebook & Instagram Lead Ad forms in real time. Point Meta’s Page "leadgen" webhook to:  '.rtrim((string) env('APP_URL'), '/').'/api/v1/webhooks/meta-leads  and subscribe the Page to the leadgen field.',
+        'docs' => 'https://developers.facebook.com/docs/marketing-api/guides/lead-ads/retrieving/',
+        'fields' => [
+            ['key' => 'page_id', 'label' => 'Facebook Page ID', 'type' => 'text', 'required' => true],
+            ['key' => 'page_access_token', 'label' => 'Page Access Token', 'type' => 'password', 'secret' => true, 'required' => true, 'help' => 'Long-lived Page token with leads_retrieval + pages_manage_ads.'],
+            ['key' => 'verify_token', 'label' => 'Webhook Verify Token', 'type' => 'text', 'required' => true, 'help' => 'Any random string; enter the same value in Meta’s webhook setup.'],
+            ['key' => 'app_secret', 'label' => 'App Secret', 'type' => 'password', 'secret' => true, 'help' => 'Used to validate inbound webhook signatures (X-Hub-Signature-256).'],
+            ['key' => 'graph_version', 'label' => 'Graph API Version', 'type' => 'text', 'default' => 'v21.0'],
+        ],
+    ],
 ];
