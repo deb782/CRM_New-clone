@@ -17,6 +17,11 @@
   if (!script) return console.error('[chatbot-embed] no <script data-slug> tag');
   const SLUG = script.dataset.slug;
   const API  = (script.dataset.api || (new URL(script.src)).origin).replace(/\/$/, '');
+  // /api/v1 on the CRM host; Emergent preview hosts reserve /api, so use /crm-api/v1 there.
+  const PREFIX = (function () {
+    try { return /(^|\.)preview\.emergentagent\.com$/i.test(new URL(API).hostname) ? '/crm-api/v1' : '/api/v1'; }
+    catch (e) { return '/api/v1'; }
+  })();
 
   let cfg = null;
   let sessionUuid = null;
@@ -99,7 +104,7 @@
 
   async function start() {
     try {
-      cfg = await fetch(`${API}/crm-api/v1/public/chatbots/${SLUG}/config`).then(r => r.json());
+      cfg = await fetch(`${API}${PREFIX}/public/chatbots/${SLUG}/config`).then(r => r.json());
       $('cbBrand').textContent = cfg.chatbot.brand_name || 'Chat';
       // If the admin uploaded a logo, use it in the avatar circle; otherwise fall back to the brand initial.
       const av = $('cbAvatar');
@@ -115,7 +120,7 @@
         av.textContent = (cfg.chatbot.brand_name || 'A').charAt(0).toUpperCase();
       }
       document.documentElement.style.setProperty('--cb-c', cfg.chatbot.brand_color || '#0f3d33');
-      const s = await fetch(`${API}/crm-api/v1/public/chatbots/${SLUG}/session`, { method: 'POST' }).then(r => r.json());
+      const s = await fetch(`${API}${PREFIX}/public/chatbots/${SLUG}/session`, { method: 'POST' }).then(r => r.json());
       sessionUuid = s.session_uuid;
       renderInitial();
     } catch (e) {
@@ -153,7 +158,7 @@
     // Hide menu while showing result
     if (menuEl) { menuEl.remove(); menuEl = null; }
     try {
-      const res = await fetch(`${API}/crm-api/v1/public/chatbots/${SLUG}/session/${sessionUuid}/action`,
+      const res = await fetch(`${API}${PREFIX}/public/chatbots/${SLUG}/session/${sessionUuid}/action`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ option_id: id }) }).then(r => r.json());
       renderResult(res);
@@ -252,7 +257,7 @@
 
       btn.disabled = true; btn.textContent = 'Sending...';
       try {
-        const resp = await fetch(`${API}/crm-api/v1/public/chatbots/${SLUG}/session/${sessionUuid}/form`,
+        const resp = await fetch(`${API}${PREFIX}/public/chatbots/${SLUG}/session/${sessionUuid}/form`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ option_id: res.option_id, values }) });
         const r = await resp.json();

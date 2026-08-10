@@ -569,7 +569,8 @@ const ChatbotBuilderView = {
 
   showEmbed(bot) {
     const origin = location.origin;
-    const snippet = '<script src="' + origin + '/assets/js/chatbot-embed.js"\n'
+    const v = Date.now();
+    const snippet = '<script src="' + origin + '/assets/js/chatbot-embed.js?v=' + v + '"\n'
       + '        data-slug="' + bot.slug + '"\n'
       + '        data-api="' + origin + '" async></' + 'script>';
     const copyToClipboard = (text) => {
@@ -690,11 +691,6 @@ const ChatbotBuilderView = {
     body.appendChild(menu);
 
     wrap.appendChild(body);
-    // Footer input (locked)
-    wrap.appendChild(h('div', { style: 'padding:12px 16px;border-top:1px solid #e5e7eb;background:#fff;display:flex;gap:8px;align-items:center' },
-      h('input', { placeholder: 'Enter your message here', disabled: 'disabled', style: 'flex:1;padding:10px 14px;border:1px solid #e5e7eb;border-radius:20px;background:#fafaf7;font-size:13px' }),
-      h('button', { disabled: 'disabled', style: 'width:36px;height:36px;border-radius:50%;background:' + color + ';color:#fff;border:none;font-size:16px' }, '➤'),
-    ));
     return wrap;
   },
 

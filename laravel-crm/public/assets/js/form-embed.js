@@ -10,6 +10,12 @@
    data-crm-base is optional — script auto-detects its own origin if omitted.
 */
 (function () {
+  // The public API lives at /api/v1 on the CRM host. Behind the Emergent preview
+  // proxy the /api path is reserved, so those hosts use /crm-api/v1 instead.
+  function apiPrefix(u) {
+    try { return /(^|\.)preview\.emergentagent\.com$/i.test(new URL(u).hostname) ? '/crm-api/v1' : '/api/v1'; }
+    catch (e) { return '/api/v1'; }
+  }
   function getBase(script) {
     // 1) Explicit override (most reliable)
     var explicit = script && script.getAttribute('data-crm-base');
@@ -31,6 +37,7 @@
       return s[s.length - 1];
     })();
     var base = getBase(script);
+    var PREFIX = apiPrefix(base);
 
     var mounts = document.querySelectorAll('[data-crm-form]');
     if (!mounts.length) {
@@ -43,7 +50,7 @@
       if (!slug) return;
       mount.innerHTML = '<div style="padding:14px;color:#6b7280;font-family:system-ui,sans-serif">Loading form...</div>';
 
-      var schemaUrl = base + '/crm-api/v1/public/forms/' + slug + '/schema';
+      var schemaUrl = base + PREFIX + '/public/forms/' + slug + '/schema';
       fetch(schemaUrl)
         .then(function (r) {
           if (!r.ok) {
@@ -205,7 +212,7 @@
         if (m) data[k] = decodeURIComponent(m[1]);
       });
 
-      fetch(base + '/crm-api/v1/public/forms/' + slug + '/submit', {
+      fetch(base + PREFIX + '/public/forms/' + slug + '/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8', 'Accept': 'application/json' },
         body: JSON.stringify(data),
