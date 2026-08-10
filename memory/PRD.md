@@ -271,3 +271,18 @@ Full backend acceptance suite re-run fresh after the UI/UX overhaul. **203/203 e
   - Screenshots captured per role via Playwright (`docs/screenshots/`, `docs/capture.py`).
   - Generated branded PDFs in `docs/pdf/`: `overview.pdf`, `manual_admin.pdf`, `manual_sales.pdf`, `manual_accounts.pdf`, `manual_legal.pdf`, `manual_crm.pdf`, `manual_partner.pdf`.
   - Plain-English task playbooks (rock-bottom step detail), noting Head vs Support differences. Also earlier markdown drafts `USER_MANUAL.md` + `CRM_STAKEHOLDER_OVERVIEW.md`.
+
+## 2026-06 — Wave 1 upgrades (Reports, Notifications, Object Storage, PDF Receipt)
+Tested: iteration_29.json — 100% backend (15/15) + 100% frontend, no functional defects.
+- **Reports & Analytics** (`ReportController`, `reports.js`, nav 'Insights'): Sales / Financial / Activity&SLA tabs; KPIs + bar breakdowns + tables; Export Excel (CSV) + Print/PDF. New permissions `reports.sales`/`reports.financial`/`reports.activity` (in seeder + `config/role_defaults.php`). Per-department RBAC verified: Sales Head→sales+activity, Accounts Head→financial+activity, Legal/CRM Head→activity only, BDE→403 all, Admin→all.
+- **In-app Notifications** (`Notification` model, migration `2026_06_01_000000_notifications`, `NotificationService`, `NotificationController`, `notifications.js` bell + panel + 30s poll): user-scoped, ownership-checked mark-read/mark-all. Triggers wired: payment recorded (→ owner + accounts heads), discount decided (→ requester). Booking/whatsapp/hot-lead/SLA triggers can be extended later.
+- **Object Storage** (`app/Services/ObjectStorage.php`): PHP client for Emergent storage proxy (`INTEGRATION_PROXY_URL` + `EMERGENT_LLM_KEY` now in .env). Durable put/get, key cached 6h, auto re-init on 404. Round-trip verified.
+- **Manual payment + branded PDF receipt** (`ReceiptService`, `PaymentController@receipt`, route `GET /payments/{payment}/receipt`): headless-Chrome rendered, Agrocorp-branded, INR + amount-in-words; stored durably in object storage (meta.receipt_pdf). Manual entry/serial receipt (`RCPT-YYYY-#####`) already existed in `PaymentService::record`.
+- Cache versions: app.js v28, app.css v12, +notifications.js/reports.js v1. APP_NAME now "Agrocorp CRM".
+
+## Wave 1 remaining / backlog
+- Live integrations (Meta WhatsApp, Google SMTP, Mcube) — user will provide credentials; guide only.
+- Wave 3: E-sign + SMS providers (user to choose vendor). Wave 4: mobile/PWA, bulk ops, atomic serial hardening.
+- Optional: standardize payment-create response envelope; skip admin #/onboarding auto-redirect when already completed.
+- Extend notification triggers to booking confirmed / new WhatsApp inbound / SLA breach + visit reminders (scheduler command).
+
