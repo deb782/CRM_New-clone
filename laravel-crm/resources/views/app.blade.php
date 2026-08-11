@@ -29,7 +29,7 @@
     <script>window.CRM = { API: (location.port === '8000' ? '/api/v1' : '/crm-api/v1'), asset: '{{ asset('assets') }}' };</script>
     <script src="{{ asset('assets/js/api.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v=13"></script>
-    <script src="{{ asset('assets/js/leads.js') }}?v=14"></script>
+    <script src="{{ asset('assets/js/leads.js') }}?v=15"></script>
     <script src="{{ asset('assets/js/inventory.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/deals.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/config.js') }}?v=10"></script>

@@ -395,8 +395,40 @@
     }
 
     function commsPanel() {      const waBody = el('textarea', { class: 'input', rows: 2, placeholder: 'WhatsApp message…', 'data-testid': 'wa-body' });
+      let waTemplateName = null;
       const waSend = el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'wa-send' }, el('i', { class: 'fa-brands fa-whatsapp' }), 'Send WhatsApp');
-      waSend.addEventListener('click', async () => { if (!waBody.value.trim()) return; await api.post('/leads/' + id + '/whatsapp', { body: waBody.value }); toast('WhatsApp sent', 'success'); reload(); });
+      waSend.addEventListener('click', async () => { if (!waBody.value.trim()) return; await api.post('/leads/' + id + '/whatsapp', { body: waBody.value, template: waTemplateName || null }); waTemplateName = null; toast('WhatsApp sent', 'success'); reload(); });
+
+      const waTplBtn = el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'wa-template-btn' }, el('i', { class: 'fa-solid fa-layer-group' }), 'Use template');
+      waTplBtn.addEventListener('click', () => {
+        api.get('/whatsapp/templates').then(res => {
+          const raw = (res && (res.data || res.templates)) || res || [];
+          const list = (Array.isArray(raw) ? raw : []).filter(t => String(t.status || '').toLowerCase() !== 'rejected');
+          if (!list.length) { toast('No synced templates yet — sync them in Integrations → WhatsApp.', 'error'); return; }
+          const body = el('div', { style: 'max-height:60vh;overflow:auto' });
+          let handle;
+          list.forEach(t => body.appendChild(el('div', { class: 'card', style: 'padding:12px;margin-bottom:8px;cursor:pointer', 'data-testid': 'wa-tpl-' + t.id,
+            onclick: () => { handle && handle.close(); pickWaTemplate(t); } },
+            el('div', { style: 'font-weight:700;font-size:13px' }, t.name, el('span', { class: 'chip', style: 'margin-left:8px;font-size:10px' }, (t.language || '') + ' · ' + (t.category || ''))),
+            el('div', { style: 'font-size:12px;color:var(--text-2);margin-top:4px;white-space:pre-wrap' }, t.body || ''))));
+          handle = CRM.modal({ title: 'Pick a WhatsApp template', bodyNode: body, wide: true });
+        }).catch(() => toast('Could not load templates', 'error'));
+      });
+
+      function pickWaTemplate(t) {
+        const vars = Array.from(new Set(String(t.body || '').match(/\{\{\s*\d+\s*\}\}/g) || []));
+        if (!vars.length) { waTemplateName = t.name; waBody.value = t.body || ''; toast('Template inserted — review & send', 'success'); return; }
+        const inputs = {};
+        const preview = el('div', { 'data-testid': 'wa-tpl-preview', style: 'white-space:pre-wrap;background:var(--surface-2);padding:10px;border-radius:8px;font-size:13px' });
+        const renderPrev = () => { let out = String(t.body || ''); vars.forEach(v => { const val = (inputs[v].value || '').trim(); out = out.split(v).join(val || v); }); preview.textContent = out; };
+        const fields = el('div', {});
+        vars.forEach((v, i) => { const inp = el('input', { class: 'input', placeholder: 'Value for ' + v, 'data-testid': 'wa-var-' + (i + 1), oninput: renderPrev }); inputs[v] = inp; fields.appendChild(el('div', { style: 'margin-bottom:8px' }, el('label', { style: 'font-size:12px;font-weight:600;display:block;margin-bottom:4px' }, 'Variable ' + v), inp)); });
+        renderPrev();
+        const insertBtn = el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'wa-tpl-insert' }, 'Insert message');
+        let h2;
+        insertBtn.addEventListener('click', () => { waTemplateName = t.name; waBody.value = preview.textContent; h2 && h2.close(); toast('Template inserted — review & send', 'success'); });
+        h2 = CRM.modal({ title: 'Fill template variables', bodyNode: el('div', {}, fields, el('div', { style: 'margin:12px 0 4px;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em' }, 'Preview'), preview), footNodes: [insertBtn], wide: true });
+      }
 
       const emSub = el('input', { class: 'input', placeholder: 'Subject', 'data-testid': 'em-subject' });
       const emBody = el('textarea', { class: 'input', rows: 3, placeholder: 'Email body…', 'data-testid': 'em-body' });
@@ -414,7 +446,7 @@
           el('div', { class: 'form-row' }, el('div', { class: 'field', style: 'margin:0' }, callOut), el('div', { class: 'field', style: 'margin:0' }, callNotes)),
           el('div', { style: 'margin-top:10px' }, callLog)),
         el('div', { class: 'card', style: 'margin-bottom:14px' }, el('div', { class: 'section-title', style: 'margin-top:0' }, el('i', { class: 'fa-brands fa-whatsapp' }), 'WhatsApp'),
-          waBody, el('div', { style: 'margin-top:10px' }, waSend)),
+          waBody, el('div', { style: 'margin-top:10px;display:flex;gap:8px' }, waTplBtn, waSend)),
         el('div', { class: 'card' }, el('div', { class: 'section-title', style: 'margin-top:0' }, el('i', { class: 'fa-solid fa-envelope' }), 'Email'),
           emSub, el('div', { style: 'height:8px' }), emBody, el('div', { style: 'margin-top:10px' }, emSend)));
     }
