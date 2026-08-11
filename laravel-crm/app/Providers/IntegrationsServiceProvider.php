@@ -9,6 +9,7 @@ use App\Integrations\Sms\HttpGatewayDriver;
 use App\Integrations\Sms\MockDriver as SmsMock;
 use App\Integrations\Telephony\Contract as TelephonyContract;
 use App\Integrations\Telephony\ExotelDriver;
+use App\Integrations\Telephony\McubeDriver;
 use App\Integrations\Telephony\MockDriver as TelephonyMock;
 use App\Integrations\WhatsApp\CloudApiDriver;
 use App\Integrations\WhatsApp\Contract as WhatsAppContract;
@@ -31,6 +32,7 @@ class IntegrationsServiceProvider extends ServiceProvider
         $this->app->bind(TelephonyContract::class, function () {
             return match (config('integrations.telephony.driver')) {
                 'exotel' => new ExotelDriver(),
+                'mcube' => new McubeDriver(),
                 default => new TelephonyMock(),
             };
         });
@@ -70,6 +72,33 @@ class IntegrationsServiceProvider extends ServiceProvider
             if (! empty($wa['waba_id']))       config(['integrations.whatsapp.cloud.waba_id' => $wa['waba_id']]);
             if (! empty($wa['verify_token']))  config(['integrations.whatsapp.cloud.verify_token' => $wa['verify_token']]);
             if (! empty($wa['app_secret']))    config(['integrations.whatsapp.cloud.app_secret' => $wa['app_secret']]);
+        }
+
+        // Google Workspace SMTP → Laravel mailer config.
+        $mail = \App\Models\Integration::liveConfig('google_email');
+        if ($mail && ! empty($mail['host']) && ! empty($mail['username']) && ! empty($mail['app_password'])) {
+            $port = (int) ($mail['port'] ?: 587);
+            config([
+                'mail.default'                     => 'smtp',
+                'mail.mailers.smtp.host'           => $mail['host'],
+                'mail.mailers.smtp.port'           => $port,
+                'mail.mailers.smtp.username'       => $mail['username'],
+                'mail.mailers.smtp.password'       => $mail['app_password'],
+                'mail.mailers.smtp.scheme'         => $port === 465 ? 'smtps' : 'smtp',
+                'mail.from.address'                => ! empty($mail['from_email']) ? $mail['from_email'] : $mail['username'],
+            ]);
+            if (! empty($mail['from_name'])) config(['mail.from.name' => $mail['from_name']]);
+        }
+
+        // Mcube telephony → runtime config + driver.
+        $tel = \App\Models\Integration::liveConfig('mcube');
+        if ($tel && ! empty($tel['base_url']) && ! empty($tel['auth_token'])) {
+            config([
+                'integrations.telephony.driver'           => 'mcube',
+                'integrations.telephony.mcube.base_url'   => $tel['base_url'],
+                'integrations.telephony.mcube.auth_token' => $tel['auth_token'],
+            ]);
+            if (! empty($tel['caller_id'])) config(['integrations.telephony.mcube.caller_id' => $tel['caller_id']]);
         }
     }
 }

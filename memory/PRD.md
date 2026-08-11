@@ -330,3 +330,11 @@ Known pre-existing (out of scope, app-wide): unauthenticated /api/* returns 500 
 2. Save as template (team-shared): new backend flow_templates table + FlowTemplateController (index/store/destroy) under permission:workflow.manage. Topbar "Save as template" button (wf-save-template) exports canvas → POST /flow-templates. Starter picker now fetches GET /flow-templates and shows a "Your team's saved templates" section (load + delete per card). Verified create/list/delete + empty-graph 422.
 3. Branched Agrocorp: rebuilt "Agrocorp Way of Working" starter with real Condition splits on call outcome — Positive (nurture→meeting→cost sheet→booking→customer), NRTY (email win-back), Negative (polite closure + reason capture). 32 nodes / 31 conns / 2 conditions. Added 'call_outcome' to condition field options.
 Files: public/assets/js/workflow.js (v6 in blade), app/Http/Controllers/Api/FlowTemplateController.php, app/Models/FlowTemplate.php, migration 2026_06_11_000000_create_flow_templates, routes/api.php.
+
+## 2026-06 — Integrations Hub → runtime bridge (WhatsApp, SMTP, Mcube) [DONE, tested]
+IntegrationsServiceProvider::boot() now reads enabled Hub records (Integration::liveConfig) and injects them into runtime config, so the Hub UI is the single source of truth (no .env edits/restarts). Guarded by Schema::hasTable + try/catch.
+- meta_whatsapp → driver=cloud, cloud token/phone_id/waba_id, webhook verify_token, app_secret.
+- google_email → mail.default=smtp, smtp host/port/username/password/scheme (smtps for 465), mail.from.address/name.
+- mcube → telephony driver=mcube + mcube base_url/auth_token/caller_id; added McubeDriver (click-to-call) + 'mcube' case in telephony binding; added mcube block to config/integrations.php.
+Verified via Hub API (update flat fields + toggle): config reflects live values, McubeDriver resolves, webhook verifies with Hub token. Test rows deleted; defaults restored (mail=log, tel=mock, wa=mock).
+Note: user must redeploy updated code to Hostinger, then fill Hub → Test → Enable per integration.

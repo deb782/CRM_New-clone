@@ -31,6 +31,11 @@ return [
             'token' => env('EXOTEL_TOKEN'),
             'caller_id' => env('EXOTEL_CALLER_ID'),
         ],
+        'mcube' => [
+            'base_url' => env('MCUBE_BASE_URL'),
+            'auth_token' => env('MCUBE_AUTH_TOKEN'),
+            'caller_id' => env('MCUBE_CALLER_ID'),
+        ],
     ],
 
     'email' => [
