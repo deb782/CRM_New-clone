@@ -317,3 +317,10 @@ Delivered & verified (iteration_31: frontend 100%, backend 6/6 pytest iteration_
 Bugs fixed during QA: (1) forms-ui.js projects envelope (items||data||[]); (2) webcapture.js window.toast shadowed by <div id=toast> — now unconditional assignment.
 
 Known pre-existing (out of scope, app-wide): unauthenticated /api/* returns 500 ("Route [login] not defined") instead of 401 when no Bearer header is sent. Real clients always send Bearer; not introduced by this change.
+
+## 2026-06 — Flow Builder: Agrocorp starter + Sample JSON [DONE, self-tested]
+- Added 4th starter pack "Agrocorp Way of Working" in public/assets/js/workflow.js (STARTERS): a single connected end-to-end lead journey (24 nodes / 23 links) spanning all 5 stages (Lead Entry → Processing → Handover → Conversion → Lead-to-Customer) with WhatsApp/email/task/status_change nodes wired in sequence. Snake layout (4 rows) so it stays one big path, not segmented. Fully editable + savable like other starters.
+- All 4 starters remain global (no project filtering) — available for every project.
+- Added "Sample JSON" topbar button (data-testid wf-sample-json) → downloadSampleJson() builds a valid Drawflow export offscreen (buildGraphFromBuild + SAMPLE_BUILD) and downloads agrocorp-flow-sample.json so process admins have a correct-format reference for Import JSON.
+- Note: the user's uploaded process flow.json is a semantic state-machine SPEC (workflow.root_stages...), not a Drawflow export — that's why Import rejected it ("drawflow.Home.data missing"). Its journey was translated into the new starter instead.
+- Verified via Playwright: picker shows 4 cards, Agrocorp loads 24 nodes/23 connections, sample file downloads, no page errors. Cache: workflow.js ?v=4.

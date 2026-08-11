@@ -80,6 +80,39 @@
     reader.readAsText(file);
   }
 
+  // ---- Build a valid Drawflow graph offscreen (used for the sample export) ----
+  function buildGraphFromBuild(build) {
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1400px;height:800px';
+    document.body.appendChild(holder);
+    const tmp = new Drawflow(holder);
+    tmp.start();
+    const ids = [];
+    build.forEach(n => {
+      const def = T[n.k];
+      const data = JSON.parse(JSON.stringify(n.d));
+      ids.push(tmp.addNode(n.k, def.in, def.out, n.x, n.y, 'wf-t-' + n.k, data, nodeHtml(def, data)));
+    });
+    build.forEach((n, i) => {
+      if (n.from !== undefined) { try { tmp.addConnection(ids[n.from], ids[i], n.port || 'output_1', 'input_1'); } catch (e) { /* ignore */ } }
+    });
+    const g = tmp.export();
+    holder.remove();
+    return g;
+  }
+
+  // ---- Download a correctly-formatted sample flow file ----
+  function downloadSampleJson() {
+    const graph = buildGraphFromBuild(SAMPLE_BUILD);
+    const blob = new Blob([JSON.stringify(graph, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'agrocorp-flow-sample.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('Sample flow JSON downloaded — use it as the format reference for Import JSON', 'success');
+  }
+
 
   CRM.pages.workflows = async function (view) {
     CRM.setActions(null);
@@ -124,6 +157,7 @@
       nameInput, statusBadge,
       el('span', { class: 'wf-spacer' }),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-import', onclick: () => importTrigger && importTrigger() }, el('i', { class: 'fa-solid fa-file-import' }), 'Import JSON'),
+      el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-sample-json', onclick: downloadSampleJson }, el('i', { class: 'fa-solid fa-file-arrow-down' }), 'Sample JSON'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-templates', onclick: openStarterPicker }, el('i', { class: 'fa-solid fa-layer-group' }), 'Starter flows'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-testrun', onclick: testRun }, el('i', { class: 'fa-solid fa-play' }), 'Test run'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-validate', onclick: validate }, el('i', { class: 'fa-solid fa-circle-check' }), 'Validate'),
@@ -395,6 +429,13 @@
   }
 
   // ---- Starter flow library ----
+  const SAMPLE_BUILD = [
+    { k: 'trigger',       x: 40,  y: 80, d: { node_type: 'trigger', trigger_type: 'new_lead' } },
+    { k: 'send_whatsapp', x: 300, y: 80, d: { node_type: 'send_whatsapp', template: 'welcome_wa' }, from: 0 },
+    { k: 'send_email',    x: 560, y: 80, d: { node_type: 'send_email', template: 'enquiry_ack_email', attach_pdf: true }, from: 1 },
+    { k: 'task',          x: 820, y: 80, d: { node_type: 'task', task_type: 'call', title: 'First contact call', due_hours: 2, assignee: 'owner' }, from: 2 },
+    { k: 'status_change', x: 1080, y: 80, d: { node_type: 'status_change', status: 'First Contact' }, from: 3 },
+  ];
   const STARTERS = [
     { id: 'lead5', name: '5-Stage Lead Journey', desc: 'Entry to Processing to Handover to Conversion to Customer with WhatsApp + email touchpoints.',
       build: [
@@ -422,6 +463,38 @@
         { k: 'send_email', x: 300, y: 80, d: { node_type: 'send_email', template: 'booking_ack_email', attach_pdf: true }, from: 0 },
         { k: 'send_whatsapp', x: 560, y: 80, d: { node_type: 'send_whatsapp', template: 'booking_wa' }, from: 1 },
         { k: 'task', x: 820, y: 80, d: { node_type: 'task', task_type: 'document', title: 'Collect KYC & docs', due_hours: 24, assignee: 'crm_head' }, from: 2 },
+      ] },
+    { id: 'agrocorp', name: 'Agrocorp Way of Working', desc: 'The complete Agrocorp lead-to-customer journey in one connected path — Entry → Processing → Handover → Conversion → Customer, with every WhatsApp, email, task and status change wired in sequence.',
+      build: [
+        // Stage 1 — Lead Entry
+        { k: 'trigger',       x: 40,   y: 60,  d: { node_type: 'trigger', trigger_type: 'new_lead' } },
+        { k: 'send_whatsapp', x: 300,  y: 60,  d: { node_type: 'send_whatsapp', template: 'welcome_wa' }, from: 0 },
+        { k: 'send_email',    x: 560,  y: 60,  d: { node_type: 'send_email', template: 'enquiry_ack_email', attach_pdf: true }, from: 1 },
+        { k: 'task',          x: 820,  y: 60,  d: { node_type: 'task', task_type: 'call', title: 'First contact call', due_hours: 2, assignee: 'owner' }, from: 2 },
+        { k: 'status_change', x: 1080, y: 60,  d: { node_type: 'status_change', status: 'First Contact' }, from: 3 },
+        // Stage 2 — Lead Processing (profiling → nurture → appointment)
+        { k: 'task',          x: 1340, y: 60,  d: { node_type: 'task', task_type: 'call', title: 'Profiling & qualification call', due_hours: 4, assignee: 'owner' }, from: 4 },
+        { k: 'status_change', x: 1340, y: 260, d: { node_type: 'status_change', status: 'In Profiling' }, from: 5 },
+        { k: 'send_whatsapp', x: 1080, y: 260, d: { node_type: 'send_whatsapp', template: 'nurture_wa_1' }, from: 6 },
+        { k: 'wait',          x: 820,  y: 260, d: { node_type: 'wait', amount: 2, unit: 'days' }, from: 7 },
+        { k: 'send_email',    x: 560,  y: 260, d: { node_type: 'send_email', template: 'project_brochure_email', attach_pdf: true }, from: 8 },
+        { k: 'task',          x: 300,  y: 260, d: { node_type: 'task', task_type: 'callback', title: 'Book virtual meeting / site visit', due_hours: 24, assignee: 'owner' }, from: 9 },
+        { k: 'status_change', x: 40,   y: 260, d: { node_type: 'status_change', status: 'Meeting Scheduled' }, from: 10 },
+        // Stage 3 — Handover & meeting
+        { k: 'send_whatsapp', x: 40,   y: 460, d: { node_type: 'send_whatsapp', template: 'meeting_confirmation_wa' }, from: 11 },
+        { k: 'task',          x: 300,  y: 460, d: { node_type: 'task', task_type: 'visit', title: 'Conduct meeting / site visit', due_hours: 48, assignee: 'owner' }, from: 12 },
+        // Stage 4 — Conversion (cost sheet → booking)
+        { k: 'send_email',    x: 560,  y: 460, d: { node_type: 'send_email', template: 'cost_sheet_email', attach_pdf: true }, from: 13 },
+        { k: 'status_change', x: 820,  y: 460, d: { node_type: 'status_change', status: 'Cost Sheet Shared' }, from: 14 },
+        { k: 'task',          x: 1080, y: 460, d: { node_type: 'task', task_type: 'call', title: 'Negotiation & booking follow-up', due_hours: 48, assignee: 'sales_head' }, from: 15 },
+        { k: 'status_change', x: 1340, y: 460, d: { node_type: 'status_change', status: 'Booking Paid' }, from: 16 },
+        // Stage 5 — Lead to Customer (payment ack → KYC → onboarding)
+        { k: 'send_email',    x: 1340, y: 660, d: { node_type: 'send_email', template: 'booking_ack_email', attach_pdf: true }, from: 17 },
+        { k: 'send_whatsapp', x: 1080, y: 660, d: { node_type: 'send_whatsapp', template: 'booking_confirmation_wa' }, from: 18 },
+        { k: 'task',          x: 820,  y: 660, d: { node_type: 'task', task_type: 'document', title: 'Collect KYC & documents', due_hours: 24, assignee: 'crm_head' }, from: 19 },
+        { k: 'status_change', x: 560,  y: 660, d: { node_type: 'status_change', status: 'Converted' }, from: 20 },
+        { k: 'send_email',    x: 300,  y: 660, d: { node_type: 'send_email', template: 'customer_welcome_email', attach_pdf: true }, from: 21 },
+        { k: 'task',          x: 40,   y: 660, d: { node_type: 'task', task_type: 'callback', title: 'Customer onboarding & CRM handover', due_hours: 24, assignee: 'crm_head' }, from: 22 },
       ] },
   ];
 
