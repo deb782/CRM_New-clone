@@ -46,4 +46,30 @@ class IntegrationsServiceProvider extends ServiceProvider
             return new EsignMock();
         });
     }
+
+    public function boot(): void
+    {
+        // Bridge Integrations Hub (DB) credentials into runtime config so the live
+        // drivers + webhook verification use what admins enter in the Hub UI —
+        // no .env edits or server restarts needed on the deployment.
+        try {
+            if (! \Illuminate\Support\Facades\Schema::hasTable('integrations')) {
+                return;
+            }
+        } catch (\Throwable $e) {
+            return; // DB not ready (e.g. during migrate) — skip.
+        }
+
+        $wa = \App\Models\Integration::liveConfig('meta_whatsapp');
+        if ($wa && ! empty($wa['access_token']) && ! empty($wa['phone_number_id'])) {
+            config([
+                'integrations.whatsapp.driver'         => 'cloud',
+                'integrations.whatsapp.cloud.token'    => $wa['access_token'],
+                'integrations.whatsapp.cloud.phone_id' => $wa['phone_number_id'],
+            ]);
+            if (! empty($wa['waba_id']))       config(['integrations.whatsapp.cloud.waba_id' => $wa['waba_id']]);
+            if (! empty($wa['verify_token']))  config(['integrations.whatsapp.cloud.verify_token' => $wa['verify_token']]);
+            if (! empty($wa['app_secret']))    config(['integrations.whatsapp.cloud.app_secret' => $wa['app_secret']]);
+        }
+    }
 }
