@@ -138,5 +138,28 @@
       el('div', { style: 'display:grid;grid-template-columns:1fr 1.4fr;gap:20px' }, srcCard, recent));
 
     view.appendChild(el('div', { class: 'dash-grid' }, hero, right));
+
+    // ----- Integration status strip (admins only; /integrations is permission-gated) -----
+    if (CRM.can && CRM.can('integrations.manage')) try {
+      const ints = (await api.get('/integrations')).data || [];
+      if (ints.length) {
+        const badge = (it) => {
+          const on = it.enabled && it.configured;
+          const label = on ? 'Connected' : (it.configured ? 'Configured' : 'Not configured');
+          const color = on ? 'var(--won,#2F9E44)' : (it.configured ? '#B45309' : 'var(--text-3,#94A3B8)');
+          const dot = on ? '#2F9E44' : (it.configured ? '#F59E0B' : '#CBD5E1');
+          return el('div', { class: 'chip', 'data-testid': 'int-status-' + it.key,
+            style: 'display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer',
+            onclick: () => location.hash = '#/integrations' },
+            el('span', { style: 'width:9px;height:9px;border-radius:50%;flex:none;background:' + dot }),
+            el('div', {},
+              el('div', { style: 'font-size:13px;font-weight:600;color:var(--text)' }, it.name),
+              el('div', { style: 'font-size:11px;font-weight:600;color:' + color }, label)));
+        };
+        view.appendChild(el('div', { class: 'chart-card', 'data-testid': 'dash-integrations', style: 'margin-top:20px' },
+          el('div', { class: 'chart-card__head' }, el('h3', {}, 'Integrations'), el('span', { class: 'mut' }, 'Live connection status')),
+          el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:6px' }, ...ints.map(badge))));
+      }
+    } catch (e) { /* non-admins can't read integrations — skip silently */ }
   };
 })();

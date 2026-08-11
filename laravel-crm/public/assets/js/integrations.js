@@ -55,6 +55,14 @@
 
     async function refresh() { items = (await api.get('/integrations')).data; render(); }
 
+    async function syncWaTemplates(manual) {
+      try {
+        const r = await api.post('/whatsapp/templates/sync', {});
+        const n = (r && (r.count != null ? r.count : (r.synced != null ? r.synced : (Array.isArray(r.templates) ? r.templates.length : null))));
+        toast(n != null ? ('Synced ' + n + ' WhatsApp templates from Meta') : 'WhatsApp templates synced from Meta', 'success');
+      } catch (e) { if (manual) toast('Template sync failed: ' + (e.message || 'error'), 'error'); }
+    }
+
     function configure(it) {
       const draft = {};
       const fieldEls = it.fields.map(f => {
@@ -76,7 +84,7 @@
       const enableRow = el('div', { class: 'ig-enable' },
         el('div', {}, el('div', { class: 'set-row__t' }, 'Enable ' + it.name), el('div', { class: 'set-row__d' }, 'Route live traffic through this integration')),
         CRM.switchField(it.enabled, async (on) => {
-          try { await api.post('/integrations/' + it.key + '/toggle', { enabled: on }); it.enabled = on; toast(on ? it.name + ' is now live' : it.name + ' disabled', 'success'); }
+          try { await api.post('/integrations/' + it.key + '/toggle', { enabled: on }); it.enabled = on; toast(on ? it.name + ' is now live' : it.name + ' disabled', 'success'); if (on && it.key === 'meta_whatsapp') { syncWaTemplates(false); } }
           catch (e) { toast(e.message, 'error'); await refresh(); m.close(); }
         }, 'ig-enable-' + it.key));
 
@@ -97,6 +105,7 @@
       });
 
       const body = el('div', {},
+        it.key === 'meta_whatsapp' && it.configured ? el('button', { class: 'btn', style: 'width:100%;justify-content:center;margin-bottom:12px', 'data-testid': 'ig-wa-sync', onclick: () => syncWaTemplates(true) }, el('i', { class: 'fa-solid fa-rotate' }), ' Sync templates from Meta') : null,
         it.key === 'meta_lead_ads' ? el('div', { class: 'ig-fb' },
           el('button', {
             class: 'btn', style: 'width:100%;background:#0866FF;border-color:#0866FF;color:#fff;justify-content:center',

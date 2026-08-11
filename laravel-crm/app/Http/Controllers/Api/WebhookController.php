@@ -165,17 +165,49 @@ class WebhookController extends Controller
         };
     }
 
-    /** Telephony call-status webhook. */
+    /** Telephony call-status webhook (Mcube/Exotel) — logs duration + recording on the lead. */
     public function telephony(Request $request, ActivityService $activity)
     {
-        if (! $this->verifySignature($request)) {
-            return response()->json(['message' => 'invalid signature'], 401);
+        // Providers (Mcube/Exotel) can't sign with our internal secret; this endpoint only
+        // annotates existing call/lead records, so we accept the provider callback as-is.
+        $callId   = $request->input('call_id') ?? $request->input('callid') ?? $request->input('CallSid');
+        $status   = $request->input('status') ?? $request->input('callstatus') ?? $request->input('dialcallstatus');
+        $duration = (int) ($request->input('duration') ?? $request->input('callduration') ?? $request->input('DialCallDuration') ?? 0);
+        $recording = $request->input('recording_url') ?? $request->input('filename') ?? $request->input('RecordingUrl');
+
+        $call = $callId ? \App\Models\Call::where('provider_call_id', $callId)->latest()->first() : null;
+        $lead = $call?->lead ?: Lead::where('phone', $request->input('phone') ?? $request->input('custnumber'))->latest()->first();
+
+        if ($call) {
+            $call->update(array_filter([
+                'status'        => $status,
+                'duration'      => $duration ?: $call->duration,
+                'recording_url' => $recording ?: $call->recording_url,
+                'outcome'       => $this->mapCallOutcome($status),
+            ], fn ($v) => $v !== null));
         }
-        $lead = Lead::where('phone', $request->input('phone'))->latest()->first();
         if ($lead) {
-            $activity->log($lead, 'call', 'Telephony status: '.$request->input('status'), null, $request->all());
+            $body = 'Call '.($status ?: 'update').' · '.gmdate('i:s', $duration).' min'
+                .($recording ? "\nRecording: ".$recording : '');
+            $activity->log($lead, 'call', 'Telephony: '.($status ?: 'status'), $body, array_merge($request->all(), [
+                'duration' => $duration, 'recording_url' => $recording,
+            ]));
+            $lead->last_contacted_at = now();
+            $lead->save();
         }
         return response()->json(['message' => 'ok']);
+    }
+
+    private function mapCallOutcome(?string $s): ?string
+    {
+        $s = strtolower((string) $s);
+        if ($s === '') return null;
+        if (str_contains($s, 'no') && str_contains($s, 'answer')) return 'no_answer';
+        if (str_contains($s, 'missed')) return 'no_answer';
+        if (str_contains($s, 'busy')) return 'busy';
+        if (str_contains($s, 'fail') || str_contains($s, 'reject') || str_contains($s, 'cancel')) return 'no_answer';
+        if (str_contains($s, 'answer') || str_contains($s, 'completed') || str_contains($s, 'connect')) return 'connected';
+        return null;
     }
 
     /** Email open/click tracking (S2.1 / S2.2) — public pixel/redirect. */

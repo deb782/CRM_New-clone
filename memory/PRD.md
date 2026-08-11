@@ -338,3 +338,9 @@ IntegrationsServiceProvider::boot() now reads enabled Hub records (Integration::
 - mcube → telephony driver=mcube + mcube base_url/auth_token/caller_id; added McubeDriver (click-to-call) + 'mcube' case in telephony binding; added mcube block to config/integrations.php.
 Verified via Hub API (update flat fields + toggle): config reflects live values, McubeDriver resolves, webhook verifies with Hub token. Test rows deleted; defaults restored (mail=log, tel=mock, wa=mock).
 Note: user must redeploy updated code to Hostinger, then fill Hub → Test → Enable per integration.
+
+## 2026-06 — Template sync + connection dashboard + Mcube call logging [DONE, test-agent 100%]
+1. WhatsApp template sync: 'Sync templates from Meta' button (ig-wa-sync) in the meta_whatsapp Manage modal (when configured) → POST /whatsapp/templates/sync; auto-syncs right after enabling meta_whatsapp. (integrations.js v4)
+2. Connection dashboard: 'Integrations' card on dashboard (dash-integrations) with per-integration badge Connected/Configured/Not configured (int-status-<key>), click → #/integrations. Guarded by CRM.can('integrations.manage') so non-admins skip it. (dashboard.js v13)
+3. Mcube call logging: added provider_call_id+status to calls (migration 2026_06_12). TelephonyService::clickToCall creates a Call row with provider_call_id; McubeDriver returns call_id. WebhookController::telephony matches Call by provider_call_id (callid/call_id/CallSid), updates duration/recording_url/outcome/status, logs a 'call' activity with duration+recording on the lead. Signature gate relaxed for provider callbacks.
+Verified: iteration_32.json — backend 7/7 pytest, frontend 100%, no bugs. Test file /app/backend/tests/test_wave3_integrations_calls.py.

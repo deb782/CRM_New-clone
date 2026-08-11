@@ -1,0 +1,32 @@
+{
+  "summary": "Wave 3 (Dashboard integration status strip, WhatsApp template sync button, Mcube click-to-call + telephony webhook logging) tested end-to-end. Backend pytest 7/7 passing. Frontend Playwright verified: admin dashboard renders the 'Integrations' card with 4 int-status chips (meta_whatsapp, google_email, mcube, meta_lead_ads), chip click routes to #/integrations, BDE dashboard hides the card while KPIs/funnel still render (no console errors), and after configuring meta_whatsapp with mock creds the ig-wa-sync button appears inside the Manage modal — clicking it fires POST /whatsapp/templates/sync and returns 200 with {synced,templates}. Telephony webhook (POST /api/v1/webhooks/telephony) with dialcallstatus=ANSWER/callduration=143/filename=... correctly matched by provider_call_id, updated the Call row, and logged a 'call' activity on the lead's timeline containing the recording URL and duration. Click-to-call (POST /leads/{id}/call) creates a Call row with provider_call_id. RBAC gating on /api/v1/integrations and /api/v1/whatsapp/templates/sync (403 for BDE) confirmed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_wave3_integrations_calls.py",
+    "/app/test_reports/pytest/wave3_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "WebhookController@telephony correctly relaxes signature verification (provider callbacks can't sign with the internal secret) and gates writes on matching Call/Lead — good. Consider rate-limiting this endpoint or requiring a provider-shared secret in prod to avoid activity-log spam.",
+    "IntegrationController@update accepts flat field keys (not nested {config:{...}}). Consider documenting this contract or validating unknown top-level keys, otherwise clients silently no-op (I hit this while seeding test data).",
+    "dashboard.js integrations block is inside try/catch and silently swallows 403 — good for BDE UX. Consider a single explicit `if (state.user.permissions.includes('integrations.manage'))` guard so the network 403 doesn't show up in the browser console (currently produces a benign but noisy 'Failed to load resource 403' log for non-admins)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_wave3_integrations_calls.py (new)"
+  ],
+  "success_rate": {"backend": "100% (7/7 pytest)", "frontend": "100% for review scope (dashboard strip, chip routing, sync modal button + API call, RBAC hiding)"},
+  "test_credentials": "admin@crm.local / Admin@12345 ; rahul@crm.local / Demo@12345",
+  "seed_data_creation": "Created TEST_Wave3Lead_<ts> leads (via API) during pytest and one meta_whatsapp Integration row (deleted at end of run via `Integration::where('key','meta_whatsapp')->delete()`). Env restored to all-not-configured baseline.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 3 Wave-3 features verified. The ig-wa-sync button lives inside the Manage modal on the meta_whatsapp card (not on the card itself); it only renders when the integration is `configured=true`. To reproduce the UI flow: PUT /crm-api/v1/integrations/meta_whatsapp with FLAT keys `{access_token,phone_number_id}` (NOT nested under `config`), then open #/integrations → Manage → 'Sync templates from Meta'. WhatsApp driver is 'mock' in this env so synced=0 is expected. Backend test file at /app/backend/tests/test_wave3_integrations_calls.py can be reused unchanged for regression.",
+  "rca of the issue": "N/A — no bugs found."
+}

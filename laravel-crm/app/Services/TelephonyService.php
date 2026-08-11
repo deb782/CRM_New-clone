@@ -16,6 +16,14 @@ class TelephonyService
     {
         $agent = Auth::user();
         $res = $this->driver->call((string) ($agent?->phone ?? ''), (string) $lead->phone);
+        Call::create([
+            'lead_id' => $lead->id,
+            'user_id' => $agent?->id,
+            'direction' => 'outbound',
+            'provider_call_id' => $res['call_id'] ?? null,
+            'status' => $res['status'] ?? 'initiated',
+            'called_at' => now(),
+        ]);
         $this->activity->log($lead, 'call', 'Click-to-call initiated', null, $res);
         return $res;
     }
