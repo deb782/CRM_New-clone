@@ -60,7 +60,7 @@
           }
           return r.json();
         })
-        .then(function (schema) { render(mount, base, slug, schema); })
+        .then(function (schema) { render(mount, base, PREFIX, slug, schema); })
         .catch(function (err) {
           console.error('[CRM form-embed]', err);
           mount.innerHTML =
@@ -71,7 +71,7 @@
     });
   }
 
-  function render(mount, base, slug, schema) {
+  function render(mount, base, PREFIX, slug, schema) {
     var fields = (schema && schema.fields) || [
       { slug: 'name',  label: 'Full Name', type: 'name',  is_required: true },
       { slug: 'phone', label: 'Phone',     type: 'tel',   is_required: true },
