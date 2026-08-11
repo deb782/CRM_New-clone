@@ -117,6 +117,11 @@ Route::prefix('v1')->group(function () {
             Route::get('workflows/{workflow}/runs', [\App\Http\Controllers\Api\WorkflowController::class, 'runs']);
             Route::get('workflows/{workflow}/checklist', [\App\Http\Controllers\Api\WorkflowController::class, 'checklist']);
             Route::delete('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowController::class, 'destroy']);
+
+            // Team-shared Flow Builder templates
+            Route::get('flow-templates', [\App\Http\Controllers\Api\FlowTemplateController::class, 'index']);
+            Route::post('flow-templates', [\App\Http\Controllers\Api\FlowTemplateController::class, 'store']);
+            Route::delete('flow-templates/{flowTemplate}', [\App\Http\Controllers\Api\FlowTemplateController::class, 'destroy']);
         });
 
         // Leads

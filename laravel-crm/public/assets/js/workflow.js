@@ -71,11 +71,29 @@
     reader.onload = () => {
       let graph;
       try { graph = JSON.parse(reader.result); } catch (err) { toast('That is not a valid JSON file', 'error'); return; }
-      const v = validateGraph(graph);
-      if (!v.ok) { toast(v.error, 'error'); return; }
-      try { editor.clear(); editor.import(graph); } catch (err) { toast('Could not load the flow: ' + err.message, 'error'); return; }
-      selectedId = null; renderConfigEmpty(); toggleEmpty(); recomputeTally();
-      toast('Flow imported (' + v.count + ' nodes) — review, then Save or Activate', 'success');
+
+      // Flow Builder export → import directly.
+      if (graph && graph.drawflow) {
+        const v = validateGraph(graph);
+        if (!v.ok) { toast(v.error, 'error'); return; }
+        try { editor.clear(); editor.import(graph); } catch (err) { toast('Could not load the flow: ' + err.message, 'error'); return; }
+        selectedId = null; renderConfigEmpty(); toggleEmpty(); recomputeTally();
+        toast('Flow imported (' + v.count + ' nodes) — review, then Save or Activate', 'success');
+        return;
+      }
+
+      // Rich workflow spec (e.g. process flow.json) → auto-translate into a flow.
+      if (isSpec(graph)) {
+        const build = translateSpec(graph);
+        if (build.length < 2) { toast('Could not read this spec — no stages or communications found.', 'error'); return; }
+        loadBuild(build);
+        const nm = (graph.workflow && graph.workflow.name) || 'Imported Spec Flow';
+        document.getElementById('wf-name').value = nm;
+        toast('Spec translated to a flow (' + build.length + ' nodes) — review, tweak & Save', 'success');
+        return;
+      }
+
+      toast('Unrecognised file — expected a Flow Builder export or a workflow spec (workflow.root_stages).', 'error');
     };
     reader.readAsText(file);
   }
@@ -111,6 +129,85 @@
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
     toast('Sample flow JSON downloaded — use it as the format reference for Import JSON', 'success');
+  }
+
+  // ---- Spec translator: rich workflow spec (process flow.json) → wired flow ----
+  function isSpec(o) {
+    if (!o || typeof o !== 'object') return false;
+    const w = o.workflow || o;
+    if (Array.isArray(w.root_stages)) return true;
+    return Object.keys(w).some(k => k.indexOf('stage_') === 0);
+  }
+
+  // Map spec stage ids and status strings onto the builder's status vocabulary.
+  const STAGE_STATUS = {
+    lead_entry: 'First Contact', lead_processing: 'In Profiling',
+    lead_handover: 'Meeting Scheduled', lead_conversion: 'Booking Paid',
+    lead_to_customer: 'Converted',
+  };
+
+  function translateSpec(root) {
+    const wf = root.workflow || root;
+    const stages = Array.isArray(wf.root_stages) ? wf.root_stages
+      : Object.keys(wf).filter(k => k.indexOf('stage_') === 0);
+
+    function findStage(id) {
+      for (const k in wf) {
+        if (k.indexOf('stage_') !== 0) continue;
+        const s = wf[k];
+        if (s && (s.stage_id === id || k.indexOf(id) !== -1)) return s;
+      }
+      return wf[id] || null;
+    }
+    function collectTemplates(o, out, seen) {
+      if (!o || typeof o !== 'object') return;
+      if (Array.isArray(o)) { o.forEach(v => collectTemplates(v, out, seen)); return; }
+      for (const k in o) {
+        const v = o[k];
+        if (typeof v === 'string' && String(k).toLowerCase().indexOf('template') !== -1 && v) {
+          if (!seen[v]) { seen[v] = 1; out.push(v); }
+        } else { collectTemplates(v, out, seen); }
+      }
+    }
+    const isWa = t => /whatsapp|_wa\b|\bwa_|_wa$/.test(t.toLowerCase());
+    const needsPdf = t => /invoice|cost_sheet|collateral|brochure|checklist|proforma|acknowledgement/.test(t.toLowerCase());
+
+    const steps = [{ k: 'trigger', d: { node_type: 'trigger', trigger_type: 'new_lead' } }];
+    stages.forEach(id => {
+      const st = STAGE_STATUS[id];
+      if (st) steps.push({ k: 'status_change', d: { node_type: 'status_change', status: st } });
+      const s = findStage(id);
+      if (!s) return;
+      const tpls = []; collectTemplates(s, tpls, {});
+      tpls.forEach(t => {
+        const wa = isWa(t);
+        steps.push({ k: wa ? 'send_whatsapp' : 'send_email',
+          d: { node_type: wa ? 'send_whatsapp' : 'send_email', template: t, attach_pdf: !wa && needsPdf(t) } });
+      });
+    });
+
+    // Lay out as a connected snake (rows of 6) so it stays one path.
+    const perRow = 6, dx = 260, dy = 200;
+    return steps.map((s, i) => {
+      const row = Math.floor(i / perRow), col = i % perRow;
+      const x = (row % 2 === 0) ? 40 + col * dx : 40 + (perRow - 1 - col) * dx;
+      const y = 40 + row * dy;
+      return Object.assign({}, s, { x, y, from: i > 0 ? i - 1 : undefined });
+    });
+  }
+
+  // ---- Save current canvas as a team-shared template ----
+  function saveAsTemplate() {
+    const graph = editor.export();
+    const nodes = (graph.drawflow && graph.drawflow.Home && graph.drawflow.Home.data) || {};
+    if (!Object.keys(nodes).length) { toast('Add some nodes before saving as a template.', 'error'); return; }
+    const defName = (document.getElementById('wf-name')?.value || '').trim() || 'My Flow Template';
+    const name = window.prompt('Name this starter pack (visible to your whole team):', defName);
+    if (name === null) return;
+    if (!name.trim()) { toast('Please enter a template name.', 'error'); return; }
+    api.post('/flow-templates', { name: name.trim(), description: '', graph })
+      .then(() => toast('Saved "' + name.trim() + '" — it now appears under Starter flows for everyone.', 'success'))
+      .catch(err => toast('Could not save template: ' + (err.message || 'error'), 'error'));
   }
 
 
@@ -159,6 +256,7 @@
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-import', onclick: () => importTrigger && importTrigger() }, el('i', { class: 'fa-solid fa-file-import' }), 'Import JSON'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-sample-json', onclick: downloadSampleJson }, el('i', { class: 'fa-solid fa-file-arrow-down' }), 'Sample JSON'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-templates', onclick: openStarterPicker }, el('i', { class: 'fa-solid fa-layer-group' }), 'Starter flows'),
+      el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-save-template', onclick: saveAsTemplate }, el('i', { class: 'fa-solid fa-bookmark' }), 'Save as template'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-testrun', onclick: testRun }, el('i', { class: 'fa-solid fa-play' }), 'Test run'),
       el('button', { class: 'wf-btn wf-btn--ghost', 'data-testid': 'wf-validate', onclick: validate }, el('i', { class: 'fa-solid fa-circle-check' }), 'Validate'),
       el('button', { class: 'wf-btn', 'data-testid': 'wf-activate', onclick: activate }, el('i', { class: 'fa-solid fa-rocket' }), 'Activate'),
@@ -289,7 +387,7 @@
       F.push(field('Wait amount', txt(d.amount, v => { d.amount = +v; commit(); }, { type: 'number' })));
       F.push(field('Unit', sel(d.unit, ['minutes', 'hours', 'days'], v => { d.unit = v; commit(); })));
     } else if (type === 'condition') {
-      F.push(field('Field', sel(d.field, ['temperature', 'source', 'status', 'score'], v => { d.field = v; commit(); }), T.condition.help));
+      F.push(field('Field', sel(d.field, ['call_outcome', 'temperature', 'source', 'status', 'score'], v => { d.field = v; commit(); }), T.condition.help));
       F.push(field('Operator', sel(d.operator, ['=', '!=', '>', '<'], v => { d.operator = v; commit(); })));
       F.push(field('Value', txt(d.value, v => { d.value = v; commit(); })));
     } else if (type === 'fallback') {
@@ -464,64 +562,111 @@
         { k: 'send_whatsapp', x: 560, y: 80, d: { node_type: 'send_whatsapp', template: 'booking_wa' }, from: 1 },
         { k: 'task', x: 820, y: 80, d: { node_type: 'task', task_type: 'document', title: 'Collect KYC & docs', due_hours: 24, assignee: 'crm_head' }, from: 2 },
       ] },
-    { id: 'agrocorp', name: 'Agrocorp Way of Working', desc: 'The complete Agrocorp lead-to-customer journey in one connected path — Entry → Processing → Handover → Conversion → Customer, with every WhatsApp, email, task and status change wired in sequence.',
+    { id: 'agrocorp', name: 'Agrocorp Way of Working', desc: 'The complete Agrocorp lead-to-customer journey with real call-outcome branches — Positive → nurture → meeting → cost sheet → booking → customer; NRTY → email win-back; Negative → polite closure + reason capture.',
       build: [
         // Stage 1 — Lead Entry
-        { k: 'trigger',       x: 40,   y: 60,  d: { node_type: 'trigger', trigger_type: 'new_lead' } },
-        { k: 'send_whatsapp', x: 300,  y: 60,  d: { node_type: 'send_whatsapp', template: 'welcome_wa' }, from: 0 },
-        { k: 'send_email',    x: 560,  y: 60,  d: { node_type: 'send_email', template: 'enquiry_ack_email', attach_pdf: true }, from: 1 },
-        { k: 'task',          x: 820,  y: 60,  d: { node_type: 'task', task_type: 'call', title: 'First contact call', due_hours: 2, assignee: 'owner' }, from: 2 },
-        { k: 'status_change', x: 1080, y: 60,  d: { node_type: 'status_change', status: 'First Contact' }, from: 3 },
-        // Stage 2 — Lead Processing (profiling → nurture → appointment)
-        { k: 'task',          x: 1340, y: 60,  d: { node_type: 'task', task_type: 'call', title: 'Profiling & qualification call', due_hours: 4, assignee: 'owner' }, from: 4 },
-        { k: 'status_change', x: 1340, y: 260, d: { node_type: 'status_change', status: 'In Profiling' }, from: 5 },
-        { k: 'send_whatsapp', x: 1080, y: 260, d: { node_type: 'send_whatsapp', template: 'nurture_wa_1' }, from: 6 },
-        { k: 'wait',          x: 820,  y: 260, d: { node_type: 'wait', amount: 2, unit: 'days' }, from: 7 },
-        { k: 'send_email',    x: 560,  y: 260, d: { node_type: 'send_email', template: 'project_brochure_email', attach_pdf: true }, from: 8 },
-        { k: 'task',          x: 300,  y: 260, d: { node_type: 'task', task_type: 'callback', title: 'Book virtual meeting / site visit', due_hours: 24, assignee: 'owner' }, from: 9 },
-        { k: 'status_change', x: 40,   y: 260, d: { node_type: 'status_change', status: 'Meeting Scheduled' }, from: 10 },
-        // Stage 3 — Handover & meeting
-        { k: 'send_whatsapp', x: 40,   y: 460, d: { node_type: 'send_whatsapp', template: 'meeting_confirmation_wa' }, from: 11 },
-        { k: 'task',          x: 300,  y: 460, d: { node_type: 'task', task_type: 'visit', title: 'Conduct meeting / site visit', due_hours: 48, assignee: 'owner' }, from: 12 },
-        // Stage 4 — Conversion (cost sheet → booking)
-        { k: 'send_email',    x: 560,  y: 460, d: { node_type: 'send_email', template: 'cost_sheet_email', attach_pdf: true }, from: 13 },
-        { k: 'status_change', x: 820,  y: 460, d: { node_type: 'status_change', status: 'Cost Sheet Shared' }, from: 14 },
-        { k: 'task',          x: 1080, y: 460, d: { node_type: 'task', task_type: 'call', title: 'Negotiation & booking follow-up', due_hours: 48, assignee: 'sales_head' }, from: 15 },
-        { k: 'status_change', x: 1340, y: 460, d: { node_type: 'status_change', status: 'Booking Paid' }, from: 16 },
-        // Stage 5 — Lead to Customer (payment ack → KYC → onboarding)
-        { k: 'send_email',    x: 1340, y: 660, d: { node_type: 'send_email', template: 'booking_ack_email', attach_pdf: true }, from: 17 },
-        { k: 'send_whatsapp', x: 1080, y: 660, d: { node_type: 'send_whatsapp', template: 'booking_confirmation_wa' }, from: 18 },
-        { k: 'task',          x: 820,  y: 660, d: { node_type: 'task', task_type: 'document', title: 'Collect KYC & documents', due_hours: 24, assignee: 'crm_head' }, from: 19 },
-        { k: 'status_change', x: 560,  y: 660, d: { node_type: 'status_change', status: 'Converted' }, from: 20 },
-        { k: 'send_email',    x: 300,  y: 660, d: { node_type: 'send_email', template: 'customer_welcome_email', attach_pdf: true }, from: 21 },
-        { k: 'task',          x: 40,   y: 660, d: { node_type: 'task', task_type: 'callback', title: 'Customer onboarding & CRM handover', due_hours: 24, assignee: 'crm_head' }, from: 22 },
+        { k: 'trigger',       x: 40,   y: 40,  d: { node_type: 'trigger', trigger_type: 'new_lead' } },
+        { k: 'send_whatsapp', x: 280,  y: 40,  d: { node_type: 'send_whatsapp', template: 'lead_welcome' }, from: 0 },
+        { k: 'send_email',    x: 520,  y: 40,  d: { node_type: 'send_email', template: 'lead_enquiry_acknowledgement', attach_pdf: true }, from: 1 },
+        { k: 'task',          x: 760,  y: 40,  d: { node_type: 'task', task_type: 'call', title: 'First contact call', due_hours: 2, assignee: 'owner' }, from: 2 },
+        { k: 'status_change', x: 1000, y: 40,  d: { node_type: 'status_change', status: 'First Contact' }, from: 3 },
+        // Stage 2 — Profiling
+        { k: 'task',          x: 1240, y: 40,  d: { node_type: 'task', task_type: 'call', title: 'Profiling & qualification call', due_hours: 4, assignee: 'owner' }, from: 4 },
+        { k: 'status_change', x: 1480, y: 40,  d: { node_type: 'status_change', status: 'In Profiling' }, from: 5 },
+        { k: 'condition',     x: 1720, y: 40,  d: { node_type: 'condition', field: 'call_outcome', operator: '=', value: 'Positive' }, from: 6 },
+        // POSITIVE branch (condition out 1) — nurture → meeting → cost sheet → booking → customer
+        { k: 'status_change', x: 1720, y: 240, d: { node_type: 'status_change', status: 'Positive' }, from: 7, port: 'output_1' },
+        { k: 'send_whatsapp', x: 1480, y: 240, d: { node_type: 'send_whatsapp', template: 'positive_call_followup' }, from: 8 },
+        { k: 'send_email',    x: 1240, y: 240, d: { node_type: 'send_email', template: 'detailed_project_collateral', attach_pdf: true }, from: 9 },
+        { k: 'task',          x: 1000, y: 240, d: { node_type: 'task', task_type: 'callback', title: 'Book virtual meeting / site visit', due_hours: 24, assignee: 'owner' }, from: 10 },
+        { k: 'status_change', x: 760,  y: 240, d: { node_type: 'status_change', status: 'Meeting Scheduled' }, from: 11 },
+        { k: 'send_whatsapp', x: 520,  y: 240, d: { node_type: 'send_whatsapp', template: 'appointment_confirmation_whatsapp' }, from: 12 },
+        { k: 'task',          x: 280,  y: 240, d: { node_type: 'task', task_type: 'visit', title: 'Conduct meeting / site visit', due_hours: 48, assignee: 'owner' }, from: 13 },
+        { k: 'send_email',    x: 40,   y: 240, d: { node_type: 'send_email', template: 'cost_sheet_email', attach_pdf: true }, from: 14 },
+        { k: 'status_change', x: 40,   y: 420, d: { node_type: 'status_change', status: 'Cost Sheet Shared' }, from: 15 },
+        { k: 'task',          x: 280,  y: 420, d: { node_type: 'task', task_type: 'call', title: 'Booking payment follow-up', due_hours: 48, assignee: 'sales_head' }, from: 16 },
+        { k: 'status_change', x: 520,  y: 420, d: { node_type: 'status_change', status: 'Booking Paid' }, from: 17 },
+        { k: 'send_email',    x: 760,  y: 420, d: { node_type: 'send_email', template: 'official_booking_payment_acknowledgement', attach_pdf: true }, from: 18 },
+        { k: 'send_whatsapp', x: 1000, y: 420, d: { node_type: 'send_whatsapp', template: 'post_sales_personal_introduction' }, from: 19 },
+        { k: 'task',          x: 1240, y: 420, d: { node_type: 'task', task_type: 'document', title: 'Collect ATS & KYC documents', due_hours: 24, assignee: 'crm_head' }, from: 20 },
+        { k: 'status_change', x: 1480, y: 420, d: { node_type: 'status_change', status: 'Converted' }, from: 21 },
+        { k: 'send_email',    x: 1720, y: 420, d: { node_type: 'send_email', template: 'post_sales_manager_introduction' }, from: 22 },
+        // NRTY branch (condition out 2 → second condition out 1) — email win-back
+        { k: 'condition',     x: 1720, y: 640, d: { node_type: 'condition', field: 'call_outcome', operator: '=', value: 'NRTY' }, from: 7, port: 'output_2' },
+        { k: 'status_change', x: 1480, y: 640, d: { node_type: 'status_change', status: 'NRTY' }, from: 24, port: 'output_1' },
+        { k: 'send_whatsapp', x: 1240, y: 640, d: { node_type: 'send_whatsapp', template: 'missed_call_nrty' }, from: 25 },
+        { k: 'send_email',    x: 1000, y: 640, d: { node_type: 'send_email', template: 'nrty_reintroduction' }, from: 26 },
+        { k: 'wait',          x: 760,  y: 640, d: { node_type: 'wait', amount: 3, unit: 'days' }, from: 27 },
+        { k: 'send_email',    x: 520,  y: 640, d: { node_type: 'send_email', template: 'nrty_last_attempt' }, from: 28 },
+        // NEGATIVE / DEAD branch (second condition out 2) — polite closure + reason capture
+        { k: 'send_email',    x: 1720, y: 820, d: { node_type: 'send_email', template: 'polite_lead_closure' }, from: 24, port: 'output_2' },
+        { k: 'task',          x: 1480, y: 820, d: { node_type: 'task', task_type: 'callback', title: 'Capture closure reason & mark dead', due_hours: 2, assignee: 'owner' }, from: 30 },
       ] },
   ];
 
+  function starterCard(opts) {
+    // opts: { testid, name, desc, count, onLoad, onDelete }
+    const card = el('div', { class: 'card', style: 'padding:16px;border:2px solid var(--wf-border);transition:border-color .15s;position:relative', 'data-testid': opts.testid,
+      onmouseover: e => e.currentTarget.style.borderColor = '#2563EB', onmouseout: e => e.currentTarget.style.borderColor = 'var(--wf-border)' },
+      el('div', { style: 'cursor:pointer', onclick: opts.onLoad },
+        el('div', { style: 'font-weight:700;font-size:15px;color:#0F172A;margin-bottom:6px;padding-right:22px' }, el('i', { class: 'fa-solid fa-diagram-project', style: 'color:#2563EB;margin-right:8px' }), opts.name),
+        el('div', { style: 'font-size:12px;color:#64748B;line-height:1.5' }, opts.desc || ''),
+        el('div', { style: 'margin-top:10px;font-size:11px;color:#94A3B8' }, (opts.count || 0) + ' nodes')),
+      opts.onDelete ? el('button', { title: 'Delete template', 'data-testid': opts.testid + '-del',
+        style: 'position:absolute;top:10px;right:10px;background:none;border:none;color:#CBD5E1;cursor:pointer;font-size:14px',
+        onmouseover: e => e.currentTarget.style.color = '#EF4444', onmouseout: e => e.currentTarget.style.color = '#CBD5E1',
+        onclick: e => { e.stopPropagation(); opts.onDelete(); } }, el('i', { class: 'fa-solid fa-trash' })) : null);
+    return card;
+  }
+
   function openStarterPicker() {
     document.getElementById('wf-starter')?.remove();
-    const cards = STARTERS.map(s => el('div', { class: 'card', style: 'padding:16px;cursor:pointer;border:2px solid var(--wf-border);transition:border-color .15s', 'data-testid': 'wf-starter-' + s.id,
-      onmouseover: e => e.currentTarget.style.borderColor = '#2563EB', onmouseout: e => e.currentTarget.style.borderColor = 'var(--wf-border)',
-      onclick: () => { loadStarter(s); ov.remove(); } },
-      el('div', { style: 'font-weight:700;font-size:15px;color:#0F172A;margin-bottom:6px' }, el('i', { class: 'fa-solid fa-diagram-project', style: 'color:#2563EB;margin-right:8px' }), s.name),
-      el('div', { style: 'font-size:12px;color:#64748B;line-height:1.5' }, s.desc),
-      el('div', { style: 'margin-top:10px;font-size:11px;color:#94A3B8' }, s.build.length + ' nodes')));
+    const builtIn = STARTERS.map(s => starterCard({
+      testid: 'wf-starter-' + s.id, name: s.name, desc: s.desc, count: s.build.length,
+      onLoad: () => { loadStarter(s); ov.remove(); } }));
+
+    const teamGrid = el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px', 'data-testid': 'wf-team-templates' });
+    const teamSection = el('div', { style: 'margin-top:22px;display:none' },
+      el('h3', { style: 'margin:0 0 2px;font-size:15px;display:flex;align-items:center;gap:8px' }, el('i', { class: 'fa-solid fa-users', style: 'color:#2563EB' }), "Your team's saved templates"),
+      el('p', { style: 'color:#64748B;font-size:12px;margin:0' }, 'Saved from a canvas with "Save as template".'),
+      teamGrid);
+
     const ov = el('div', { id: 'wf-starter', 'data-testid': 'wf-starter-picker',
       style: 'position:absolute;inset:0;z-index:20;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);display:grid;place-items:center' },
-      el('div', { style: 'background:#fff;border-radius:14px;width:min(760px,92%);max-height:80%;overflow:auto;padding:24px', onclick: e => e.stopPropagation() },
+      el('div', { style: 'background:#fff;border-radius:14px;width:min(760px,92%);max-height:82%;overflow:auto;padding:24px', onclick: e => e.stopPropagation() },
         el('div', { style: 'display:flex;align-items:center;margin-bottom:6px' }, el('h2', { style: 'margin:0;font-size:18px' }, 'Start from a proven flow'),
           el('button', { style: 'margin-left:auto;background:none;border:none;font-size:18px;color:#94A3B8;cursor:pointer', onclick: () => ov.remove() }, el('i', { class: 'fa-solid fa-xmark' }))),
         el('p', { style: 'color:#64748B;font-size:13px;margin-top:0' }, 'Pick a template — it drops onto the canvas fully wired, ready to tweak. This replaces the current canvas.'),
-        el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px' }, ...cards)));
+        el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px' }, ...builtIn),
+        teamSection));
     ov.addEventListener('click', () => ov.remove());
     document.querySelector('.wf-root').appendChild(ov);
+
+    // Load team-shared templates from the server.
+    api.get('/flow-templates').then(res => {
+      const templates = (res && res.templates) || [];
+      if (!templates.length) return;
+      teamSection.style.display = 'block';
+      templates.forEach(t => teamGrid.appendChild(starterCard({
+        testid: 'wf-tpl-' + t.id,
+        name: t.name,
+        desc: (t.description || '') + (t.created_by_name ? ('  ·  by ' + t.created_by_name) : ''),
+        count: t.node_count,
+        onLoad: () => { loadGraph(t.graph, t.name); ov.remove(); },
+        onDelete: () => {
+          if (!window.confirm('Delete template "' + t.name + '" for everyone?')) return;
+          api.del('/flow-templates/' + t.id).then(() => { toast('Template deleted', 'success'); openStarterPicker(); })
+            .catch(err => toast('Could not delete: ' + (err.message || 'error'), 'error'));
+        },
+      })));
+    }).catch(() => { /* templates are optional */ });
   }
 
-  function loadStarter(s) {
+  function loadBuild(build) {
     editor.clear();
     const ids = [];
-    s.build.forEach(n => { ids.push(addNode(n.k, n.x, n.y)); });
-    s.build.forEach((n, i) => {
+    build.forEach(n => { ids.push(addNode(n.k, n.x, n.y)); });
+    build.forEach((n, i) => {
       const data = JSON.parse(JSON.stringify(n.d));
       editor.updateNodeDataFromId(ids[i], data);
       refreshNodeBody(ids[i]);
@@ -529,8 +674,19 @@
         try { editor.addConnection(ids[n.from], ids[i], n.port || 'output_1', 'input_1'); } catch (e) { /* ignore */ }
       }
     });
-    toggleEmpty(); recomputeTally();
+    selectedId = null; renderConfigEmpty(); toggleEmpty(); recomputeTally();
+  }
+
+  function loadStarter(s) {
+    loadBuild(s.build);
     document.getElementById('wf-name').value = s.name;
     toast('Loaded "' + s.name + '" — customise & save', 'success');
+  }
+
+  function loadGraph(graph, name) {
+    try { editor.clear(); editor.import(graph); } catch (e) { toast('Could not load template: ' + e.message, 'error'); return; }
+    selectedId = null; renderConfigEmpty(); toggleEmpty(); recomputeTally();
+    if (name) document.getElementById('wf-name').value = name;
+    toast('Loaded "' + (name || 'template') + '" — customise & save', 'success');
   }
 })();
