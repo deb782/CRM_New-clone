@@ -63,6 +63,37 @@
       } catch (e) { if (manual) toast('Template sync failed: ' + (e.message || 'error'), 'error'); }
     }
 
+    function launchWaSignup(configId, m) {
+      let code = null, session = null, submitted = false;
+      const finish = async () => {
+        const waba = session && (session.waba_id || (session.waba_ids && session.waba_ids[0]));
+        if (submitted || !code || !session || !session.phone_number_id || !waba) return;
+        submitted = true;
+        window.removeEventListener('message', onMsg);
+        try {
+          const r = await api.post('/integrations/meta_whatsapp/oauth', { code, phone_number_id: session.phone_number_id, waba_id: waba });
+          toast(r.message || 'WhatsApp connected', 'success');
+          await refresh(); m && m.close();
+        } catch (e) { submitted = false; toast(e.message || 'WhatsApp connection failed', 'error'); }
+      };
+      const onMsg = (event) => {
+        if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return;
+        if (typeof event.data !== 'string') return;
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type !== 'WA_EMBEDDED_SIGNUP') return;
+          session = msg.data || {};
+          if (String(msg.event || '').indexOf('FINISH') === 0) finish();
+        } catch (_) {}
+      };
+      window.addEventListener('message', onMsg);
+      FB.login((response) => {
+        code = response && response.authResponse && response.authResponse.code;
+        if (!code) { window.removeEventListener('message', onMsg); toast('WhatsApp signup was cancelled', 'error'); return; }
+        finish();
+      }, { config_id: configId, response_type: 'code', override_default_response_type: true, extras: { setup: {} } });
+    }
+
     function configure(it) {
       const draft = {};
       const fieldEls = it.fields.map(f => {
@@ -105,6 +136,21 @@
       });
 
       const body = el('div', {},
+        it.key === 'meta_whatsapp' ? el('div', { class: 'ig-fb' },
+          el('button', {
+            class: 'btn', style: 'width:100%;background:#25D366;border-color:#25D366;color:#062e18;justify-content:center',
+            'data-testid': 'ig-wa-connect',
+            onclick: async () => {
+              const appId = draft.app_id || (it.fields.find(f => f.key === 'app_id') || {}).value;
+              const configId = draft.config_id || (it.fields.find(f => f.key === 'config_id') || {}).value;
+              if (!appId || !configId) { toast('Enter App ID and Embedded Signup Config ID, click Save, then Connect', 'error'); return; }
+              try { await api.put('/integrations/' + it.key, draft); } catch (e) {}
+              await loadFB(appId, draft.graph_version || 'v21.0');
+              if (!window.FB) { toast('Could not load the Facebook SDK', 'error'); return; }
+              launchWaSignup(configId, m);
+            }
+          }, el('i', { class: 'fa-brands fa-whatsapp' }), ' Connect WhatsApp'),
+          el('div', { class: 'help', style: 'margin:8px 0 14px;text-align:center' }, 'Recommended. Or paste a permanent token in the fields below to connect manually.')) : null,
         it.key === 'meta_whatsapp' && it.configured ? el('button', { class: 'btn', style: 'width:100%;justify-content:center;margin-bottom:12px', 'data-testid': 'ig-wa-sync', onclick: () => syncWaTemplates(true) }, el('i', { class: 'fa-solid fa-rotate' }), ' Sync templates from Meta') : null,
         it.key === 'meta_lead_ads' ? el('div', { class: 'ig-fb' },
           el('button', {

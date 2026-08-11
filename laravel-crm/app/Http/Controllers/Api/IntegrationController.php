@@ -172,6 +172,61 @@ class IntegrationController extends Controller
         return response()->json(['pages' => $pages, 'message' => 'Connected '.count($pages).' page(s)']);
     }
 
+    /** WhatsApp Embedded Signup: exchange the signup code, register the phone, subscribe the WABA. */
+    public function whatsappOauth(Request $request)
+    {
+        $data = $request->validate([
+            'code' => 'required|string|max:4096',
+            'phone_number_id' => 'required|string|regex:/^\d+$/',
+            'waba_id' => 'required|string|regex:/^\d+$/',
+        ]);
+        $row = Integration::firstOrNew(['key' => 'meta_whatsapp']);
+        $c = $row->config ?? [];
+        $appId = $c['app_id'] ?? null;
+        $secret = $c['app_secret'] ?? null;
+        if (! $appId || ! $secret) {
+            return response()->json(['message' => 'Save your Meta App ID and App Secret first.'], 422);
+        }
+        $version = $c['graph_version'] ?: 'v21.0';
+        $base = "https://graph.facebook.com/{$version}";
+
+        try {
+            $token = Http::timeout(20)->get("{$base}/oauth/access_token", [
+                'client_id' => $appId, 'client_secret' => $secret, 'code' => $data['code'],
+            ])->throw()->json('access_token');
+            if (! $token) {
+                return response()->json(['message' => 'Meta did not return an access token.'], 422);
+            }
+
+            // Register the phone for Cloud API use. Ignore "already registered" style errors.
+            try {
+                Http::withToken($token)->timeout(20)
+                    ->post("{$base}/{$data['phone_number_id']}/register", ['messaging_product' => 'whatsapp'])
+                    ->throw();
+            } catch (\Throwable $e) {
+                \Log::warning('meta_whatsapp register: '.$e->getMessage());
+            }
+
+            // Subscribe the app to this WABA so webhooks flow in.
+            Http::withToken($token)->timeout(20)
+                ->post("{$base}/{$data['waba_id']}/subscribed_apps")
+                ->throw();
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'WhatsApp connection failed: '.($e->getMessage())], 422);
+        }
+
+        $c['access_token'] = $token;
+        $c['phone_number_id'] = $data['phone_number_id'];
+        $c['waba_id'] = $data['waba_id'];
+        $row->config = $c;
+        $row->status = 'connected';
+        $row->enabled = true;
+        $row->last_tested_at = now();
+        $row->save();
+
+        return response()->json(['ok' => true, 'message' => 'WhatsApp connected via embedded signup.']);
+    }
+
     private function testMcube(array $c): string
     {
         $url = $c['base_url'] ?? '';

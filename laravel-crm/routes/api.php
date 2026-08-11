@@ -358,6 +358,7 @@ Route::prefix('v1')->group(function () {
             Route::post('integrations/{key}/test', [\App\Http\Controllers\Api\IntegrationController::class, 'test']);
             Route::post('integrations/{key}/toggle', [\App\Http\Controllers\Api\IntegrationController::class, 'toggle']);
             Route::post('integrations/meta_lead_ads/oauth', [\App\Http\Controllers\Api\IntegrationController::class, 'metaOauth']);
+            Route::post('integrations/meta_whatsapp/oauth', [\App\Http\Controllers\Api\IntegrationController::class, 'whatsappOauth']);
         });
 
         // Notifications (per-user)
