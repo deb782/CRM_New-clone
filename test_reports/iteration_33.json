@@ -1,0 +1,44 @@
+{
+  "summary": "Wave 33 - Auth/session-security hardening: independently verified end-to-end. Created /app/backend/tests/test_auth_session_security.py (13 tests, all PASS after sequential run) covering login+session record with IP/UA, unauthenticated /me returns 401 (with/without Accept, bogus token), sliding TTL (expires_at moves forward on authed call), logout invalidates token, logout-all invalidates all tokens, forgot-password generic 200 (any email), reset-password invalid token -> 422, disable user immediately invalidates tokens (user re-enabled after), regression sales user can list leads. Frontend UI verified in Chromium: login-forgot link -> #/forgot with forgot-email/forgot-submit and generic success message; #/reset?token=invalid&email= shows reset-password/reset-confirm/reset-submit and displays 'invalid' error on submit (backend 422 in console); Account Settings -> Security tab (settings-tab-security) renders sessions-list with current device 'This device' chip + IP 127.0.0.1 and sessions-logout-all button. Dashboard/sidebar/normal auth flows still work (no regression). Admin password (Admin@12345) and rahul password (Demo@12345) NOT modified. Sales user re-enabled after disable test.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/v1/auth/forgot-password & /auth/reset-password", "issue": "Both endpoints share a strict per-IP throttle (429 'Too Many Attempts.'). Hitting either 2-3 times inside ~1 min from same IP triggers 429 in tests. Not a security defect, but consider a slightly higher limit and/or documenting it so QA/tests wait a minute between calls."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Post-login redirect for admin", "issues": ["Admin lands on #/onboarding after login even though setup is 100% complete (Dashboard header says '5 of 5 steps complete'). App still works after forcing #/dashboard, but 'Continue' on the onboarding welcome step did not advance past #/onboarding in headless test. Minor UX polish - not blocking auth-security scope."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_session_security.py",
+    "/app/test_reports/pytest/auth_session_security.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Loosen or document the forgot/reset throttle (currently 429 after ~2 calls/min from same IP) so integrators/tests don't hit it accidentally.",
+    "OPTIONAL: Fix admin onboarding redirect - a fully-setup admin (5/5 steps complete) should not be routed to #/onboarding after login."
+  ],
+  "critical_code_review_comments": [
+    "SlidingSession middleware correctly rejects disabled users AND slides expires_at by config('sanctum.token_ttl') on every authenticated request - verified via expires_at delta test.",
+    "ForceJsonAccept middleware ensures /api/* returns JSON 401 without any Accept header - verified.",
+    "AuthController::forgotPassword returns a fixed generic message regardless of whether the email exists - no user enumeration - verified.",
+    "AuthController::resetPassword returns HTTP 422 for invalid tokens with 'This reset link is invalid.' - verified.",
+    "UserController::update revokes tokens on is_active=false transition - verified: disabled user's existing bearer token immediately 401s on /me.",
+    "logoutAll deletes all PATs for the user - verified: token issued before logout-all is 401 afterward.",
+    "GET /auth/sessions returns {\"data\":[...]} (resource collection wrapper), not a bare array. Frontend/tests must unwrap 'data'. Consistent with other list endpoints in this codebase but worth noting for API consumers.",
+    "sessions-list UI correctly marks the calling token as 'This device' and includes IP + last-active timestamp; sessions-logout-all button is wired to POST /auth/logout-all."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_session_security.py (new)"
+  ],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100% (login-forgot, forgot page, reset page invalid-token, Active Sessions in Security tab)"},
+  "test_credentials": "admin@crm.local/Admin@12345, rahul@crm.local/Demo@12345 - both UNCHANGED after tests. Sales user disabled during TestDisableUser and re-enabled in the same test's finally block.",
+  "seed_data_creation": "None - used existing seeded users.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend suite lives at /app/backend/tests/test_auth_session_security.py. Run with `python -m pytest backend/tests/test_auth_session_security.py -v -o 'addopts='` (the -o override disables the project's default -n auto/xdist parallelism, which was causing tests to invalidate each other's admin tokens across workers). Forgot/reset endpoints are throttled per-IP; if you re-run TestForgotReset within ~1 min of a prior run you may see 429s - wait 60s and retry. GET /auth/sessions returns {data:[...]} not a bare array.",
+  "rca of the issue": "N/A - all acceptance criteria pass. Two minor test-authoring gotchas resolved during this wave: (1) session list response is wrapped in {'data':...}; (2) pytest-xdist worker parallelism caused tokens issued in one worker to be invalidated by logout-all in another - fixed by running this file sequentially."
+}

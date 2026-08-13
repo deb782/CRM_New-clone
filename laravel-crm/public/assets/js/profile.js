@@ -108,6 +108,44 @@
           el('div', { class: 'field' }, el('label', {}, 'Current password'), cur),
           el('div', { class: 'form-row' }, el('div', { class: 'field' }, el('label', {}, 'New password'), npw), el('div', { class: 'field' }, el('label', {}, 'Confirm'), cpw)),
           el('div', { style: 'margin-top:8px' }, save)));
+
+      // ---- Active sessions & devices ----
+      const list = el('div', { 'data-testid': 'sessions-list' }, el('div', { class: 'spinner' }));
+      const logoutAll = el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'sessions-logout-all' }, el('i', { class: 'fa-solid fa-power-off' }), ' Log out all other devices');
+      const uaLabel = (ua) => {
+        ua = (ua || '').toLowerCase();
+        const os = ua.includes('windows') ? 'Windows' : ua.includes('mac') ? 'macOS' : ua.includes('android') ? 'Android' : ua.includes('iphone') || ua.includes('ipad') ? 'iOS' : ua.includes('linux') ? 'Linux' : 'Device';
+        const br = ua.includes('edg') ? 'Edge' : ua.includes('chrome') ? 'Chrome' : ua.includes('firefox') ? 'Firefox' : ua.includes('safari') ? 'Safari' : 'Browser';
+        return br + ' · ' + os;
+      };
+      async function loadSessions() {
+        list.innerHTML = '';
+        try {
+          const r = await api.get('/auth/sessions');
+          const rows = r.data || [];
+          if (!rows.length) { list.appendChild(el('div', { class: 'help' }, 'No active sessions.')); return; }
+          rows.forEach(s => {
+            const revoke = s.current ? null : el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'session-revoke-' + s.id, onclick: async () => {
+              try { await api.del('/auth/sessions/' + s.id); toast('Session revoked', 'success'); loadSessions(); } catch (e) { toast(e.message, 'error'); }
+            } }, 'Revoke');
+            list.appendChild(el('div', { class: 'set-row', 'data-testid': 'session-row-' + s.id, style: 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)' },
+              el('div', {},
+                el('div', { class: 'set-row__t' }, uaLabel(s.user_agent), s.current ? el('span', { class: 'chip', style: 'margin-left:8px;font-size:10px' }, 'This device') : null),
+                el('div', { class: 'set-row__d' }, 'IP ' + (s.ip_address || 'unknown') + ' · last active ' + (s.last_used_at ? CRM.timeAgo(s.last_used_at) : 'never'))),
+              revoke));
+          });
+        } catch (e) { list.appendChild(el('div', { class: 'help' }, 'Could not load sessions.')); }
+      }
+      logoutAll.addEventListener('click', async () => {
+        if (!confirm('Log out of all other devices? Your current session stays signed in.')) return;
+        try { await api.post('/auth/logout-all'); toast('Signed out of all devices', 'success'); location.hash = '#/login'; setTimeout(() => location.reload(), 200); }
+        catch (e) { toast(e.message, 'error'); }
+      });
+      panel.append(el('div', { class: 'set-block', style: 'margin-top:24px' },
+        el('div', { class: 'set-block__h' }, 'Active sessions & devices'),
+        el('div', { class: 'help', style: 'margin-bottom:8px' }, 'Sessions end automatically after 1 hour of inactivity. Revoke any you don’t recognise.'),
+        list, el('div', { style: 'margin-top:12px' }, logoutAll)));
+      loadSessions();
     }
 
     view.appendChild(el('div', { class: 'settings-grid' }, nav, el('div', { class: 'card', style: 'padding:28px' }, panel)));

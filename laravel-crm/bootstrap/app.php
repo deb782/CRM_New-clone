@@ -15,13 +15,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->prependToGroup('api', \App\Http\Middleware\ForceJsonAccept::class);
         $middleware->alias([
             'permission' => CheckPermission::class,
             'force_pw' => ForcePasswordChange::class,
             'form-cors' => \App\Http\Middleware\PublicFormCors::class,
+            'session_ttl' => \App\Http\Middleware\SlidingSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        // Any /api/* request must always get JSON (never an HTML redirect to a
+        // non-existent "login" route), so unauthenticated/expired sessions get a clean 401.
+        $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
+            return $request->is('api/*') || $request->expectsJson();
+        });
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->is('api/*')) {
                 if ($e instanceof \Illuminate\Validation\ValidationException) {

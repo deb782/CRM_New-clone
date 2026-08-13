@@ -115,6 +115,10 @@ class UserController extends Controller
             unset($data['password']);
         }
         $user->update($data);
+        // Disabling an account immediately invalidates its active sessions.
+        if ($request->has('is_active') && ! $request->boolean('is_active')) {
+            $user->tokens()->delete();
+        }
         return response()->json(['user' => $user->fresh()->load('role')]);
     }
 }

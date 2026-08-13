@@ -53,6 +53,13 @@ return [
     'expiration' => null,
 
     /*
+    | Sliding inactivity window (minutes) applied per-token via SlidingSession
+    | middleware. Each authenticated request pushes the token's expires_at to
+    | now()+token_ttl, so a session ends after this many minutes of INACTIVITY.
+    */
+    'token_ttl' => (int) env('AUTH_TOKEN_TTL', 60),
+
+    /*
     |--------------------------------------------------------------------------
     | Token Prefix
     |--------------------------------------------------------------------------

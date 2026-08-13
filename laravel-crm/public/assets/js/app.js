@@ -69,8 +69,80 @@
 
   function parseRoute() {
     const h = (location.hash || '#/dashboard').replace('#/', '');
-    const [route, id] = h.split('/');
+    const [path] = h.split('?');
+    const [route, id] = path.split('/');
     return { route: route || 'dashboard', id };
+  }
+
+  function hashParts() {
+    const raw = (location.hash || '#/dashboard').replace(/^#\//, '');
+    const [path, qs] = raw.split('?');
+    const route = (path.split('/')[0]) || 'dashboard';
+    const query = Object.fromEntries(new URLSearchParams(qs || ''));
+    return { route, query };
+  }
+
+  function authScaffold(cardNode) {
+    const app = document.getElementById('app');
+    app.innerHTML = '';
+    app.appendChild(el('div', { class: 'auth' },
+      el('div', { class: 'auth__brand' },
+        el('div', {},
+          el('img', { src: '/assets/img/agrocorp-mark.png', alt: 'Agrocorp', style: 'height:56px;width:auto;display:block' }),
+          el('h1', { style: 'margin-top:24px' }, 'Agrocorp CRM'),
+          el('p', {}, 'Pre-Sales to Post-Sales, one workspace. Capture, qualify, nurture and convert leads with automated scoring and workflows.')),
+        el('div', { class: 'auth__badges' },
+          el('span', { class: 'auth__badge' }, 'Lead Scoring'),
+          el('span', { class: 'auth__badge' }, 'Nurture Sequences'),
+          el('span', { class: 'auth__badge' }, 'Duplicate Detection'),
+          el('span', { class: 'auth__badge' }, 'Automations'))),
+      el('div', { class: 'auth__form' }, cardNode)));
+  }
+
+  function renderForgot() {
+    const email = el('input', { class: 'input', type: 'email', placeholder: 'you@company.com', 'data-testid': 'forgot-email' });
+    const btn = el('button', { class: 'btn btn--primary', style: 'width:100%;height:40px;margin-top:6px', 'data-testid': 'forgot-submit' }, 'Send reset link');
+    async function submit(e) {
+      if (e) e.preventDefault();
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const r = await api.post('/auth/forgot-password', { email: email.value.trim() });
+        toast(r.message || 'If that email exists, a reset link has been sent.', 'success');
+      } catch (err) { toast(err.message || 'Could not send reset link', 'error'); }
+      btn.disabled = false; btn.textContent = 'Send reset link';
+    }
+    btn.addEventListener('click', submit);
+    authScaffold(el('form', { class: 'auth__card', onsubmit: submit },
+      el('h2', {}, 'Reset password'),
+      el('div', { class: 'sub' }, 'We’ll email you a link to set a new password'),
+      el('div', { class: 'field' }, el('label', {}, 'Email'), email),
+      btn,
+      el('div', { class: 'demo-hint' }, el('a', { href: '#/login', 'data-testid': 'forgot-back' }, '← Back to sign in'))));
+  }
+
+  function renderReset(query) {
+    const npw = el('input', { class: 'input', type: 'password', placeholder: 'New password (min 8)', 'data-testid': 'reset-password' });
+    const cpw = el('input', { class: 'input', type: 'password', placeholder: 'Confirm new password', 'data-testid': 'reset-confirm' });
+    const btn = el('button', { class: 'btn btn--primary', style: 'width:100%;height:40px;margin-top:6px', 'data-testid': 'reset-submit' }, 'Set new password');
+    async function submit(e) {
+      if (e) e.preventDefault();
+      if (npw.value.length < 8) { toast('Password must be at least 8 characters', 'error'); return; }
+      if (npw.value !== cpw.value) { toast('Passwords do not match', 'error'); return; }
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        const r = await api.post('/auth/reset-password', { email: query.email || '', token: query.token || '', password: npw.value, password_confirmation: cpw.value });
+        toast(r.message || 'Password updated. Please sign in.', 'success');
+        location.hash = '#/login';
+      } catch (err) { toast(err.message || 'Could not reset password', 'error'); btn.disabled = false; btn.textContent = 'Set new password'; }
+    }
+    btn.addEventListener('click', submit);
+    authScaffold(el('form', { class: 'auth__card', onsubmit: submit },
+      el('h2', {}, 'Choose a new password'),
+      el('div', { class: 'sub' }, query.email ? ('For ' + query.email) : 'Set a new password for your account'),
+      el('div', { class: 'field' }, el('label', {}, 'New password'), npw),
+      el('div', { class: 'field' }, el('label', {}, 'Confirm password'), cpw),
+      btn,
+      el('div', { class: 'demo-hint' }, el('a', { href: '#/login', 'data-testid': 'reset-back' }, '← Back to sign in'))));
   }
 
   function renderLogin() {
@@ -114,6 +186,7 @@
           el('div', { class: 'field' }, el('label', {}, 'Email'), email),
           el('div', { class: 'field' }, el('label', {}, 'Password'), pass),
           btn,
+          el('div', { class: 'demo-hint' }, el('a', { href: '#/forgot', 'data-testid': 'login-forgot' }, 'Forgot password?')),
           el('div', { class: 'demo-hint' }, 'Demo: admin@crm.local / Admin@12345 · priya@crm.local / Demo@12345')
         ))
     ));
@@ -178,6 +251,9 @@
 
   async function render() {
     document.querySelectorAll('.drawer-overlay, .modal-overlay').forEach(n => n.remove());
+    const hp = hashParts();
+    if (hp.route === 'forgot') { document.getElementById('imp-banner')?.remove(); renderForgot(); return; }
+    if (hp.route === 'reset') { document.getElementById('imp-banner')?.remove(); renderReset(hp.query); return; }
     if (!token()) { document.getElementById('imp-banner')?.remove(); renderLogin(); return; }
     if (!state.user) {
       try { const res = await api.me(); state.user = res.user; }
@@ -235,5 +311,18 @@
   window.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (token() && state.user) openPalette(); }
   });
+
+  // Client-side inactivity auto-logout (mirrors the 60-min server session TTL).
+  const IDLE_MS = 60 * 60 * 1000;
+  let lastActivity = Date.now();
+  ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(ev =>
+    window.addEventListener(ev, () => { lastActivity = Date.now(); }, { passive: true }));
+  setInterval(() => {
+    if (token() && state.user && (Date.now() - lastActivity) > IDLE_MS) {
+      toast('Session expired after inactivity. Please sign in again.', 'error');
+      logout();
+    }
+  }, 30000);
+
   if (document.readyState !== 'loading') render();
 })();

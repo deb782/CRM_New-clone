@@ -35,6 +35,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     // --- Public ---
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:60,1');
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword']);
+        Route::post('auth/reset-password', [AuthController::class, 'resetPassword']);
+    });
     Route::middleware('throttle:60,1')->group(function () {
         Route::post('webhooks/lead-form', [WebhookController::class, 'leadForm']);
         Route::get('webhooks/whatsapp', [WebhookController::class, 'whatsappVerify']);
@@ -73,10 +77,13 @@ Route::prefix('v1')->group(function () {
     });
 
     // --- Authenticated ---
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session_ttl'])->group(function () {
         // Always allowed (even when a password change is pending)
         Route::get('me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::post('auth/logout-all', [AuthController::class, 'logoutAll']);
+        Route::get('auth/sessions', [AuthController::class, 'sessions']);
+        Route::delete('auth/sessions/{id}', [AuthController::class, 'revokeSession']);
         Route::post('auth/change-password', [AuthController::class, 'changePassword']);
         Route::put('auth/profile', [AuthController::class, 'updateProfile']);
         Route::post('auth/impersonate', [AuthController::class, 'impersonate']);
