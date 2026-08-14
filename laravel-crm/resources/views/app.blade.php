@@ -38,7 +38,7 @@
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
     <script src="{{ asset('assets/js/onboarding.js') }}?v=23"></script>
     <script src="{{ asset('assets/vendor/sortable.min.js') }}"></script>
-    <script src="{{ asset('assets/js/journey.js') }}?v=3"></script>
+    <script src="{{ asset('assets/js/journey.js') }}?v=4"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/integrations.js') }}?v=5"></script>

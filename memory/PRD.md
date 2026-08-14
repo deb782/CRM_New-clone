@@ -375,3 +375,8 @@ Verified: iteration_32.json — backend 7/7 pytest, frontend 100%, no bugs. Test
 - API: GET /journey/statuses (catalog grouped by stage), POST /journey/leads/{lead}/transition (guarded). FlowEngine::applyStatus() enforces allow-list+gates+SLA and writes an AuditLog row; status_change nodes resolve catalog codes.
 - NOTE: DB was rebuilt via migrate:fresh --seed during this work (preview DB had reset); fixed a migration-ordering bug where the auth-security migration altered personal_access_tokens before its create migration (guarded + added 2026_08_10 follow-up migration).
 - Capability answer given to user: CRM already had stages, triggers->actions automations, templated WhatsApp/email, sequences, scoring, dedupe/routing, booking->customer, dispositions, audit; the 3 gaps above are now closed. Legal note flagged: RERA advance cap is project/state config, not hard-coded.
+
+## 2026-06 — Journey Builder: Save as Template [DONE, self-tested]
+- Wired the Journey Builder into the existing team-shared FlowTemplate API. New "Templates" button (jb-templates) opens a drawer to (a) save the current journey as a named, team-shared reusable template and (b) load/delete existing templates. Templates store the full compiled graph incl. the "journey" lane view-model, so loading restores the exact lanes/steps/branches.
+- Added journeyFromGraph() decompiler: rebuilds lanes from graph.journey, or falls back to grouping Drawflow nodes by data.stage. Used on both workflow load and template load. journey.js v4.
+- Verified: POST /flow-templates saves 27-node graph with journey lanes; GET lists; DELETE removes; UI drawer + Load/Delete confirmed via screenshot. QA template cleaned up (0 remaining).

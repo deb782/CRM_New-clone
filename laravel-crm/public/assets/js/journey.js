@@ -114,6 +114,29 @@
     return { drawflow: { Home: { data: nodes } }, journey };
   }
 
+  // Rebuild the lane view-model from a stored graph (prefers the journey view-model,
+  // falls back to decompiling the Drawflow nodes by their stage tag).
+  function journeyFromGraph(graph) {
+    if (graph && graph.journey && Array.isArray(graph.journey.lanes)) {
+      const j = JSON.parse(JSON.stringify(graph.journey));
+      j.lanes.forEach(l => l.steps.forEach(s => { s.uid = uid(); if (!s.branches) s.branches = []; }));
+      return j;
+    }
+    const shells = defaultJourney().lanes.map(l => ({ key: l.key, title: l.title, idx: l.idx, sla: l.sla, steps: [] }));
+    const byKey = {}; shells.forEach(l => { byKey[l.key] = l; });
+    const nodes = graph && graph.drawflow && graph.drawflow.Home && graph.drawflow.Home.data;
+    if (nodes) {
+      Object.values(nodes).sort((a, b) => a.id - b.id).forEach(n => {
+        const t = n.data && n.data.node_type;
+        if (!t || t === 'trigger' || !STEP[t]) return;
+        const stage = (n.data.stage && byKey[n.data.stage]) ? n.data.stage : 'S1';
+        const cfg = Object.assign({}, n.data); delete cfg.node_type; delete cfg.stage; delete cfg.label;
+        byKey[stage].steps.push(step(t, cfg));
+      });
+    }
+    return { name: (graph && graph.journey && graph.journey.name) || 'Lead Journey', lanes: shells };
+  }
+
   function syncFromDom(canvas) {
     const map = {};
     S.journey.lanes.forEach(l => l.steps.forEach(s => { map[s.uid] = s; }));
@@ -281,6 +304,66 @@
   let _canvasRef = null;
   function syncFromDomAll() { if (_canvasRef) syncFromDom(_canvasRef); }
 
+  // ---- team-shared templates (save current journey / load a starter) ----
+  function openTemplates(canvas) {
+    document.querySelector('.jb-drawer-ov')?.remove();
+    document.querySelector('.jb-drawer')?.remove();
+    const ov = el('div', { class: 'jb-drawer-ov', 'data-testid': 'jb-tpl-overlay' });
+    const list = el('div', { 'data-testid': 'jb-tpl-list', style: 'display:flex;flex-direction:column;gap:10px' }, el('div', { class: 'jb-hint' }, 'Loading…'));
+    const nameIn = el('input', { placeholder: 'e.g. Premium Apartments – Bangalore', 'data-testid': 'jb-tpl-name' });
+    const descIn = el('input', { placeholder: 'Optional note for your team', 'data-testid': 'jb-tpl-desc' });
+
+    const close = () => { ov.classList.remove('open'); drawer.classList.remove('open'); setTimeout(() => { ov.remove(); drawer.remove(); }, 280); };
+
+    async function refresh() {
+      list.innerHTML = '';
+      try {
+        const r = await api.get('/flow-templates');
+        const items = r.templates || [];
+        if (!items.length) { list.appendChild(el('div', { class: 'jb-hint' }, 'No saved templates yet. Save your current journey to reuse it on new projects.')); return; }
+        items.forEach(t => {
+          list.appendChild(el('div', { class: 'jb-card', style: 'cursor:default', 'data-testid': 'jb-tpl-' + t.id },
+            el('div', { class: 'jb-card__top' }, el('div', { class: 'jb-card__icon', style: 'background:#475569' }, el('i', { class: 'fa-solid fa-layer-group' })), el('div', { class: 'jb-card__label' }, t.name)),
+            el('div', { class: 'jb-card__sum' }, (t.description || 'Starter journey') + ' · ' + (t.node_count || 0) + ' steps · by ' + (t.created_by_name || 'team')),
+            el('div', { style: 'display:flex;gap:8px;margin-top:10px' },
+              el('button', { class: 'jb-btn jb-btn--primary', style: 'padding:6px 14px;font-size:12px', 'data-testid': 'jb-tpl-load-' + t.id, onclick: () => {
+                S.journey = journeyFromGraph(t.graph);
+                rerender(canvas);
+                toast('Loaded "' + t.name + '" — edit then Save & Activate', 'success');
+                close();
+              } }, 'Load'),
+              el('button', { class: 'jb-btn jb-btn--ghost', style: 'padding:6px 14px;font-size:12px', 'data-testid': 'jb-tpl-del-' + t.id, onclick: async () => {
+                if (!confirm('Delete template "' + t.name + '" for everyone?')) return;
+                try { await api.del('/flow-templates/' + t.id); toast('Template deleted', 'success'); refresh(); } catch (e) { toast(e.message, 'error'); }
+              } }, 'Delete'))));
+        });
+      } catch (e) { list.innerHTML = ''; list.appendChild(el('div', { class: 'jb-hint' }, 'Could not load templates.')); }
+    }
+
+    const saveBtn = el('button', { class: 'jb-btn jb-btn--primary', 'data-testid': 'jb-tpl-save', onclick: async () => {
+      const name = nameIn.value.trim();
+      if (name.length < 2) { toast('Give the template a name', 'error'); return; }
+      syncFromDomAll();
+      try {
+        await api.post('/flow-templates', { name: name, description: descIn.value.trim() || null, graph: compile(S.journey) });
+        toast('Saved as a reusable template', 'success');
+        nameIn.value = ''; descIn.value = ''; refresh();
+      } catch (e) { toast(e.message || 'Could not save template', 'error'); }
+    } }, el('i', { class: 'fa-solid fa-floppy-disk' }), 'Save current journey');
+
+    const drawer = el('div', { class: 'jb-drawer', 'data-testid': 'jb-tpl-drawer' },
+      el('div', { class: 'jb-drawer__head' }, el('div', { class: 'jb-card__icon', style: 'background:#475569' }, el('i', { class: 'fa-solid fa-layer-group' })), el('h3', {}, 'Journey Templates')),
+      el('div', { class: 'jb-drawer__body' },
+        el('div', { class: 'jb-field' }, el('label', {}, 'Save current journey as a template'), nameIn, el('div', { style: 'height:8px' }), descIn, el('div', { style: 'margin-top:10px' }, saveBtn)),
+        el('div', { style: 'height:1px;background:rgba(24,24,27,.08);margin:4px 0' }),
+        el('div', { class: 'jb-field' }, el('label', {}, 'Team templates'), list)),
+      el('div', { class: 'jb-drawer__foot' }, el('button', { class: 'jb-btn jb-btn--ghost', onclick: close }, 'Close')));
+    ov.addEventListener('click', close);
+    document.body.appendChild(ov); document.body.appendChild(drawer);
+    requestAnimationFrame(() => { ov.classList.add('open'); drawer.classList.add('open'); });
+    refresh();
+  }
+
   CRM.pages.workflows = async function (view) {
     view.innerHTML = '';
     // load status catalog + existing journey workflow
@@ -295,7 +378,7 @@
     S.stages = stages;
     S.statusMap = {};
     stages.forEach(st => st.statuses.forEach(x => { S.statusMap[x.code] = x.display_name; }));
-    S.journey = (wf && wf.graph && wf.graph.journey) ? wf.graph.journey : defaultJourney();
+    S.journey = (wf && wf.graph) ? journeyFromGraph(wf.graph) : defaultJourney();
     S.workflowId = wf ? wf.id : null;
     // ensure uids exist on loaded steps
     S.journey.lanes.forEach(l => l.steps.forEach(s => { if (!s.uid) s.uid = uid(); if (!s.branches) s.branches = []; }));
@@ -303,6 +386,7 @@
     const nameInput = el('input', { class: 'jb-name-input', value: S.journey.name, 'data-testid': 'jb-name', oninput: (e) => { S.journey.name = e.target.value; } });
     const saveBtn = el('button', { class: 'jb-btn jb-btn--primary', 'data-testid': 'jb-save', onclick: () => save(true) }, el('i', { class: 'fa-solid fa-bolt' }), 'Save & Activate');
     const resetBtn = el('button', { class: 'jb-btn jb-btn--ghost', 'data-testid': 'jb-reset', onclick: () => { if (confirm('Reset to the ready-made Agrocorp journey? Unsaved changes will be lost.')) { S.journey = defaultJourney(); rerender(canvas); } } }, el('i', { class: 'fa-solid fa-rotate-left' }), 'Reset to default');
+    const tplBtn = el('button', { class: 'jb-btn jb-btn--ghost', 'data-testid': 'jb-templates', onclick: () => openTemplates(canvas) }, el('i', { class: 'fa-solid fa-layer-group' }), 'Templates');
 
     const canvas = el('div', { class: 'jb-canvas', 'data-testid': 'jb-canvas' });
     _canvasRef = canvas;
@@ -311,7 +395,7 @@
       el('div', { class: 'jb-explain' }, el('i', { class: 'fa-solid fa-route' }),
         el('div', {}, el('div', {}, el('b', {}, 'This drives every lead.'), ' Drag steps to reorder, tap ', el('b', {}, '+ Add step'), ' to extend a stage, and click any card to edit its message, wait or status.'),
           el('div', { class: 'jb-sub' }, 'Left-to-right = the lead\u2019s journey from first enquiry to customer. Each lane is a stage; each card is an automated step.'))),
-      el('div', { class: 'jb-toolbar' }, nameInput, el('div', { class: 'jb-spacer' }), resetBtn, saveBtn),
+      el('div', { class: 'jb-toolbar' }, nameInput, el('div', { class: 'jb-spacer' }), tplBtn, resetBtn, saveBtn),
       canvas);
     view.appendChild(wrap);
     rerender(canvas);
