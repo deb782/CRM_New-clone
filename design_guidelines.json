@@ -1,142 +1,121 @@
 {
-  "app_context": "BDE/BDM Lead Cockpit - Full Width Workspace",
-  "tech_stack": "Vanilla JS, CSS, Laravel 11, Blade (No framework, Custom CSS)",
-  "design_philosophy": "Modern, intuitive, single-screen 'Lead Cockpit'. Move from a cramped drawer to a sprawling but structured full-width layout. Use spatial distribution (3 columns) instead of hidden tabs to reduce cognitive load and clicks.",
+  "theme_strategy": {
+    "theme_type": "light",
+    "rationale": "App is an established internal ops tool/CRM (Agrocorp CRM) with a predefined warm off-white and near-black identity. Maintains high focus, clarity, and reading comfort for data-dense dashboards."
+  },
   "typography": {
-    "primary_font": "Manrope",
-    "fallback": "sans-serif",
-    "hierarchy": {
-      "h1_lead_name": {
-        "size": "24px to 28px",
-        "weight": "800",
-        "letter_spacing": "-0.02em",
-        "color": "var(--color-ink)"
-      },
-      "h2_section": {
-        "size": "18px",
-        "weight": "700",
-        "letter_spacing": "-0.01em",
-        "color": "var(--color-ink)",
-        "margin_bottom": "16px"
-      },
-      "body_text": {
-        "size": "14px",
-        "weight": "500",
-        "line_height": "1.5",
-        "color": "var(--color-ink-muted)"
-      },
-      "small_labels": {
-        "size": "12px",
-        "weight": "700",
-        "text_transform": "uppercase",
-        "letter_spacing": "0.05em",
-        "color": "var(--color-ink-light)"
-      }
+    "font_family": "Manrope, sans-serif",
+    "rules": {
+      "headings": "font-weight: 800; letter-spacing: -0.02em; color: var(--color-near-black);",
+      "body": "font-weight: 500; letter-spacing: 0em; color: var(--color-gray-700);",
+      "labels": "text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; color: var(--color-gray-500);",
+      "h1": "font-size: clamp(2rem, 4vw, 2.5rem); line-height: 1.1;",
+      "h2": "font-size: 1.5rem; line-height: 1.2;",
+      "h3": "font-size: 1.125rem; line-height: 1.3;",
+      "body_base": "font-size: 0.875rem; line-height: 1.5;",
+      "small": "font-size: 0.75rem; line-height: 1.4;"
     }
   },
   "colors": {
-    "background": {
-      "page": "#F9F9F6",
-      "card": "#FFFFFF",
-      "panel": "#E8F0F4"
-    },
-    "ink": {
-      "primary": "#1A1A1A",
-      "secondary": "#4A4A4A",
-      "tertiary": "#767676"
-    },
-    "accent": {
-      "lime": "#D4FF33",
-      "lime_hover": "#C2EB2F",
-      "lime_muted": "rgba(212, 255, 51, 0.2)"
-    },
-    "status": {
-      "hot": "#FF4D4D",
-      "warm": "#FF9900",
-      "cold": "#3399FF",
-      "success": "#00CC66",
-      "error": "#FF3333",
-      "locked_dnc": "#FFEBEB"
+    "css_variables": {
+      "--color-bg": "#F9F8F6",
+      "--color-surface": "#FFFFFF",
+      "--color-surface-hover": "#F2F0EA",
+      "--color-near-black": "#111111",
+      "--color-gray-900": "#1C1C1C",
+      "--color-gray-700": "#4A4A4A",
+      "--color-gray-500": "#8A8A8A",
+      "--color-gray-200": "#E5E5E5",
+      "--color-lime": "#B4ED21",
+      "--color-lime-hover": "#A2D81B",
+      "--color-powder-blue": "#B0D0FF",
+      "--color-powder-blue-hover": "#98C0FA",
+      "--color-railway-track": "#111111",
+      "--color-railway-orange": "#FF7A00",
+      "--color-danger": "#FF4B4B"
     }
+  },
+  "visual_enhancers": {
+    "borders": "1px solid var(--color-gray-200)",
+    "border_radius": {
+      "card": "12px",
+      "button": "8px",
+      "pill": "9999px"
+    },
+    "shadows": {
+      "card": "0 2px 10px rgba(17, 17, 17, 0.03), 0 4px 20px rgba(17, 17, 17, 0.02)",
+      "hover": "0 8px 30px rgba(17, 17, 17, 0.06)"
+    },
+    "spacing": "Use base-4 scale. Generous padding inside cards (24px or 32px) to let data breathe."
   },
   "layouts": {
-    "grid_blueprint": {
-      "type": "CSS Grid",
-      "desktop_layout": "grid-template-columns: 300px minmax(500px, 1fr) 340px; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden;",
-      "gap": "24px",
-      "padding": "24px 32px",
-      "responsive_behavior": "Below 1200px: collapse right rail into a bottom drawer or tabs in left rail. Below 768px: stack all columns into a single scrolling view (grid-template-columns: 1fr)."
-    },
-    "surfaces": {
-      "cards": "border-radius: 16px; background: var(--color-card); box-shadow: 0 4px 24px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.05); padding: 24px;",
-      "panels": "border-radius: 12px; background: var(--color-panel); padding: 16px;",
-      "pills": "border-radius: 9999px; padding: 4px 12px; font-weight: 600;"
+    "grid_system": "CSS Grid for the main dashboard wrapper. 12-column layout.",
+    "container_css": "display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; padding: 32px; max-width: 1600px; margin: 0 auto;",
+    "regions": {
+      "kpi_row": "grid-column: span 12; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;",
+      "middle_left_pipeline": "grid-column: span 8;",
+      "middle_right_graphs": "grid-column: span 4; display: grid; grid-template-rows: 1fr 1fr; gap: 24px;",
+      "bottom_left_prospects": "grid-column: span 8;",
+      "bottom_right_calendar_activity": "grid-column: span 4; display: grid; grid-template-rows: auto auto; gap: 24px;"
     }
   },
-  "tab_consolidation_strategy": {
-    "previous_state": "7 crowded tabs in a narrow drawer.",
-    "new_state": "Spatially distributed modules across 3 columns.",
-    "mapping": {
-      "Activity timeline + add-note": "Moved to Main Center Column (Bottom half). Composer pinned to the top of the timeline.",
-      "Communicate (WhatsApp, Email, Call)": "Integrated into the unified Composer in the Main Center Column. One rich input box, switches context based on selected sub-tab.",
-      "Qualify form": "Moved to Left Rail as an editable 'Qualification Summary' card.",
-      "Journey status tracker": "Moved to the top of the Main Center Column as a visual horizontal stepper.",
-      "Quote/Cost-sheet": "Moved to Right Rail as a dedicated summary card with an 'Expand/Add' button.",
-      "Booking": "Moved to Right Rail below Quotes.",
-      "Post-Sales": "Moved to Right Rail below Booking."
+  "widgets": {
+    "kpi_cards": {
+      "layout": "Minimalist rectangular cards. No thick shadows, rely on 1px borders.",
+      "structure": "Top: Label + Icon. Middle: Massive Number (font-weight: 800, text-4xl). Bottom: Delta pill (Lime for positive +X%, Gray for neutral).",
+      "hover": "Subtle Y-axis lift (transform: translateY(-2px)) and shadow increase."
+    },
+    "top_prospects": {
+      "layout": "List-view inside a card. Each row is highly dense but clear.",
+      "row_structure": "Left: Avatar & Name. Middle: 1-2 line AI Chat Summary (italicized, powder-blue background block). Right: Score (Lime pill if > 80), Temperature badge, and 'Open Cockpit' action.",
+      "ai_summary_styling": "background: rgba(176, 208, 255, 0.2); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: var(--color-gray-900); border-left: 3px solid var(--color-powder-blue);"
+    },
+    "railway_pipeline_map": {
+      "concept": "Render the CRM sales funnel as a technical railway signalling map.",
+      "background": "Dark block (var(--color-near-black)) to mimic a control terminal, creating massive contrast against the off-white dashboard.",
+      "css_rules": {
+        "container": "background: #111; padding: 32px 24px; border-radius: 12px; overflow-x: auto; display: flex; align-items: center; color: white;",
+        "track_line": "height: 3px; background: #4A4A4A; flex-grow: 1; position: relative;",
+        "station_node": "display: flex; flex-direction: column; align-items: center; position: relative; z-index: 2;",
+        "station_block": "background: var(--color-railway-orange); color: #111; padding: 4px 10px; font-size: 0.75rem; font-weight: 800; border-radius: 2px; text-transform: uppercase; letter-spacing: 1px;",
+        "lead_count": "color: var(--color-lime); font-size: 1.25rem; font-weight: 800; font-family: monospace; margin-top: 8px;"
+      }
+    },
+    "calendar_tasks": {
+      "layout": "Compact 7-day strip (Weekly view) instead of a massive monthly grid.",
+      "interaction": "Clicking a day chip updates the task list below it.",
+      "styling": "Selected day chip: background var(--color-lime), color var(--color-near-black). Task items: small card strips with powder-blue left borders for site visits, gray for calls."
+    },
+    "graphs": {
+      "layout": "Card-based containers.",
+      "pipeline_funnel": "Horizontal stacked bars. Use Lime, Powder Blue, and neutral grays.",
+      "leads_over_time": "Minimalist trend line. Line color: Lime. Area under curve: linear-gradient(Lime to transparent). Hide axis grids for a cleaner look."
+    },
+    "activity_feed": {
+      "layout": "Vertical timeline line. Nodes for each activity.",
+      "styling": "Left border 2px solid var(--color-gray-200). Padding-left 16px. Use powder-blue for email icons, lime for whatsapp/chat."
     }
   },
-  "component_instructions": {
-    "header": {
-      "position": "grid-column: 1 / -1; grid-row: 1; sticky top.",
-      "layout": "Flexbox, align-items center, justify-content space-between.",
-      "left_cluster": "Avatar (Circle), Lead Name (H1), Email & Phone links, Temperature Badge, Score Bar (0-100 gauge/bar using Lime accent).",
-      "right_cluster": "Inline stage changer (Select dropdown styled as a pill), Journey-status pill (from 45-status catalog, distinct color from stage), Quick Actions (DNC, Invalid, Won, Lost inside an 'Actions' dropdown menu button).",
-      "banners": "If Locked/DNC/Invalid, display a full-width banner right below the header (Background: var(--color-status-locked-dnc), Text: Red)."
-    },
-    "left_rail": {
-      "position": "grid-column: 1; grid-row: 2; overflow-y: auto; padding-right: 8px;",
-      "content": [
-        "Details Card: Email, phone, alt phone, city, source, campaign, project, owner, verified tick, contact attempts. Use dense grid layout (2 columns for label/value).",
-        "Qualification Summary Card: Visual display of interest, timeline, budget, financing, decision-maker, preferred location.",
-        "Site Visits Card: Mini-list of upcoming/past visits."
-      ],
-      "styling": "Use Powder-Blue panels (var(--color-panel)) for inner sections to distinguish from the main white cards."
-    },
-    "main_workspace": {
-      "position": "grid-column: 2; grid-row: 2; overflow-y: auto; display: flex; flex-direction: column; gap: 24px;",
-      "content": [
-        "Journey Tracker: Horizontal stepper showing live stage/status with SLA timers.",
-        "Unified Composer: A tabbed card (Note, Email, WhatsApp, Call). High visual prominence. Contains the template picker for WhatsApp.",
-        "Activity Timeline: A vertical chronological feed. Distinct icons for different activity types. Generous padding between feed items."
-      ]
-    },
-    "right_rail": {
-      "position": "grid-column: 3; grid-row: 2; overflow-y: auto; padding-left: 8px;",
-      "content": [
-        "Open Tasks: List of actionable items with 'Complete' checkboxes/buttons prominently displayed.",
-        "Secondary Modules Stack: Quotes, Bookings, Post-Sales. Display these as compact summary cards (e.g., '1 Active Quote: $450k'). If the user needs to act, they click to open a modal or expand the card in place."
-      ]
-    }
+  "micro_interactions": {
+    "buttons": "transition: all 0.2s ease; On hover: scale(1.02) for primary actions.",
+    "list_rows": "hover:bg-var(--color-surface-hover) transition-colors duration-150.",
+    "loading_states": "Use skeleton loaders with a subtle shimmer effect (linear-gradient animation) using the powder-blue color at 10% opacity."
   },
-  "interaction_and_motion": {
-    "buttons": "Transition: background 0.2s ease, transform 0.1s ease. Active state scales down slightly (scale: 0.98).",
-    "timeline_feed": "New items should slide down and fade in (opacity 0 to 1, translateY -10px to 0).",
-    "hover_states": "All clickable rows (Tasks, Site visits) must have a hover state (e.g., background shifts slightly darker off-white) to indicate interactivity."
-  },
-  "accessibility": {
-    "focus": "All interactive elements must have a visible focus ring (2px solid var(--color-ink) with offset).",
-    "contrast": "Ensure var(--color-ink-muted) meets 4.5:1 contrast ratio against var(--color-page).",
-    "aria": "Use aria-expanded for the unified composer tabs and accordions in the right rail."
-  },
-  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
-    "CRITICAL: Do NOT use Shadcn or React. Output only pure HTML/Blade structures, CSS variables, and Vanilla JS layout scripts.",
-    "CRITICAL: EVERY interactive element, button, tab, and form input MUST retain or include a `data-testid` attribute (e.g., data-testid='lead-header-name', data-testid='tab-whatsapp'). Do not strip existing test IDs.",
-    "Use CSS Grid for the macro layout. Avoid absolute positioning for core layout columns.",
-    "Maximize the use of whitespace. The layout is full width, so do not cramp inner padding; use 24px or 32px padding inside cards.",
-    "Do NOT use complete transparent backgrounds in dropdowns or sticky headers. Ensure backdrop-filters or solid colors are applied.",
-    "Apply the lime accent selectively. It should draw the eye to primary CTAs (e.g., 'Log Activity', 'Mark Won', Score Bar), not be splashed everywhere.",
-    "Make the Right Rail modules look like 'Widgets' — they summarize data but afford deep-dives via clicks.",
-    "Implement scroll shadows or sticky headers for the Left and Right rails so the center column scrolls independently."
+  "instructions_to_main_agent": [
+    "CRITICAL: The tech stack is Vanilla JS SPA with Laravel Blade. DO NOT use React, Vue, or Tailwind. You must use native CSS or the existing app.css file.",
+    "DOM rendering is handled via `CRM.el(tag, attributes, children)` helper in `dashboard.js`. Write your component logic utilizing this helper.",
+    "Add styles to `/app/laravel-crm/public/assets/css/app.css`. Use CSS custom properties defined in `colors.css_variables`.",
+    "Build the 'Railway Pipeline Map' exactly as described using HTML/CSS (divs and flexbox). No canvas or SVGs required, simple pseudo-elements and flex gaps will achieve the SimSig UI look.",
+    "Ensure `data-testid` attributes are passed in the `attributes` object of `CRM.el()` for all interactive elements (e.g., `data-testid=\"kpi-card-hot-leads\"`).",
+    "DO NOT alter the predefined color palette. Maintain the 'Agrocorp CRM' brand: Off-white background, Lime and Powder Blue accents, Manrope font."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this.",
+    "Do not use generic centered layouts or muddy gradients.",
+    "Never use purely transparent backgrounds on overlays/dropdowns.",
+    "Enforce high contrast (APCA compliant) for text.",
+    "Use 2-3x more spacing (padding/margin) than default frameworks to create 'Premium Data Density'.",
+    "Micro-animations are mandatory on hover states (excluding universal 'transition: all').",
+    "Never use placeholder AI emojis for icons. Use SVGs or the project's existing icon set."
   ]
 }

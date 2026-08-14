@@ -92,6 +92,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('force_pw')->group(function () {
 
         Route::get('dashboard', [DashboardController::class, 'stats']);
+        Route::get('dashboard/summaries', [DashboardController::class, 'summaries']);
         // Onboarding wizard state
         Route::get('onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'show']);
         Route::put('onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'update'])->middleware('permission:config.manage');
