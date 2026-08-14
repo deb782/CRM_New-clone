@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Chivo:wght@700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/vendor/drawflow.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/workflow.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('assets/css/journey.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=12">
     <link rel="stylesheet" href="{{ asset('assets/css/webcapture.css') }}?v=1">
@@ -36,7 +37,8 @@
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=15"></script>
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
     <script src="{{ asset('assets/js/onboarding.js') }}?v=23"></script>
-    <script src="{{ asset('assets/js/workflow.js') }}?v=6"></script>
+    <script src="{{ asset('assets/vendor/sortable.min.js') }}"></script>
+    <script src="{{ asset('assets/js/journey.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/integrations.js') }}?v=5"></script>
@@ -45,6 +47,6 @@
     <script src="{{ asset('assets/js/forms-ui.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/chatbot-ui.js') }}?v=5"></script>
     <script src="{{ asset('assets/js/webcapture.js') }}?v=2"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=31"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=32"></script>
 </body>
 </html>

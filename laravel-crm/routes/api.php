@@ -131,6 +131,11 @@ Route::prefix('v1')->group(function () {
             Route::delete('flow-templates/{flowTemplate}', [\App\Http\Controllers\Api\FlowTemplateController::class, 'destroy']);
         });
 
+        // Lead journey status catalog + guarded status transitions (available to all staff)
+        Route::get('journey/statuses', [\App\Http\Controllers\Api\JourneyController::class, 'statuses']);
+        Route::post('journey/leads/{lead}/transition', [\App\Http\Controllers\Api\JourneyController::class, 'transition']);
+
+
         // Leads
         Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');
         Route::get('leads/board', [LeadController::class, 'board'])->middleware('permission:leads.view');

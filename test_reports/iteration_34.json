@@ -1,0 +1,38 @@
+{
+  "summary": "Wave 34 — Journey Builder (Kanban stage-lanes) + LeadStatus catalog + gates/allow-list independently verified end-to-end. Backend: created /app/backend/tests/test_journey_builder.py with 10 pytest cases, all PASS (catalog 5 stages/45 statuses, gates on S2_MEETING_SCHEDULED, disallowed jump 422, first-move stamps SLA, gate-block 422 with missing budget_min+timeline, saved workflow graph carries BOTH journey lanes AND drawflow, simulate walks trigger→whatsapp→task→status_change with catalog codes, /leads /leads/board /dashboard regression 200). Frontend (headless Chromium at preview URL): logged in as admin@crm.local, navigated #/workflows, verified 5 lanes (jb-lane-S1..S5) with SLA badges '2H FIRST CONTACT / 24H / 48H / 24H / ONGOING', explainer banner, jb-save + jb-reset. Seeded Agrocorp journey present per lane (S1 has WhatsApp Lead Acknowledgement + First contact task + Change Status→Assigned with 'Duplicate→review' & 'Invalid→close' chips; S2 has qualify task, If-branch with 3 chips, Meeting Scheduled; S3 has Appointment Confirmation WhatsApp + Visit Reminder + Wait 1 day + Cost Sheet email + status changes; S4 ends with Converted to Customer; S5 has agreement/payment steps). '+ Add step' opens palette (jb-palette) with all 6 options (send_whatsapp/send_email/wait/task/status_change/condition). Choosing status_change opens drawer (jb-drawer) with jb-drawer-status <select> grouped by 5 <optgroup>s labelled 'S1 · Lead Entry' … 'S5 · Customer Lifecycle' totalling 46 options (45 catalog + placeholder). Editing an S3 WhatsApp card via jb-f-template persisted after Save. jb-save shows toast 'Journey saved & active — it now drives every new lead'. Reload preserves saved journey (not default). Regression: /#/leads renders table, /#/dashboard loads. Cleaned up by clicking Reset → Save so lanes are back to 3/5/8/5/5 default cards.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Journey Builder lanes S1/S2/S4/S5", "issues": ["SLA badge on non-S3 lanes reads in short form '2H', '24H', 'ONGOING' etc without a 'SLA' label prefix — S3 shows '48H'. Not broken; just inconsistent spelling with the guideline 'each lane with an SLA badge'. Consider prefixing 'SLA · 48h' for clarity."]},
+      {"screen": "Post-login redirect for admin", "issues": ["Admin still lands on #/onboarding after login even though setup is 5/5 complete (pre-existing from wave 33, not a Wave 34 regression). Had to force #/workflows via URL. Non-blocking."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_journey_builder.py",
+    "/app/test_reports/pytest/journey_builder.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Fix admin post-login redirect (5/5 onboarding complete but router still sends admin to #/onboarding).",
+    "OPTIONAL: Prefix all lane SLA badges consistently (e.g. 'SLA · 2h' / 'SLA · 48h') — currently mixed short forms."
+  ],
+  "critical_code_review_comments": [
+    "JourneyController::statuses correctly groups statuses by stage_key with allowed_next + gate_fields + sla_minutes exposed to the client — clean, no ObjectId/leakage issues.",
+    "JourneyController::transition delegates to FlowEngine::applyStatus which enforces allow-list, gates and SLA stamping — verified: first move OK, disallowed → 422 with 'Allowed next: …' message, gate → 422 with {gate:[missing fields]}.",
+    "Saved workflow graph contains both a 'journey' view-model (5 lanes) AND a compiled 'drawflow' graph — enables the FlowEngine to run per lead while the builder re-hydrates lanes on reload. Verified via GET /workflows/{id}.",
+    "Simulate log shows status_change entries reference catalog codes ('Set status → S1_ASSIGNED', 'S2_QUALIFYING', 'S2_MEETING_SCHEDULED') — engine successfully resolves palette output to catalog codes.",
+    "UI palette contains exactly the 6 documented step types with correct data-testid; drawer status <select> is grouped by <optgroup> — good for accessibility & tests.",
+    "Toast + reload persistence path works end-to-end (POST /workflows or PUT /workflows/{id}, then reload GET rehydrates lanes)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_journey_builder.py (new)"
+  ],
+  "success_rate": { "backend": "100% (10/10)", "frontend": "100% (lanes, seeded journey content, add step palette, edit drawer with grouped status dropdown, save toast, reload persistence, regression pages)" },
+  "test_credentials": "admin@crm.local / Admin@12345 — unchanged after tests.",
+  "seed_data_creation": "Created one throwaway lead 'TEST_JB_Gate' (phone 9998887799) inside test_journey_builder.py to hit the gate-block case; walked to S2_MEETING_PLAN. Test data isolated by name/phone prefix. UI test added one temporary Change-Status step + edited a template value; both were removed by clicking Reset → Save at the end so the seeded Agrocorp journey is intact (S1:3, S2:5, S3:8, S4:5, S5:5 cards).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run: python -m pytest backend/tests/test_journey_builder.py -v -o 'addopts=' (works both sequentially and with xdist). Journey Builder route is #/workflows (SPA hash). Admin login currently redirects to #/onboarding — go straight to #/workflows via URL. Journey graph shape: workflow.graph = { drawflow:{…}, journey:{ lanes:[{key:'S1',…, steps:[…]}, …] } }. FlowEngine::applyStatus is the single enforcement point for allow-list + gates + SLA.",
+  "rca of the issue": "N/A — all acceptance criteria pass."
+}

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Lead;
+use App\Models\LeadStatus;
 use App\Models\PipelineStage;
 use App\Models\Task;
 use App\Models\Workflow;
@@ -12,6 +13,56 @@ use Illuminate\Support\Facades\Log;
 class FlowEngine
 {
     private const MAX_STEPS = 60;
+
+    /**
+     * Move a lead to a status from the catalog, enforcing allow-listed transitions,
+     * mandatory gates and SLA clocks. When $enforce is false (automation), a blocked
+     * gate/transition is logged and skipped instead of failing.
+     */
+    public function applyStatus(Lead $lead, string $code, bool $enforce, ?int $actorId = null, ?string $reason = null): array
+    {
+        $target = LeadStatus::where('code', $code)->first();
+        if (! $target) {
+            return ['ok' => false, 'message' => 'Unknown status "'.$code.'".'];
+        }
+        $current = $lead->status_code ? LeadStatus::where('code', $lead->status_code)->first() : null;
+
+        // Allow-listed transition check (first move from a blank status is always allowed).
+        if ($enforce && $current && $current->code !== $code) {
+            $allowed = $current->allowed_next ?? [];
+            if (! in_array($code, $allowed, true)) {
+                return ['ok' => false, 'message' => 'Cannot move from "'.$current->display_name.'" to "'.$target->display_name.'". Allowed next: '.(empty($allowed) ? 'none' : implode(', ', $allowed)).'.'];
+            }
+        }
+
+        // Mandatory gate check.
+        $missing = [];
+        foreach (($target->gate_fields ?? []) as $field) {
+            if (blank($lead->{$field})) { $missing[] = $field; }
+        }
+        if ($enforce && $missing) {
+            return ['ok' => false, 'gate' => $missing, 'message' => 'Cannot enter "'.$target->display_name.'" — required first: '.implode(', ', $missing).'.'];
+        }
+
+        $lead->status_code = $target->code;
+        if ($target->pipeline_slug && ($stage = PipelineStage::where('slug', $target->pipeline_slug)->first())) {
+            $lead->pipeline_stage_id = $stage->id;
+            $lead->status = $stage->slug;
+        }
+        $lead->status_sla_due_at = $target->sla_minutes ? now()->addMinutes($target->sla_minutes) : null;
+        $lead->save();
+
+        try {
+            \App\Models\AuditLog::create([
+                'auditable_type' => Lead::class, 'auditable_id' => $lead->id,
+                'action' => 'status_change', 'user_id' => $actorId,
+                'field' => 'status_code', 'old_value' => $current?->code, 'new_value' => $code,
+                'reason' => $reason,
+            ]);
+        } catch (\Throwable $e) { /* audit is best-effort */ }
+
+        return ['ok' => true, 'message' => 'Status → '.$target->display_name.($missing && ! $enforce ? ' (gate fields missing: '.implode(', ', $missing).')' : '')];
+    }
 
     /** External event happened — start any matching active workflows. */
     public function trigger(string $event, Lead $lead, array $ctx = []): void
@@ -135,12 +186,21 @@ class FlowEngine
                 return ['detail' => 'Flow triggered', 'output' => 'output_1'];
 
             case 'status_change':
+                $code = $d['status_code'] ?? $d['status'] ?? '';
+                if ($code && LeadStatus::where('code', $code)->exists()) {
+                    if (! $sim) {
+                        $res = $this->applyStatus($lead, $code, false);
+                        return ['detail' => $prefix.$res['message'], 'output' => 'output_1'];
+                    }
+                    return ['detail' => $prefix.'Set status → '.$code, 'output' => 'output_1'];
+                }
+                // legacy fallback: map a free label to a pipeline stage
                 $slug = $this->slugFor($d['status'] ?? '');
                 if ($slug && ($stage = PipelineStage::where('slug', $slug)->first())) {
                     if (! $sim) { $lead->pipeline_stage_id = $stage->id; $lead->status = $stage->slug; $lead->save(); }
                     return ['detail' => 'Set status → '.($d['status'] ?? $slug), 'output' => 'output_1'];
                 }
-                return ['detail' => 'Status "'.($d['status'] ?? '?').'" (no matching pipeline stage — skipped)', 'output' => 'output_1'];
+                return ['detail' => 'Status "'.($d['status'] ?? '?').'" (no matching status — skipped)', 'output' => 'output_1'];
 
             case 'task':
                 if (! $sim) {

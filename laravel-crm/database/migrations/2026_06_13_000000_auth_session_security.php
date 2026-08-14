@@ -8,14 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('personal_access_tokens', function (Blueprint $t) {
-            if (! Schema::hasColumn('personal_access_tokens', 'ip_address')) {
-                $t->string('ip_address', 64)->nullable()->after('abilities');
-            }
-            if (! Schema::hasColumn('personal_access_tokens', 'user_agent')) {
-                $t->string('user_agent', 512)->nullable()->after('ip_address');
-            }
-        });
+        if (Schema::hasTable('personal_access_tokens')) {
+            Schema::table('personal_access_tokens', function (Blueprint $t) {
+                if (! Schema::hasColumn('personal_access_tokens', 'ip_address')) {
+                    $t->string('ip_address', 64)->nullable()->after('abilities');
+                }
+                if (! Schema::hasColumn('personal_access_tokens', 'user_agent')) {
+                    $t->string('user_agent', 512)->nullable()->after('ip_address');
+                }
+            });
+        }
 
         Schema::create('auth_audit_logs', function (Blueprint $t) {
             $t->id();
@@ -34,8 +36,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('auth_audit_logs');
-        Schema::table('personal_access_tokens', function (Blueprint $t) {
-            $t->dropColumn(['ip_address', 'user_agent']);
-        });
+        if (Schema::hasTable('personal_access_tokens') && Schema::hasColumn('personal_access_tokens', 'ip_address')) {
+            Schema::table('personal_access_tokens', function (Blueprint $t) {
+                $t->dropColumn(['ip_address', 'user_agent']);
+            });
+        }
     }
 };
