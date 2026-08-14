@@ -1,0 +1,41 @@
+{
+  "summary": "Frontend-only regression on the reworked LEAD DETAIL cockpit (#/leads/{id}). Logged in as admin@crm.local and exercised all interaction flows on Vikram Nair (lead id=1). Cockpit renders as a full-page 3-column layout (data-testid=lead-cockpit; grid template on desktop 300px / 752px / 340px). The old right-side drawer is gone (data-testid=lead-drawer not in DOM). All required testids are present in header, left rail, main column and right rail. All flows (actions dropdown, recalc, stage change, note add, communicate sub-tab, WA template picker, qualify modal, module modals, schedule-visit, back button) work with ZERO JS console errors and ZERO pageerror events.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Schedule Visit modal", "issues": ["Uses browser-native datetime-local input (mm/dd/yyyy --:--) instead of a styled/shadcn-like calendar picker. Not a blocker but slightly inconsistent with the modern feel of the cockpit rework."]}
+    ]
+  },
+  "flows_verified": {
+    "actions-dropdown": "lead-actions-btn opens lead-actions-menu with recalc/enroll/dnc/invalid/won/lost. verify-btn correctly hidden because Vikram is already Verified=Yes. Clicking recalc-btn closes the menu and updates score bar (82 -> 95).",
+    "stage-change": "stage-select changes pipeline stage (opportunity -> new_lead) and the timeline shows 'Status: opportunity -> new_lead' entry.",
+    "note-add": "note-input + note-add appended 'TEST_note_cockpit_review' to the activity timeline immediately.",
+    "communicate-subtab": "composer-tab-comm reveals call-outcome, call-log, wa-body, wa-template-btn, wa-send, em-subject, em-send. wa-template-btn triggered a template/toast response as expected.",
+    "qualify-modal": "edit-qualify-btn opens a modal containing q-* selects (qualify form).",
+    "module-modals": "mod-quote-open, mod-booking-open, mod-postsales-open each open a modal (data-testid=modal-overlay) with correct titles: 'Quote / Cost Sheet', 'Booking', 'Post-Sales'.",
+    "schedule-visit": "schedule-visit-btn opens the 'Schedule Site Visit' modal with project + unit + meeting point fields.",
+    "back-button": "lead-back navigates to #/leads.",
+    "regression": "#/pipeline and #/dashboard both load successfully after cockpit interactions.",
+    "responsive": "At 500px viewport the .lc grid collapses to a single column (grid-template-columns ~= 749px single track). At 1920px it renders as '300px 752px 340px' (3-col cockpit).",
+    "console-errors": "Zero JS console errors and zero pageerror events across the entire session."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional/minor: consider replacing native datetime-local input in the Schedule Visit modal with a designed calendar component to match the cockpit's modern feel.",
+    "Optional: verify-btn only appears when lead is unverified; couldn't be exercised on seeded leads (all Verified=Yes). Consider seeding one unverified lead so this branch is testable in future regressions."
+  ],
+  "critical_code_review_comments": [
+    "leads.js is ~744 lines - within acceptable size but approaching the 700-line guideline; if more grows here, consider extracting the header/actions/composer/module-card builders into separate small modules.",
+    "Modal helper CRM.modal uses custom .modal-overlay (not Bootstrap .modal.show). Worth noting in a short comment for future test authors so they use [data-testid=\"modal-overlay\"] to detect open modals."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only)", "frontend": "100% (all requested flows passed)"},
+  "test_credentials": "admin@crm.local / Admin@12345 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. Added one test note on lead id=1 ('TEST_note_cockpit_review') and toggled stage back/forth during testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Lead cockpit lives at /app/laravel-crm/public/assets/js/leads.js (openLead builds the full page). Modal helper is CRM.modal in api.js -> use [data-testid=modal-overlay] to assert modals are open (NOT .modal.show which is Bootstrap). Login submit button is text 'Sign in' - use page.get_by_role('button', name='Sign in'). Seeded leads are ids 1-4; lead 1 (Vikram Nair) is Verified=Yes so verify-btn is hidden by design.",
+  "rca of the issue": "N/A - no defects found."
+}

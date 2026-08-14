@@ -135,7 +135,7 @@
 
   // ========== LEADS TABLE ==========
   CRM.pages.leads = async function (view, id) {
-    if (id) { return openLead(id); }
+    if (id) { return openLead(view, id); }
     const filters = { search: '', status: '', temperature: '', source: '' };
 
     CRM.setActions(can('leads.create')
@@ -240,19 +240,17 @@
   }
 
   // ========== LEAD DRAWER / WORKSPACE ==========
-  async function openLead(id) {
-    const overlay = el('div', { class: 'drawer-overlay', onclick: (e) => { if (e.target === overlay) close(); } });
-    const drawer = el('div', { class: 'drawer', 'data-testid': 'lead-drawer' }, el('div', { class: 'spinner' }));
-    overlay.appendChild(drawer);
-    document.body.appendChild(overlay);
-    function close() { stopJourneyPoll(); overlay.remove(); if (location.hash.startsWith('#/leads/')) history.replaceState(null, '', '#/leads'); }
+  async function openLead(view, id) {
+    view.innerHTML = '';
+    view.appendChild(el('div', { class: 'spinner' }));
+    function close() { stopJourneyPoll(); location.hash = '#/leads'; }
 
     const res = await api.get('/leads/' + id);
     const lead = res.lead;
     let timeline = res.timeline;
     let activeTab = 'timeline';
 
-    function reload() { overlay.remove(); openLead(id); }
+    function reload() { openLead(view, id); }
 
     function detailRow(l, r) { return el('div', { class: 'row' }, el('span', { class: 'l' }, l), el('span', { class: 'r' }, r || '—')); }
 
@@ -384,7 +382,7 @@
         let data;
         try { data = await api.get('/leads/' + id + '/journey'); }
         catch (e) { stopJourneyPoll(); wrap.innerHTML = ''; wrap.appendChild(el('div', { class: 'jt-empty', 'data-testid': 'journey-error' }, el('i', { class: 'fa-solid fa-triangle-exclamation' }), el('div', {}, e.message || 'Unable to load journey'))); return; }
-        if (activeTab !== 'journey') { stopJourneyPoll(); return; }
+        if (!location.hash.startsWith('#/leads/' + id)) { stopJourneyPoll(); return; }
         renderJourney(wrap, data);
         if (!data.run || data.run.status === 'completed' || data.run.status === 'failed') stopJourneyPoll();
       }
@@ -461,50 +459,133 @@
       return s;
     }
 
-    // build drawer
-    drawer.innerHTML = '';
-    const main = el('div', { class: 'drawer__main' });
-    main.appendChild(el('div', { class: 'drawer__head' },
-      el('div', { class: 'avatar' }, initials(lead.name)),
-      el('div', { style: 'flex:1' },
-        el('h2', { 'data-testid': 'lead-name' }, lead.name),
-        el('div', { class: 'sub' }, (lead.email || '') + (lead.phone ? ' · ' + lead.phone : '')),
-        el('div', { style: 'display:flex;gap:10px;align-items:center;margin-top:10px' }, tempBadge(lead.temperature), scoreBar(lead.score), stageChanger())),
-      el('button', { class: 'icon-btn', 'data-testid': 'drawer-close', onclick: close }, el('i', { class: 'fa-solid fa-xmark' }))));
+    // ===== build full-page Lead Cockpit =====
+    const prettyStatus = (c) => (c || '').replace(/^S\d_/, '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 
-    const actionRow = el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px' });
-    if (!lead.contact_verified) actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'verify-btn', onclick: async () => { await api.post('/leads/' + id + '/verify', {}); toast('Contact verified', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-user-check' }), 'Verify Contact'));
-    actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'recalc-btn', onclick: async () => { const r = await api.post('/leads/' + id + '/recalculate'); toast('Score: ' + r.result.total + ' (' + r.result.temperature + ')', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-arrows-rotate' }), 'Recalculate'));
-    actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'enroll-btn', onclick: async () => { await api.post('/leads/' + id + '/enroll', {}); toast('Enrolled in ' + lead.temperature + ' cadence', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-seedling' }), 'Enroll Nurture'));
-    actionRow.appendChild(el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'schedule-visit-btn', onclick: () => CRM.scheduleVisit(lead, reload) }, el('i', { class: 'fa-solid fa-calendar-check' }), 'Schedule Visit'));
+    // --- header: identity + score + stage/status + actions ---
+    const contactBits = [];
+    if (lead.email) contactBits.push(el('a', { href: 'mailto:' + lead.email, 'data-testid': 'lead-email' }, el('i', { class: 'fa-solid fa-envelope', style: 'margin-right:5px' }), lead.email));
+    if (lead.phone) contactBits.push(el('a', { href: 'tel:' + lead.phone, 'data-testid': 'lead-phone' }, el('i', { class: 'fa-solid fa-phone', style: 'margin-right:5px' }), lead.phone));
+
+    const statusPill = el('span', { class: 'lc-pill lc-pill--status', 'data-testid': 'lead-status-pill' }, lead.status_code ? prettyStatus(lead.status_code) : 'No journey status');
+
+    // action items -> dropdown
+    const items = [];
+    if (!lead.contact_verified) items.push(['verify-btn', 'fa-solid fa-user-check', 'Verify Contact', null, async () => { await api.post('/leads/' + id + '/verify', {}); toast('Contact verified', 'success'); reload(); }]);
+    items.push(['recalc-btn', 'fa-solid fa-arrows-rotate', 'Recalculate Score', null, async () => { const r = await api.post('/leads/' + id + '/recalculate'); toast('Score: ' + r.result.total + ' (' + r.result.temperature + ')', 'success'); reload(); }]);
+    items.push(['enroll-btn', 'fa-solid fa-seedling', 'Enroll Nurture', null, async () => { await api.post('/leads/' + id + '/enroll', {}); toast('Enrolled in ' + lead.temperature + ' cadence', 'success'); reload(); }]);
     if (!lead.do_not_contact && !lead.is_invalid && !lead.locked) {
-      actionRow.appendChild(el('button', { class: 'btn btn--sm', 'data-testid': 'dnc-btn', onclick: async () => { if (!confirm('Mark this lead Do-Not-Contact? Outbound messaging will stop.')) return; await api.post('/leads/' + id + '/dnc', { reason: 'requested' }); toast('Marked Do-Not-Contact', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-ban' }), 'DNC'));
-      actionRow.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'invalid-btn', onclick: async () => { const r = prompt('Reason (wrong_number, spam, invalid, junk):', 'spam'); if (!r) return; await api.post('/leads/' + id + '/invalid', { reason: r }); toast('Marked invalid', 'warning'); reload(); } }, el('i', { class: 'fa-solid fa-triangle-exclamation' }), 'Invalid'));
+      items.push(['dnc-btn', 'fa-solid fa-ban', 'Do-Not-Contact', 'danger', async () => { if (!confirm('Mark this lead Do-Not-Contact? Outbound messaging will stop.')) return; await api.post('/leads/' + id + '/dnc', { reason: 'requested' }); toast('Marked Do-Not-Contact', 'success'); reload(); }]);
+      items.push(['invalid-btn', 'fa-solid fa-triangle-exclamation', 'Mark Invalid', 'danger', async () => { const r = prompt('Reason (wrong_number, spam, invalid, junk):', 'spam'); if (!r) return; await api.post('/leads/' + id + '/invalid', { reason: r }); toast('Marked invalid', 'warning'); reload(); }]);
     }
     if (!lead.locked && lead.status !== 'won' && lead.status !== 'lost') {
-      actionRow.appendChild(el('button', { class: 'btn btn--sm', style: 'color:var(--won);border-color:var(--won)', 'data-testid': 'won-btn', onclick: () => CRM.markWon(lead, reload) }, el('i', { class: 'fa-solid fa-trophy' }), 'Mark Won'));
-      actionRow.appendChild(el('button', { class: 'btn btn--sm btn--danger', 'data-testid': 'lost-btn', onclick: () => CRM.markLost(lead, reload) }, el('i', { class: 'fa-solid fa-xmark' }), 'Mark Lost'));
+      items.push(['won-btn', 'fa-solid fa-trophy', 'Mark Won', 'won', () => CRM.markWon(lead, reload)]);
+      items.push(['lost-btn', 'fa-solid fa-xmark', 'Mark Lost', 'danger', () => CRM.markLost(lead, reload)]);
     }
-    if (lead.locked) {
-      main.appendChild(el('div', { class: 'dup-alert', 'data-testid': 'lock-banner', style: 'display:flex;align-items:center;gap:8px' }, el('i', { class: 'fa-solid fa-lock' }), el('span', {}, 'Record locked — deal won and handed over to post-sales. Editing is restricted.')));
-    }
-    if (lead.do_not_contact || lead.is_invalid) {
-      main.appendChild(el('div', { class: 'dup-alert', 'data-testid': 'flag-banner', style: 'display:flex;align-items:center;gap:8px' }, el('i', { class: 'fa-solid fa-ban' }), el('span', {}, (lead.is_invalid ? 'Invalid lead' : 'Do-Not-Contact') + (lead.invalid_reason ? (' · ' + lead.invalid_reason) : '') + ' — outbound messaging is suppressed.')));
-    }
-    main.appendChild(actionRow);
+    const menuList = el('div', { class: 'lc-menu__list', 'data-testid': 'lead-actions-menu', style: 'display:none' });
+    function closeMenu() { menuList.style.display = 'none'; document.removeEventListener('click', closeMenu); }
+    items.forEach(([tid, icon, label, kind, onClick]) => menuList.appendChild(el('button', { class: 'lc-menu__item' + (kind ? ' lc-menu__item--' + kind : ''), 'data-testid': tid, onclick: async (e) => { e.stopPropagation(); closeMenu(); await onClick(); } }, el('i', { class: icon }), label)));
+    const menuBtn = el('button', { class: 'btn', 'data-testid': 'lead-actions-btn', onclick: (e) => { e.stopPropagation(); const open = menuList.style.display === 'none'; menuList.style.display = open ? 'block' : 'none'; if (open) setTimeout(() => document.addEventListener('click', closeMenu), 0); } }, el('i', { class: 'fa-solid fa-ellipsis' }), 'Actions');
+    const actionsMenu = el('div', { class: 'lc-menu' }, menuBtn, menuList);
+    const scheduleBtn = el('button', { class: 'btn btn--primary', 'data-testid': 'schedule-visit-btn', onclick: () => CRM.scheduleVisit(lead, reload) }, el('i', { class: 'fa-solid fa-calendar-check' }), 'Schedule Visit');
 
-    const tabsBar = el('div', { class: 'tabs' });
-    const content = el('div', { 'data-testid': 'tab-content' });
-    [['timeline', 'Activity'], ['qualify', 'Qualify'], ['journey', 'Journey'], ['comms', 'Communicate'], ['quote', 'Quote'], ['booking', 'Booking'], ['postsales', 'Post-Sales']].forEach(([key, label]) => {
-      const t = el('div', { class: 'tab ' + (activeTab === key ? 'active' : ''), 'data-testid': 'tab-' + key, onclick: () => { stopJourneyPoll(); activeTab = key; [...tabsBar.children].forEach(c => c.classList.remove('active')); t.classList.add('active'); content.innerHTML = ''; content.appendChild(tabContent()); } }, label);
-      tabsBar.appendChild(t);
+    const header = el('div', { class: 'lc-card lc__header', 'data-testid': 'lead-header' },
+      el('div', { class: 'lc-id' },
+        el('button', { class: 'icon-btn', 'data-testid': 'lead-back', onclick: close }, el('i', { class: 'fa-solid fa-arrow-left' })),
+        el('div', { class: 'avatar avatar--lg' }, initials(lead.name)),
+        el('div', { style: 'min-width:0' },
+          el('h1', { class: 'lc-name', 'data-testid': 'lead-name' }, lead.name),
+          el('div', { class: 'lc-contact' }, ...contactBits),
+          el('div', { class: 'lc-badges' }, tempBadge(lead.temperature), scoreBar(lead.score)))),
+      el('div', { class: 'lc-actions' }, el('div', { class: 'lc-pill-group' }, stageChanger(), statusPill), scheduleBtn, actionsMenu));
+
+    // --- banners ---
+    const banners = el('div', { class: 'lc__banners' });
+    if (lead.locked) banners.appendChild(el('div', { class: 'dup-alert', 'data-testid': 'lock-banner', style: 'display:flex;align-items:center;gap:8px' }, el('i', { class: 'fa-solid fa-lock' }), el('span', {}, 'Record locked — deal won and handed over to post-sales. Editing is restricted.')));
+    if (lead.do_not_contact || lead.is_invalid) banners.appendChild(el('div', { class: 'dup-alert', 'data-testid': 'flag-banner', style: 'display:flex;align-items:center;gap:8px' }, el('i', { class: 'fa-solid fa-ban' }), el('span', {}, (lead.is_invalid ? 'Invalid lead' : 'Do-Not-Contact') + (lead.invalid_reason ? (' · ' + lead.invalid_reason) : '') + ' — outbound messaging is suppressed.')));
+
+    // --- left rail: details / qualification / site visits ---
+    const kv = (k, v, full) => el('div', { class: 'lc-kv__item' + (full ? ' lc-kv__item--full' : '') }, el('div', { class: 'k' }, k), el('div', { class: 'v' }, v || '—'));
+    const detailsCard = el('div', { class: 'lc-card', 'data-testid': 'lead-details' },
+      el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: 'fa-solid fa-address-card' }), 'Details')),
+      el('div', { class: 'lc-kv' },
+        kv('Alt Phone', lead.alt_phone), kv('City', lead.city),
+        kv('Source', lead.source), kv('Campaign', lead.campaign),
+        kv('Project', lead.project ? lead.project.name : '—'), kv('Owner', lead.owner ? lead.owner.name : '—'),
+        kv('Verified', lead.contact_verified ? 'Yes' : 'No'), kv('Attempts', String(lead.contact_attempts || 0))));
+
+    const qualCard = el('div', { class: 'lc-card', 'data-testid': 'lead-qualification' },
+      el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: 'fa-solid fa-clipboard-check' }), 'Qualification'),
+        el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'edit-qualify-btn', onclick: () => CRM.modal({ title: 'Qualify lead', bodyNode: qualifyForm(), wide: true }) }, el('i', { class: 'fa-solid fa-pen' }), 'Edit')),
+      el('div', { class: 'lc-kv' },
+        kv('Interest', lead.interest_level), kv('Timeline', lead.timeline),
+        kv('Budget', lead.budget_min ? money(lead.budget_min) + (lead.budget_max ? '–' + money(lead.budget_max) : '') : '—', true),
+        kv('Financing', lead.financing), kv('Decision', lead.decision_maker),
+        kv('Preferred Location', lead.preferred_location, true)));
+
+    const visits = lead.site_visits || [];
+    const visitsCard = el('div', { class: 'lc-card', 'data-testid': 'lead-visits' },
+      el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: 'fa-solid fa-map-location-dot' }), 'Site Visits')),
+      visits.length ? el('div', {}, ...visits.map(v => el('div', { class: 'lc-row', 'data-testid': 'lead-visit-' + v.id },
+        el('span', { class: 'lc-row__t' }, new Date(v.scheduled_at).toLocaleDateString() + (v.plot ? ' · ' + v.plot.number : '')),
+        el('span', { style: 'font-weight:700;font-size:12px' }, CRM.stageName(v.status)))))
+        : el('div', { class: 'lc-empty' }, 'No visits scheduled'));
+
+    const leftRail = el('div', { class: 'lc__left', 'data-testid': 'lead-side' }, detailsCard, qualCard, visitsCard);
+
+    // --- main: journey stepper + unified composer + timeline ---
+    const journeyCard = el('div', { class: 'lc-card', 'data-testid': 'lead-journey-card' },
+      el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: 'fa-solid fa-route' }), 'Journey')), journeyTab());
+
+    // composer with Note / Communicate sub-tabs
+    const noteInput = el('input', { class: 'input', placeholder: 'Add a note…', 'data-testid': 'note-input' });
+    const noteAdd = el('button', { class: 'btn btn--primary', 'data-testid': 'note-add' }, 'Add note');
+    noteAdd.addEventListener('click', async () => { if (!noteInput.value.trim()) return; await api.post('/leads/' + id + '/note', { body: noteInput.value }); toast('Note added', 'success'); reload(); });
+    const noteBox = el('div', { class: 'lc-note' }, noteInput, noteAdd);
+    const commBox = commsPanel();
+    const compBody = el('div', { 'data-testid': 'composer-body' }, noteBox);
+    const subtabs = el('div', { class: 'lc-subtabs' });
+    [['note', 'Note', noteBox], ['comm', 'Communicate', commBox]].forEach(([k, label, node], i) => {
+      const b = el('button', { class: 'lc-subtab' + (i === 0 ? ' active' : ''), 'data-testid': 'composer-tab-' + k, onclick: () => { [...subtabs.children].forEach(c => c.classList.remove('active')); b.classList.add('active'); compBody.innerHTML = ''; compBody.appendChild(node); } }, label);
+      subtabs.appendChild(b);
     });
-    main.appendChild(tabsBar);
-    content.appendChild(tabContent());
-    main.appendChild(content);
+    const composerCard = el('div', { class: 'lc-card', 'data-testid': 'lead-composer' },
+      el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: 'fa-solid fa-pen-to-square' }), 'Log an activity')), subtabs, compBody);
 
-    drawer.appendChild(main);
-    drawer.appendChild(sidePanel());
+    const tl = el('div', { class: 'timeline', 'data-testid': 'timeline' });
+    if (!timeline.length) tl.appendChild(el('div', { class: 'lc-empty' }, 'No activity yet'));
+    const icons = { note: 'fa-note-sticky', call: 'fa-phone', whatsapp: 'fa-whatsapp', email: 'fa-envelope', status_change: 'fa-arrow-right-arrow-left', system: 'fa-gear' };
+    timeline.forEach(a => tl.appendChild(el('div', { class: 'tl-item t-' + a.type },
+      el('div', { class: 'dot' }, el('i', { class: (a.type === 'whatsapp' ? 'fa-brands ' : 'fa-solid ') + (icons[a.type] || 'fa-circle') })),
+      el('div', { class: 't' }, a.title),
+      a.body ? el('div', { class: 'b' }, a.body) : null,
+      el('div', { class: 'm' }, (a.user ? a.user.name + ' · ' : '') + timeAgo(a.created_at)))));
+    const timelineCard = el('div', { class: 'lc-card', 'data-testid': 'lead-timeline-card' },
+      el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: 'fa-solid fa-clock-rotate-left' }), 'Activity Timeline')), tl);
+
+    const mainCol = el('div', { class: 'lc__main' }, journeyCard, composerCard, timelineCard);
+
+    // --- right rail: open tasks + module widgets ---
+    const openTasks = (lead.tasks || []).filter(t => t.status === 'open');
+    const tasksCard = el('div', { class: 'lc-card', 'data-testid': 'lead-tasks' },
+      el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: 'fa-solid fa-list-check' }), 'Open Tasks'), el('span', { class: 'lc-pill lc-pill--status' }, String(openTasks.length))),
+      openTasks.length ? el('div', {}, ...openTasks.map(t => el('div', { class: 'lc-row', 'data-testid': 'task-' + t.id },
+        el('span', { class: 'lc-row__t' }, (t.escalated ? '🔺 ' : '') + t.title),
+        el('button', { class: 'btn btn--ghost btn--sm', onclick: async () => { await api.post('/tasks/' + t.id + '/complete'); toast('Task done', 'success'); reload(); } }, el('i', { class: 'fa-solid fa-check' })))))
+        : el('div', { class: 'lc-empty' }, 'No open tasks'));
+
+    const moduleCard = (tid, icon, title, sub, build) => el('div', { class: 'lc-card', 'data-testid': tid },
+      el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: icon }), title)),
+      el('div', { class: 'lc-mod__row' }, el('div', { class: 'lc-mod__sum' }, sub),
+        el('button', { class: 'btn btn--sm', 'data-testid': tid + '-open', onclick: () => CRM.modal({ title: title, bodyNode: build(), wide: true }) }, 'Open')));
+    const rightRail = el('div', { class: 'lc__right' }, tasksCard,
+      moduleCard('mod-quote', 'fa-solid fa-file-invoice-dollar', 'Quote / Cost Sheet', 'Build or view the cost sheet', () => CRM.leadQuoteTab(lead, reload)),
+      moduleCard('mod-booking', 'fa-solid fa-file-signature', 'Booking', 'Manage booking & payment plan', () => CRM.leadBookingTab(lead, reload)),
+      moduleCard('mod-postsales', 'fa-solid fa-headset', 'Post-Sales', 'Handover, agreements & demands', () => CRM.leadPostSalesTab(lead, reload)));
+
+    // --- mount cockpit ---
+    view.innerHTML = '';
+    view.appendChild(el('div', { class: 'lc', 'data-testid': 'lead-cockpit' }, header, banners, leftRail, mainCol, rightRail));
   }
 
   // ========== PIPELINE (Kanban) ==========

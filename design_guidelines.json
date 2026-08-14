@@ -1,141 +1,142 @@
 {
-  "project_context": "Real-Estate Lead Flow Diagram Builder (Hybrid Fullstack - Laravel 11, Blade, Vanilla JS SPA)",
+  "app_context": "BDE/BDM Lead Cockpit - Full Width Workspace",
+  "tech_stack": "Vanilla JS, CSS, Laravel 11, Blade (No framework, Custom CSS)",
+  "design_philosophy": "Modern, intuitive, single-screen 'Lead Cockpit'. Move from a cramped drawer to a sprawling but structured full-width layout. Use spatial distribution (3 columns) instead of hidden tabs to reduce cognitive load and clicks.",
   "typography": {
-    "font_family": "Manrope, sans-serif",
+    "primary_font": "Manrope",
+    "fallback": "sans-serif",
     "hierarchy": {
-      "h1": "text-4xl tracking-tight font-extrabold text-[#18181B]",
-      "h2": "text-2xl tracking-tight font-bold text-[#18181B]",
-      "h3": "text-lg font-semibold text-[#18181B]",
-      "lane_title": "text-base font-bold text-[#18181B] uppercase tracking-wide",
-      "body": "text-sm text-[#18181B]/80 leading-relaxed",
-      "small_labels": "text-xs font-medium uppercase tracking-[0.15em] text-[#18181B]/60"
-    },
-    "rules": [
-      "No generic sans fonts like Inter or Roboto. Manrope is mandatory.",
-      "Headings must use tight letter spacing.",
-      "Labels and SLA badges must be tiny, uppercase, and widely spaced."
-    ]
+      "h1_lead_name": {
+        "size": "24px to 28px",
+        "weight": "800",
+        "letter_spacing": "-0.02em",
+        "color": "var(--color-ink)"
+      },
+      "h2_section": {
+        "size": "18px",
+        "weight": "700",
+        "letter_spacing": "-0.01em",
+        "color": "var(--color-ink)",
+        "margin_bottom": "16px"
+      },
+      "body_text": {
+        "size": "14px",
+        "weight": "500",
+        "line_height": "1.5",
+        "color": "var(--color-ink-muted)"
+      },
+      "small_labels": {
+        "size": "12px",
+        "weight": "700",
+        "text_transform": "uppercase",
+        "letter_spacing": "0.05em",
+        "color": "var(--color-ink-light)"
+      }
+    }
   },
   "colors": {
     "background": {
-      "app": "#FBF9F6",
-      "lane_panel": "#E8F0F4",
+      "page": "#F9F9F6",
       "card": "#FFFFFF",
-      "sidebar_quiet": "#F5F3EF"
+      "panel": "#E8F0F4"
     },
-    "text": {
-      "primary": "#18181B",
-      "secondary": "#3F3F46",
-      "muted": "#71717A"
+    "ink": {
+      "primary": "#1A1A1A",
+      "secondary": "#4A4A4A",
+      "tertiary": "#767676"
     },
     "accent": {
-      "lime_primary": "#D4FF33",
-      "lime_hover": "#BFFF00",
-      "powder_blue_border": "#D1E0E8"
+      "lime": "#D4FF33",
+      "lime_hover": "#C2EB2F",
+      "lime_muted": "rgba(212, 255, 51, 0.2)"
     },
     "status": {
-      "positive": "#A7F3D0",
-      "negative": "#FECDD3",
-      "neutral": "#E4E4E7",
-      "nurture": "#FDE68A"
-    },
-    "rules": [
-      "Avoid completely white (#FFFFFF) backgrounds for the main app canvas; use the warm off-white.",
-      "Use Lime Accent purely for primary calls-to-action (e.g., 'Save Template', 'Add Step').",
-      "Powder blue is restricted to structural backgrounds (the stage lanes)."
-    ]
-  },
-  "visual_enhancers": {
-    "shadows": {
-      "card_rest": "shadow-[0_2px_8px_rgba(24,24,27,0.04)]",
-      "card_hover": "shadow-[0_8px_24px_rgba(24,24,27,0.08)]",
-      "drawer": "shadow-[-10px_0_40px_rgba(0,0,0,0.1)]"
-    },
-    "borders": {
-      "subtle": "border border-[#18181B]/5",
-      "dashed_dropzone": "border-2 border-dashed border-[#18181B]/20 hover:border-lime-500"
-    },
-    "radii": {
-      "lane": "rounded-2xl",
-      "card": "rounded-xl",
-      "chip": "rounded-full",
-      "button": "rounded-full"
+      "hot": "#FF4D4D",
+      "warm": "#FF9900",
+      "cold": "#3399FF",
+      "success": "#00CC66",
+      "error": "#FF3333",
+      "locked_dnc": "#FFEBEB"
     }
-  },
-  "components": {
-    "StageLane": {
-      "description": "The powder-blue column representing a macro lead stage.",
-      "classes": "w-[340px] flex-shrink-0 bg-[#E8F0F4] rounded-2xl flex flex-col h-full border border-[#D1E0E8]",
-      "inner_layout": "p-4 flex flex-col gap-3 overflow-y-auto"
-    },
-    "LaneHeader": {
-      "description": "Sticky top of the lane. Contains Title and SLA Badge.",
-      "classes": "pb-3 mb-2 border-b border-[#18181B]/10 flex justify-between items-center sticky top-0 bg-[#E8F0F4] z-10"
-    },
-    "SLABadge": {
-      "description": "Shows the time limit for the stage.",
-      "classes": "bg-white text-[#18181B] text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full shadow-sm"
-    },
-    "StepCard": {
-      "description": "Individual logic unit inside a lane.",
-      "classes": "bg-white rounded-xl p-4 shadow-[0_2px_8px_rgba(24,24,27,0.04)] border border-[#18181B]/5 hover:shadow-md transition-shadow cursor-grab group relative"
-    },
-    "BranchChip": {
-      "description": "Outcomes connected to a step (Positive, Negative, No-Show).",
-      "classes": "inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full border border-[#18181B]/10 mt-2 gap-1"
-    },
-    "AddStepButton": {
-      "description": "Dashed button at the bottom of the lane.",
-      "classes": "w-full py-3 rounded-xl border-2 border-dashed border-[#18181B]/20 text-[#18181B]/60 hover:bg-white hover:border-[#18181B] transition-colors text-sm font-bold flex items-center justify-center gap-2 cursor-pointer"
-    },
-    "StepPalette": {
-      "description": "Floating action bar or sidebar containing draggable generic step templates.",
-      "classes": "bg-white border border-[#18181B]/10 rounded-2xl p-4 shadow-lg w-64"
-    },
-    "InlineDrawer": {
-      "description": "Slide-over panel from the right to configure step details.",
-      "classes": "fixed inset-y-0 right-0 w-[400px] bg-white shadow-2xl z-50 transform transition-transform"
-    }
-  },
-  "grids": {
-    "system": "The main canvas is a flex container with horizontal scrolling, not a CSS grid. Lanes are set to flex-shrink-0 to allow side-by-side scrolling.",
-    "drawer_form": "grid grid-cols-1 gap-6 p-6"
   },
   "layouts": {
-    "app_shell": "flex h-screen bg-[#FBF9F6] font-manrope overflow-hidden",
-    "sidebar": "w-64 bg-[#F5F3EF] border-r border-[#18181B]/5 flex flex-col hidden lg:flex",
-    "main_canvas": "flex-1 flex flex-col overflow-hidden relative",
-    "top_nav": "h-24 px-8 flex flex-col justify-center bg-[#FBF9F6] border-b border-[#18181B]/5",
-    "builder_area": "flex-1 overflow-x-auto overflow-y-hidden p-8 flex gap-6 items-stretch"
+    "grid_blueprint": {
+      "type": "CSS Grid",
+      "desktop_layout": "grid-template-columns: 300px minmax(500px, 1fr) 340px; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden;",
+      "gap": "24px",
+      "padding": "24px 32px",
+      "responsive_behavior": "Below 1200px: collapse right rail into a bottom drawer or tabs in left rail. Below 768px: stack all columns into a single scrolling view (grid-template-columns: 1fr)."
+    },
+    "surfaces": {
+      "cards": "border-radius: 16px; background: var(--color-card); box-shadow: 0 4px 24px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.05); padding: 24px;",
+      "panels": "border-radius: 12px; background: var(--color-panel); padding: 16px;",
+      "pills": "border-radius: 9999px; padding: 4px 12px; font-weight: 600;"
+    }
   },
-  "motion": {
-    "interactions": "Transition on transform and box-shadow for cards (duration-200 ease-out).",
-    "drawer": "Use standard CSS transitions `transform duration-300 ease-in-out` for the inline editor drawer.",
-    "drag_drop": "Use SortableJS. Add a `ghostClass` for the dragging item with opacity-50 and a lime dashed border."
+  "tab_consolidation_strategy": {
+    "previous_state": "7 crowded tabs in a narrow drawer.",
+    "new_state": "Spatially distributed modules across 3 columns.",
+    "mapping": {
+      "Activity timeline + add-note": "Moved to Main Center Column (Bottom half). Composer pinned to the top of the timeline.",
+      "Communicate (WhatsApp, Email, Call)": "Integrated into the unified Composer in the Main Center Column. One rich input box, switches context based on selected sub-tab.",
+      "Qualify form": "Moved to Left Rail as an editable 'Qualification Summary' card.",
+      "Journey status tracker": "Moved to the top of the Main Center Column as a visual horizontal stepper.",
+      "Quote/Cost-sheet": "Moved to Right Rail as a dedicated summary card with an 'Expand/Add' button.",
+      "Booking": "Moved to Right Rail below Quotes.",
+      "Post-Sales": "Moved to Right Rail below Booking."
+    }
+  },
+  "component_instructions": {
+    "header": {
+      "position": "grid-column: 1 / -1; grid-row: 1; sticky top.",
+      "layout": "Flexbox, align-items center, justify-content space-between.",
+      "left_cluster": "Avatar (Circle), Lead Name (H1), Email & Phone links, Temperature Badge, Score Bar (0-100 gauge/bar using Lime accent).",
+      "right_cluster": "Inline stage changer (Select dropdown styled as a pill), Journey-status pill (from 45-status catalog, distinct color from stage), Quick Actions (DNC, Invalid, Won, Lost inside an 'Actions' dropdown menu button).",
+      "banners": "If Locked/DNC/Invalid, display a full-width banner right below the header (Background: var(--color-status-locked-dnc), Text: Red)."
+    },
+    "left_rail": {
+      "position": "grid-column: 1; grid-row: 2; overflow-y: auto; padding-right: 8px;",
+      "content": [
+        "Details Card: Email, phone, alt phone, city, source, campaign, project, owner, verified tick, contact attempts. Use dense grid layout (2 columns for label/value).",
+        "Qualification Summary Card: Visual display of interest, timeline, budget, financing, decision-maker, preferred location.",
+        "Site Visits Card: Mini-list of upcoming/past visits."
+      ],
+      "styling": "Use Powder-Blue panels (var(--color-panel)) for inner sections to distinguish from the main white cards."
+    },
+    "main_workspace": {
+      "position": "grid-column: 2; grid-row: 2; overflow-y: auto; display: flex; flex-direction: column; gap: 24px;",
+      "content": [
+        "Journey Tracker: Horizontal stepper showing live stage/status with SLA timers.",
+        "Unified Composer: A tabbed card (Note, Email, WhatsApp, Call). High visual prominence. Contains the template picker for WhatsApp.",
+        "Activity Timeline: A vertical chronological feed. Distinct icons for different activity types. Generous padding between feed items."
+      ]
+    },
+    "right_rail": {
+      "position": "grid-column: 3; grid-row: 2; overflow-y: auto; padding-left: 8px;",
+      "content": [
+        "Open Tasks: List of actionable items with 'Complete' checkboxes/buttons prominently displayed.",
+        "Secondary Modules Stack: Quotes, Bookings, Post-Sales. Display these as compact summary cards (e.g., '1 Active Quote: $450k'). If the user needs to act, they click to open a modal or expand the card in place."
+      ]
+    }
+  },
+  "interaction_and_motion": {
+    "buttons": "Transition: background 0.2s ease, transform 0.1s ease. Active state scales down slightly (scale: 0.98).",
+    "timeline_feed": "New items should slide down and fade in (opacity 0 to 1, translateY -10px to 0).",
+    "hover_states": "All clickable rows (Tasks, Site visits) must have a hover state (e.g., background shifts slightly darker off-white) to indicate interactivity."
   },
   "accessibility": {
-    "contrast": "Ensure all text on powder blue and off-white passes APCA contrast. Near-black (#18181B) is excellent.",
-    "focus": "All interactive elements must use `focus:outline-none focus:ring-2 focus:ring-[#D4FF33] focus:ring-offset-2`.",
-    "testing": "All interactive elements MUST have a `data-testid` attribute in kebab-case."
+    "focus": "All interactive elements must have a visible focus ring (2px solid var(--color-ink) with offset).",
+    "contrast": "Ensure var(--color-ink-muted) meets 4.5:1 contrast ratio against var(--color-page).",
+    "aria": "Use aria-expanded for the unified composer tabs and accordions in the right rail."
   },
-  "media": {
-    "icons": "Use Phosphor Icons (webfont or SVG) for premium regular weighting. Core icons needed: whatsapp, envelope, clock, check-circle, arrows-split, x.",
-    "images": "No stock photography required for this builder view. Rely entirely on UI typography, spacing, and iconography."
-  },
-  "3d_libraries": {
-    "usage": "None required. This is a functional B2B admin layout."
-  },
-  "image_urls": {},
   "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
-    "GENERAL UI UX DESIGN GUIDELINES",
-    "CRITICAL: Do NOT build this in React/Shadcn. The environment specifically dictates Laravel 11 + Blade + Vanilla JS SPA. Write semantic HTML/Blade templates with Tailwind classes.",
-    "Use SortableJS for drag-and-drop between columns. Bind it natively in Vanilla JS.",
-    "Preserve the strict premium color palette defined by the user: #FBF9F6 (warm off-white canvas), #18181B (near-black text), #D4FF33 (lime accents), #E8F0F4 (powder-blue lane panels).",
-    "Do NOT use transparent backgrounds for the Step Editor Drawer or Step cards. They must be solid #FFFFFF with structural shadows.",
-    "Replace the spaghetti node-graph lines with a clean Stage-Lane (Kanban) layout. The logic naturally flows Top-to-Bottom within a lane, and Left-to-Right across lanes.",
-    "For the 'If/Branch' logic, do not draw SVG connecting curves. Instead, represent branches via 'Chips' inside the StepCard (e.g., an inline pill saying 'Negative ↳ Drop Lead').",
-    "Include a 'This drives every lead' explainer banner at the top of the canvas. Use plain language.",
-    "Add mandatory `data-testid` on all action targets, inputs, and step cards (e.g., `data-testid='add-step-btn-lead-entry'`).",
-    "Ensure the Manrope font is imported and applied to the root body wrapper."
+    "CRITICAL: Do NOT use Shadcn or React. Output only pure HTML/Blade structures, CSS variables, and Vanilla JS layout scripts.",
+    "CRITICAL: EVERY interactive element, button, tab, and form input MUST retain or include a `data-testid` attribute (e.g., data-testid='lead-header-name', data-testid='tab-whatsapp'). Do not strip existing test IDs.",
+    "Use CSS Grid for the macro layout. Avoid absolute positioning for core layout columns.",
+    "Maximize the use of whitespace. The layout is full width, so do not cramp inner padding; use 24px or 32px padding inside cards.",
+    "Do NOT use complete transparent backgrounds in dropdowns or sticky headers. Ensure backdrop-filters or solid colors are applied.",
+    "Apply the lime accent selectively. It should draw the eye to primary CTAs (e.g., 'Log Activity', 'Mark Won', Score Bar), not be splashed everywhere.",
+    "Make the Right Rail modules look like 'Widgets' — they summarize data but afford deep-dives via clicks.",
+    "Implement scroll shadows or sticky headers for the Left and Right rails so the center column scrolls independently."
   ]
 }

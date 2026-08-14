@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Chivo:wght@700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/vendor/drawflow.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/workflow.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('assets/css/lead-cockpit.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/journey.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=12">
@@ -30,7 +31,7 @@
     <script>window.CRM = { API: (location.port === '8000' ? '/api/v1' : '/crm-api/v1'), asset: '{{ asset('assets') }}' };</script>
     <script src="{{ asset('assets/js/api.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v=13"></script>
-    <script src="{{ asset('assets/js/leads.js') }}?v=15"></script>
+    <script src="{{ asset('assets/js/leads.js') }}?v=16"></script>
     <script src="{{ asset('assets/js/inventory.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/deals.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/config.js') }}?v=10"></script>
