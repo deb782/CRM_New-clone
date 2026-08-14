@@ -42,19 +42,19 @@
     return {
       name: 'Agrocorp Lead-to-Customer Journey',
       lanes: [
-        { key: 'S1', title: 'Lead Entry', idx: 'STAGE 1', sla: '2h', steps: [
+        { key: 'S1', title: 'Lead Entry', idx: 'STAGE 1', steps: [
           step('send_whatsapp', { template: 'Lead Acknowledgement' }),
           step('task', { title: 'First contact call', task_type: 'call', due_hours: 2 }),
           step('status_change', { status_code: 'S1_ASSIGNED' }, ['Duplicate → review', 'Invalid → close']),
         ] },
-        { key: 'S2', title: 'Qualification', idx: 'STAGE 2', sla: '24h', steps: [
+        { key: 'S2', title: 'Qualification', idx: 'STAGE 2', steps: [
           step('task', { title: 'Qualify & profile lead', task_type: 'call', due_hours: 24 }),
           step('condition', { field: 'temperature', operator: '=', value: 'hot', branches: 'Positive,NRTY,Negative' }, ['Positive → meeting', 'NRTY → nurture', 'Negative → dead']),
           step('status_change', { status_code: 'S2_QUALIFYING' }),
           step('task', { title: 'Schedule meeting / site visit', task_type: 'meeting', due_hours: 48 }),
           step('status_change', { status_code: 'S2_MEETING_SCHEDULED' }),
         ] },
-        { key: 'S3', title: 'Meeting & Site Visit', idx: 'STAGE 3', sla: '48h', steps: [
+        { key: 'S3', title: 'Meeting & Site Visit', idx: 'STAGE 3', steps: [
           step('send_whatsapp', { template: 'Appointment Confirmation' }),
           step('wait', { amount: 1, unit: 'days' }),
           step('send_whatsapp', { template: 'Visit Reminder' }),
@@ -64,14 +64,14 @@
           step('status_change', { status_code: 'S3_COST_SHEET_SHARED' }),
           step('status_change', { status_code: 'S3_BOOKING_INTENT' }),
         ] },
-        { key: 'S4', title: 'Booking & Verification', idx: 'STAGE 4', sla: '24h', steps: [
+        { key: 'S4', title: 'Booking & Verification', idx: 'STAGE 4', steps: [
           step('task', { title: 'Accounts: verify booking payment', task_type: 'other', due_hours: 24 }),
           step('status_change', { status_code: 'S4_VERIFIED' }),
           step('send_whatsapp', { template: 'Booking Confirmation' }),
           step('task', { title: 'Post-sales handover', task_type: 'other', due_hours: 24 }),
           step('status_change', { status_code: 'S4_CONVERTED' }, ['Payment issue → exception']),
         ] },
-        { key: 'S5', title: 'Customer Lifecycle', idx: 'STAGE 5', sla: 'ongoing', steps: [
+        { key: 'S5', title: 'Customer Lifecycle', idx: 'STAGE 5', steps: [
           step('task', { title: 'Collect KYC & agreement docs', task_type: 'other', due_hours: 72 }),
           step('status_change', { status_code: 'S5_AGREEMENT_EXECUTED' }),
           step('send_email', { template: 'Payment Plan & Schedule' }),
@@ -122,7 +122,7 @@
       j.lanes.forEach(l => l.steps.forEach(s => { s.uid = uid(); if (!s.branches) s.branches = []; }));
       return j;
     }
-    const shells = defaultJourney().lanes.map(l => ({ key: l.key, title: l.title, idx: l.idx, sla: l.sla, steps: [] }));
+    const shells = defaultJourney().lanes.map(l => ({ key: l.key, title: l.title, idx: l.idx, steps: [] }));
     const byKey = {}; shells.forEach(l => { byKey[l.key] = l; });
     const nodes = graph && graph.drawflow && graph.drawflow.Home && graph.drawflow.Home.data;
     if (nodes) {
@@ -171,8 +171,7 @@
     body.appendChild(addBtn);
     const laneNode = el('div', { class: 'jb-lane', 'data-lane': lane.key, 'data-testid': 'jb-lane-' + lane.key },
       el('div', { class: 'jb-lane__head' },
-        el('div', {}, el('div', { class: 'jb-lane__idx' }, lane.idx), el('div', { class: 'jb-lane__title' }, lane.title)),
-        el('span', { class: 'jb-sla' }, 'SLA · ' + lane.sla)),
+        el('div', {}, el('div', { class: 'jb-lane__idx' }, lane.idx), el('div', { class: 'jb-lane__title' }, lane.title))),
       body);
     if (window.Sortable) {
       window.Sortable.create(body, { group: 'jb', animation: 150, ghostClass: 'jb-ghost', draggable: '.jb-card', filter: '.jb-add', onEnd: () => { syncFromDom(canvas); } });
@@ -253,7 +252,7 @@
       body.appendChild(field('Due in (hours)', inputs.due));
     } else if (s.type === 'status_change') {
       inputs.status = statusSelect(c.status_code);
-      body.appendChild(field('Move lead to status', inputs.status, 'Only allow-listed transitions run at execution time; gates & SLA come from the status catalog.'));
+      body.appendChild(field('Move lead to status', inputs.status, 'Only allow-listed transitions run at execution time; required-field gates come from the status catalog.'));
     } else if (s.type === 'condition') {
       inputs.cfield = el('select', {}); ['temperature', 'source', 'score', 'status'].forEach(f => { const o = el('option', { value: f }, f); if (f === c.field) o.selected = true; inputs.cfield.appendChild(o); });
       inputs.op = el('select', {}); ['=', '!=', '>', '<'].forEach(o2 => { const o = el('option', { value: o2 }, o2); if (o2 === c.operator) o.selected = true; inputs.op.appendChild(o); });

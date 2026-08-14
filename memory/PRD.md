@@ -386,3 +386,9 @@ Verified: iteration_32.json — backend 7/7 pytest, frontend 100%, no bugs. Test
 - Layout: sticky full-width header (avatar, name, email/phone links, temperature badge, score bar, inline stage dropdown, journey-status pill, primary Schedule Visit button, Actions dropdown consolidating verify/recalc/enroll/dnc/invalid/won/lost). Left rail: Details, Qualification (Edit -> modal), Site Visits. Main: Journey card (live stepper), unified "Log an activity" composer with Note | Communicate sub-tabs (note add; WhatsApp incl. template picker, Email, Call), Activity Timeline. Right rail: Open Tasks + Quote/Booking/Post-Sales module widgets (open in modals via CRM.modal).
 - All existing functionality preserved (reused stageChanger, qualifyForm, journeyTab, commsPanel, quote/booking/postsales tabs); data-testids retained/added. Matches design system (design_agent blueprint in design_guidelines.json).
 - Known optional/minor: Schedule Visit modal still uses native datetime-local input (pre-existing, out of scope).
+
+## 2026-06 — Designed date picker + SLA removal [DONE, self-tested via UI]
+- New CRM.datePicker() (public/assets/js/datepicker.js + datepicker.css): styled inline month-grid calendar with prev/next, disabled past days, today marker, lime selection, and a 30-min time dropdown. Returns YYYY-MM-DDTHH:mm.
+- Wired into Schedule Site Visit and Reschedule modals (inventory.js v12), replacing native datetime-local. Verified: schedules correct date/time, stamps visit + task + confirmation activity.
+- Removed SLAs per user: dropped lane SLA badges from the Journey Builder (journey.js v5, 0 .jb-sla), removed SLA wording from the status-change hint, and FlowEngine::applyStatus no longer stamps leads.status_sla_due_at (column left dormant). Allow-listed transitions + required-field gates remain.
+- Blade: added datepicker.css/js, bumped inventory.js v12, journey.js v5.

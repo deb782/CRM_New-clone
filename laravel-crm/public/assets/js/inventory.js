@@ -144,12 +144,12 @@
 
     function rescheduleForm(v) {
       const f = {};
-      const dt = el('input', { class: 'input', type: 'datetime-local', 'data-testid': 'v-resched-dt' }); dt.addEventListener('input', () => f.scheduled_at = dt.value);
+      const picker = CRM.datePicker({ value: v.scheduled_at });
       const reason = el('input', { class: 'input', placeholder: 'Reason', 'data-testid': 'v-resched-reason' }); reason.addEventListener('input', () => f.reason = reason.value);
-      const body = el('div', {}, el('div', { class: 'field' }, el('label', {}, 'New date & time'), dt), el('div', { class: 'field' }, el('label', {}, 'Reason'), reason));
+      const body = el('div', {}, el('div', { class: 'field' }, el('label', {}, 'New date & time'), picker.node), el('div', { class: 'field' }, el('label', {}, 'Reason'), reason));
       const save = el('button', { class: 'btn btn--primary', 'data-testid': 'v-resched-save' }, 'Reschedule');
       const m = modal({ title: 'Reschedule Visit', bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
-      save.addEventListener('click', async () => { if (!f.scheduled_at) { toast('Pick a date', 'error'); return; } await api.post('/site-visits/' + v.id + '/reschedule', f); toast('Rescheduled', 'success'); m.close(); load(); });
+      save.addEventListener('click', async () => { const dtv = picker.getValue(); if (!dtv) { toast('Pick a date', 'error'); return; } f.scheduled_at = dtv.replace('T', ' ') + ':00'; await api.post('/site-visits/' + v.id + '/reschedule', f); toast('Rescheduled', 'success'); m.close(); load(); });
     }
 
     const filters = el('div', { class: 'filters' });
@@ -167,7 +167,7 @@
   CRM.scheduleVisit = async function (lead, onDone) {
     const f = { project_id: lead.project_id || '' };
     const projects = await api.get('/projects').then(r => r.data).catch(() => []);
-    const dt = el('input', { class: 'input', type: 'datetime-local', 'data-testid': 'sv-datetime' }); dt.addEventListener('input', () => f.scheduled_at = dt.value);
+    const picker = CRM.datePicker({ defaultTime: '11:00' });
     const projSel = el('select', { class: 'select', 'data-testid': 'sv-project' }, el('option', { value: '' }, 'Select project'), ...projects.map(p => el('option', { value: p.id, selected: f.project_id == p.id ? 'selected' : null }, p.name)));
     const plotSel = el('select', { class: 'select', 'data-testid': 'sv-plot' }, el('option', { value: '' }, 'No specific unit'));
     async function loadPlots() { plotSel.innerHTML = ''; plotSel.appendChild(el('option', { value: '' }, 'No specific unit')); if (!f.project_id) return; const plots = await api.get('/inventory/available-plots?project_id=' + f.project_id).then(r => r.data).catch(() => []); plots.forEach(p => plotSel.appendChild(el('option', { value: p.id }, p.number + ' · ' + (p.unit_type || '') + ' · ' + CRM.money(p.price)))); }
@@ -177,15 +177,16 @@
     const mp = el('input', { class: 'input', placeholder: 'Meeting point', value: 'Sales Office', 'data-testid': 'sv-meeting' }); mp.addEventListener('input', () => f.meeting_point = mp.value); f.meeting_point = 'Sales Office';
 
     const body = el('div', {},
-      el('div', { class: 'field' }, el('label', {}, 'Date & time *'), dt),
+      el('div', { class: 'field' }, el('label', {}, 'Date & time *'), picker.node),
       el('div', { class: 'form-row' }, el('div', { class: 'field' }, el('label', {}, 'Project'), projSel), el('div', { class: 'field' }, el('label', {}, 'Unit (optional)'), plotSel)),
       el('div', { class: 'field' }, el('label', {}, 'Meeting point'), mp),
-      el('div', { class: 'help' }, 'Confirmation is sent via WhatsApp + email; 24h and 1h reminders are auto-scheduled.'));
+      el('div', { class: 'help' }, 'Confirmation is sent via WhatsApp + email; reminders are auto-scheduled.'));
     const save = el('button', { class: 'btn btn--primary', 'data-testid': 'sv-save' }, 'Schedule Visit');
     const m = modal({ title: 'Schedule Site Visit', bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
     save.addEventListener('click', async () => {
-      if (!f.scheduled_at) { toast('Pick a date & time', 'error'); return; }
-      try { await api.post('/leads/' + lead.id + '/site-visits', { scheduled_at: f.scheduled_at.replace('T', ' ') + ':00', project_id: f.project_id || null, plot_id: f.plot_id || null, meeting_point: f.meeting_point }); toast('Site visit scheduled', 'success'); m.close(); if (onDone) onDone(); }
+      const dtv = picker.getValue();
+      if (!dtv) { toast('Pick a date & time', 'error'); return; }
+      try { await api.post('/leads/' + lead.id + '/site-visits', { scheduled_at: dtv.replace('T', ' ') + ':00', project_id: f.project_id || null, plot_id: f.plot_id || null, meeting_point: f.meeting_point }); toast('Site visit scheduled', 'success'); m.close(); if (onDone) onDone(); }
       catch (err) { toast(err.message, 'error'); }
     });
   };

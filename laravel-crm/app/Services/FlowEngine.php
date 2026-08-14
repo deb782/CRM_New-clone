@@ -49,7 +49,7 @@ class FlowEngine
             $lead->pipeline_stage_id = $stage->id;
             $lead->status = $stage->slug;
         }
-        $lead->status_sla_due_at = $target->sla_minutes ? now()->addMinutes($target->sla_minutes) : null;
+        $lead->status_sla_due_at = null;
         $lead->save();
 
         try {

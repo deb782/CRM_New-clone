@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/drawflow.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/workflow.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/lead-cockpit.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('assets/css/datepicker.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/journey.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=12">
@@ -32,14 +33,15 @@
     <script src="{{ asset('assets/js/api.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v=13"></script>
     <script src="{{ asset('assets/js/leads.js') }}?v=16"></script>
-    <script src="{{ asset('assets/js/inventory.js') }}?v=11"></script>
+    <script src="{{ asset('assets/js/datepicker.js') }}?v=1"></script>
+    <script src="{{ asset('assets/js/inventory.js') }}?v=12"></script>
     <script src="{{ asset('assets/js/deals.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/config.js') }}?v=10"></script>
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=15"></script>
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
     <script src="{{ asset('assets/js/onboarding.js') }}?v=23"></script>
     <script src="{{ asset('assets/vendor/sortable.min.js') }}"></script>
-    <script src="{{ asset('assets/js/journey.js') }}?v=4"></script>
+    <script src="{{ asset('assets/js/journey.js') }}?v=5"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
     <script src="{{ asset('assets/js/integrations.js') }}?v=5"></script>
