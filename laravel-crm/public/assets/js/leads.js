@@ -528,7 +528,9 @@
       el('div', { class: 'lc-card__h' }, el('span', { class: 'lc-card__hl' }, el('i', { class: 'fa-solid fa-map-location-dot' }), 'Site Visits')),
       visits.length ? el('div', {}, ...visits.map(v => el('div', { class: 'lc-row', 'data-testid': 'lead-visit-' + v.id },
         el('span', { class: 'lc-row__t' }, new Date(v.scheduled_at).toLocaleDateString() + (v.plot ? ' · ' + v.plot.number : '')),
-        el('span', { style: 'font-weight:700;font-size:12px' }, CRM.stageName(v.status)))))
+        el('div', { style: 'display:flex;align-items:center;gap:8px' },
+          el('span', { style: 'font-weight:700;font-size:12px' }, CRM.stageName(v.status)),
+          (v.status !== 'completed' && v.status !== 'cancelled') ? el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'lead-visit-reschedule-' + v.id, title: 'Reschedule', onclick: () => CRM.rescheduleVisit(v, reload) }, el('i', { class: 'fa-solid fa-calendar-plus' })) : null))))
         : el('div', { class: 'lc-empty' }, 'No visits scheduled'));
 
     const leftRail = el('div', { class: 'lc__left', 'data-testid': 'lead-side' }, detailsCard, qualCard, visitsCard);

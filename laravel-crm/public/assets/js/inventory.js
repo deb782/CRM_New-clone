@@ -121,7 +121,7 @@
       if (!done && v.status !== 'confirmed') btns.push(el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'v-confirm-' + v.id, title: 'Confirm', onclick: async () => { await api.post('/site-visits/' + v.id + '/confirm'); toast('Confirmed', 'success'); load(); } }, el('i', { class: 'fa-solid fa-check' })));
       if (!done && !v.checkin_at) btns.push(el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'v-checkin-' + v.id, title: 'Check-in', onclick: async () => { await api.post('/site-visits/' + v.id + '/checkin', { geo: '12.97,77.59' }); toast('Checked in', 'success'); load(); } }, el('i', { class: 'fa-solid fa-location-dot' })));
       if (!done) btns.push(el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'v-complete-' + v.id, onclick: () => completeForm(v) }, 'Outcome'));
-      if (!done) btns.push(el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'v-reschedule-' + v.id, title: 'Reschedule', onclick: () => rescheduleForm(v) }, el('i', { class: 'fa-solid fa-calendar-plus' })));
+      if (!done) btns.push(el('button', { class: 'btn btn--ghost btn--sm', 'data-testid': 'v-reschedule-' + v.id, title: 'Reschedule', onclick: () => CRM.rescheduleVisit(v, load) }, el('i', { class: 'fa-solid fa-calendar-plus' })));
       return btns;
     }
 
@@ -142,15 +142,7 @@
       save.addEventListener('click', async () => { try { await api.post('/site-visits/' + v.id + '/complete', f); toast('Outcome recorded', 'success'); m.close(); load(); } catch (err) { toast(err.message, 'error'); } });
     }
 
-    function rescheduleForm(v) {
-      const f = {};
-      const picker = CRM.datePicker({ value: v.scheduled_at });
-      const reason = el('input', { class: 'input', placeholder: 'Reason', 'data-testid': 'v-resched-reason' }); reason.addEventListener('input', () => f.reason = reason.value);
-      const body = el('div', {}, el('div', { class: 'field' }, el('label', {}, 'New date & time'), picker.node), el('div', { class: 'field' }, el('label', {}, 'Reason'), reason));
-      const save = el('button', { class: 'btn btn--primary', 'data-testid': 'v-resched-save' }, 'Reschedule');
-      const m = modal({ title: 'Reschedule Visit', bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
-      save.addEventListener('click', async () => { const dtv = picker.getValue(); if (!dtv) { toast('Pick a date', 'error'); return; } f.scheduled_at = dtv.replace('T', ' ') + ':00'; await api.post('/site-visits/' + v.id + '/reschedule', f); toast('Rescheduled', 'success'); m.close(); load(); });
-    }
+    function rescheduleForm(v) { CRM.rescheduleVisit(v, load); }
 
     const filters = el('div', { class: 'filters' });
     [['upcoming', 'Upcoming'], ['completed', 'Completed'], ['no_show', 'No-Shows'], ['all', 'All']].forEach(([k, l]) => {
@@ -163,7 +155,17 @@
     load();
   };
 
-  // ============ Schedule modal (reused by lead drawer) ============
+  // ============ Schedule modal (reused by lead cockpit) ============
+  CRM.rescheduleVisit = function (v, onDone) {
+    const f = {};
+    const picker = CRM.datePicker({ value: v.scheduled_at });
+    const reason = el('input', { class: 'input', placeholder: 'Reason', 'data-testid': 'v-resched-reason' }); reason.addEventListener('input', () => f.reason = reason.value);
+    const body = el('div', {}, el('div', { class: 'field' }, el('label', {}, 'New date & time'), picker.node), el('div', { class: 'field' }, el('label', {}, 'Reason (optional)'), reason));
+    const save = el('button', { class: 'btn btn--primary', 'data-testid': 'v-resched-save' }, 'Reschedule');
+    const m = modal({ title: 'Reschedule Visit', bodyNode: body, footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+    save.addEventListener('click', async () => { const dtv = picker.getValue(); if (!dtv) { toast('Pick a date', 'error'); return; } f.scheduled_at = dtv.replace('T', ' ') + ':00'; try { await api.post('/site-visits/' + v.id + '/reschedule', f); toast('Rescheduled', 'success'); m.close(); if (onDone) onDone(); } catch (err) { toast(err.message, 'error'); } });
+  };
+
   CRM.scheduleVisit = async function (lead, onDone) {
     const f = { project_id: lead.project_id || '' };
     const projects = await api.get('/projects').then(r => r.data).catch(() => []);

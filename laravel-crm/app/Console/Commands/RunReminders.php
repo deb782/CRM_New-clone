@@ -50,28 +50,33 @@ class RunReminders extends Command
         }
         $this->info("Escalated {$overdue->count()} overdue task(s).");
 
-        // I1.3 — Site-visit reminders (24h + 1h) and no-show detection
+        // I1.3 — Site-visit reminders (admin-configured windows) and no-show detection
+        $windows = \App\Models\AppSetting::get('site_visit_reminder_windows', [1440, 60]);
+        rsort($windows);
+        $maxMin = $windows ? max($windows) : 1440;
         $upcoming = SiteVisit::whereIn('status', ['scheduled', 'confirmed', 'rescheduled'])
-            ->whereBetween('scheduled_at', [now(), now()->addDay()])
+            ->whereBetween('scheduled_at', [now(), now()->addMinutes($maxMin)])
             ->with('lead')->get();
-        $r24 = 0; $r1 = 0;
+        $rSent = 0;
+        $human = function (int $min): string {
+            if ($min % 1440 === 0) { $d = $min / 1440; return $d.' day'.($d > 1 ? 's' : ''); }
+            if ($min % 60 === 0) { $h = $min / 60; return $h.' hour'.($h > 1 ? 's' : ''); }
+            return $min.' min';
+        };
         foreach ($upcoming as $v) {
             $sent = $v->reminders_sent ?? [];
-            $hoursAway = now()->diffInHours($v->scheduled_at, false);
+            $minsAway = now()->diffInMinutes($v->scheduled_at, false);
             $when = $v->scheduled_at->format('D, d M · h:i A');
-            if ($hoursAway <= 24 && ! in_array('24h', $sent)) {
-                if ($v->lead) {
-                    $whatsapp->send($v->lead, "Reminder: your site visit is on {$when}. We're excited to show you the project!");
-                    if ($v->lead->email) $email->send($v->lead, 'Reminder: your site visit tomorrow', "See you on {$when} at ".($v->meeting_point ?: 'the sales office').".");
+            foreach ($windows as $w) {
+                $tag = 'w'.$w;
+                if ($minsAway <= $w && $minsAway >= 0 && ! in_array($tag, $sent) && $v->lead) {
+                    $whatsapp->send($v->lead, "Reminder: your site visit is on {$when} (in about {$human($w)}). Meeting point: ".($v->meeting_point ?: 'the sales office').".");
+                    if ($v->lead->email && $w >= 240) $email->send($v->lead, 'Reminder: your upcoming site visit', "See you on {$when} at ".($v->meeting_point ?: 'the sales office').".");
+                    $sent[] = $tag; $v->update(['reminders_sent' => $sent]); $rSent++;
                 }
-                $sent[] = '24h'; $v->update(['reminders_sent' => $sent]); $r24++;
-            }
-            if ($hoursAway <= 1 && ! in_array('1h', $sent)) {
-                if ($v->lead) $whatsapp->send($v->lead, "Our team will meet you in about an hour at ".($v->meeting_point ?: 'the sales office').". See you soon!");
-                $sent[] = '1h'; $v->update(['reminders_sent' => $sent]); $r1++;
             }
         }
-        $this->info("Sent {$r24} 24h + {$r1} 1h site-visit reminder(s).");
+        $this->info("Sent {$rSent} site-visit reminder(s) across windows: ".implode(', ', $windows).' min.');
 
         // No-show: past scheduled time + 30m grace, still not completed
         $noShows = SiteVisit::whereIn('status', ['scheduled', 'confirmed', 'rescheduled'])

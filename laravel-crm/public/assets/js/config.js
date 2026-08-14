@@ -58,11 +58,36 @@
   };
 
   // ========== AUTOMATIONS ==========
+  async function reminderWindowsCard() {
+    const PRESETS = [[10080, '1 week'], [4320, '3 days'], [2880, '2 days'], [1440, '1 day'], [720, '12 hours'], [360, '6 hours'], [180, '3 hours'], [120, '2 hours'], [60, '1 hour'], [30, '30 min']];
+    let windows = [];
+    try { windows = (await api.get('/settings/reminders')).windows || []; } catch (e) {}
+    const chips = el('div', { style: 'display:flex;flex-wrap:wrap;gap:8px;margin:12px 0' });
+    function draw() {
+      chips.innerHTML = '';
+      PRESETS.forEach(([min, label]) => {
+        const on = windows.includes(min);
+        chips.appendChild(el('button', { class: 'btn btn--sm ' + (on ? 'btn--primary' : 'btn--ghost'), 'data-testid': 'rw-' + min, onclick: () => { windows = on ? windows.filter(w => w !== min) : [...windows, min]; draw(); } }, (on ? '\u2713 ' : '') + label));
+      });
+    }
+    draw();
+    const save = el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'rw-save', onclick: async () => {
+      if (!windows.length) { toast('Pick at least one reminder window', 'error'); return; }
+      try { const r = await api.put('/settings/reminders', { windows }); windows = r.windows; draw(); toast('Reminder windows saved', 'success'); } catch (e) { toast(e.message || 'Could not save', 'error'); }
+    } }, el('i', { class: 'fa-solid fa-floppy-disk' }), 'Save windows');
+    return el('div', { class: 'card', 'data-testid': 'reminder-windows', style: 'padding:20px;margin-bottom:20px' },
+      el('div', { class: 'section-title', style: 'margin:0' }, el('i', { class: 'fa-solid fa-bell' }), 'Site-Visit Reminder Windows'),
+      el('p', { style: 'color:var(--text-2);font-size:13px;margin:8px 0 0' }, 'Choose how far ahead of a scheduled visit the CRM sends WhatsApp/email reminders. Multiple windows are allowed.'),
+      chips, save);
+  }
+
+
   CRM.pages.automation = async function (view) {
     CRM.setActions(el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'add-automation', onclick: () => autoForm() }, el('i', { class: 'fa-solid fa-plus' }), 'Add Rule'));
     const [rules, logs] = await Promise.all([api.get('/automation-rules').then(r => r.data), api.get('/automation-logs?per_page=20').then(r => r.data).catch(() => [])]);
     view.innerHTML = '';
-    view.appendChild(el('p', { style: 'color:var(--text-2);margin-bottom:16px' }, 'Event-driven rules run within SLA on lead/status/engagement events (Sections S & T).'));
+    view.appendChild(await reminderWindowsCard());
+    view.appendChild(el('p', { style: 'color:var(--text-2);margin-bottom:16px' }, 'Event-driven rules run on lead/status/engagement events (Sections S & T).'));
     view.appendChild(tableWrap(['Name', 'Event', 'Conditions', 'Actions', 'Active', ''], rules.map(r =>
       el('tr', { 'data-testid': 'auto-row-' + r.id },
         el('td', { style: 'font-weight:500' }, r.name),

@@ -392,3 +392,8 @@ Verified: iteration_32.json — backend 7/7 pytest, frontend 100%, no bugs. Test
 - Wired into Schedule Site Visit and Reschedule modals (inventory.js v12), replacing native datetime-local. Verified: schedules correct date/time, stamps visit + task + confirmation activity.
 - Removed SLAs per user: dropped lane SLA badges from the Journey Builder (journey.js v5, 0 .jb-sla), removed SLA wording from the status-change hint, and FlowEngine::applyStatus no longer stamps leads.status_sla_due_at (column left dormant). Allow-listed transitions + required-field gates remain.
 - Blade: added datepicker.css/js, bumped inventory.js v12, journey.js v5.
+
+## 2026-06 — Quick Reschedule + configurable Reminder Windows [DONE, self-tested]
+- Quick Reschedule: exposed CRM.rescheduleVisit(visit,onDone) (inventory.js) and added a one-tap reschedule icon on each site-visit row in the Lead Cockpit (leads.js v17) using the designed CRM.datePicker. Site Visits page reuses the same helper.
+- Reminder Windows: admin-configurable via a preset-chip card in the Automations config page (config.js v11, data-testid reminder-windows). Backend: app_settings table + AppSetting model (get/set), SettingsController (GET/PUT /settings/reminders; PUT gated by config.manage; validates 5min..14d, dedupes, sorts desc). RunReminders now reads site_visit_reminder_windows (default [1440,60]), widens the scan to the max window, sends WhatsApp per window (email for >=4h windows), tracks sent per window tag (w{minutes}). Removed the hardcoded 24h/1h logic.
+- Verified: settings get/put/validation (422 on <5min), crm:reminders runs across configured windows, reminder card + cockpit reschedule modal via screenshots.

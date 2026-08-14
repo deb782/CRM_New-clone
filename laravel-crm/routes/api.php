@@ -135,6 +135,10 @@ Route::prefix('v1')->group(function () {
         Route::get('journey/statuses', [\App\Http\Controllers\Api\JourneyController::class, 'statuses']);
         Route::post('journey/leads/{lead}/transition', [\App\Http\Controllers\Api\JourneyController::class, 'transition']);
 
+        // App settings — visit reminder windows
+        Route::get('settings/reminders', [\App\Http\Controllers\Api\SettingsController::class, 'reminders']);
+        Route::put('settings/reminders', [\App\Http\Controllers\Api\SettingsController::class, 'updateReminders'])->middleware('permission:config.manage');
+
 
         // Leads
         Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');
