@@ -419,19 +419,100 @@
     }
   };
   // ========================= WA TEMPLATES =========================
+  const TPL_STATUS = { DRAFT: 'var(--text-3)', PENDING: 'var(--warm)', APPROVED: 'var(--won)', REJECTED: 'var(--hot)' };
+
+  function tplPreview(get) {
+    const wrap = el('div', { class: 'wa-preview', 'data-testid': 'wa-tpl-preview' });
+    const render = () => {
+      const v = get();
+      wrap.innerHTML = '';
+      const bubble = el('div', { class: 'wa-bubble' });
+      if (v.header_type === 'text' && v.header_text) bubble.appendChild(el('div', { class: 'wa-h' }, v.header_text));
+      else if (v.header_type && v.header_type !== 'none') bubble.appendChild(el('div', { class: 'wa-h wa-media' }, el('i', { class: 'fa-solid ' + (v.header_type === 'image' ? 'fa-image' : v.header_type === 'video' ? 'fa-video' : 'fa-file') }), ' ' + v.header_type.toUpperCase()));
+      bubble.appendChild(el('div', { class: 'wa-b' }, v.body || 'Your message body…'));
+      if (v.footer) bubble.appendChild(el('div', { class: 'wa-f' }, v.footer));
+      bubble.appendChild(el('div', { class: 'wa-time' }, '12:30'));
+      wrap.appendChild(bubble);
+      (v.buttons || []).forEach(b => wrap.appendChild(el('div', { class: 'wa-btn' },
+        el('i', { class: 'fa-solid ' + (b.type === 'URL' ? 'fa-arrow-up-right-from-square' : b.type === 'PHONE_NUMBER' ? 'fa-phone' : 'fa-reply') }), ' ' + (b.text || 'Button'))));
+    };
+    render();
+    return { node: wrap, render };
+  }
+
+  function openTemplateBuilder(existing, onSaved) {
+    const t = Object.assign({ name: '', language: 'en_US', category: 'UTILITY', header_type: 'none', header_text: '', body: '', footer: '', buttons: [] }, existing || {});
+    const inp = (k, attrs) => { const e = el('input', Object.assign({ class: 'input', value: t[k] || '', 'data-testid': 'tpl-' + k }, attrs || {})); e.addEventListener('input', () => { t[k] = e.value; pv.render(); }); return e; };
+    const bodyTa = el('textarea', { class: 'input', rows: 4, 'data-testid': 'tpl-body', placeholder: 'Hi {{1}}, your visit at {{2}} is confirmed for {{3}}.' }, t.body);
+    bodyTa.addEventListener('input', () => { t.body = bodyTa.value; pv.render(); });
+
+    const headerSel = el('select', { class: 'input', 'data-testid': 'tpl-header_type' }, ...['none', 'text', 'image', 'document', 'video'].map(o => el('option', { value: o, selected: t.header_type === o }, o)));
+    const headerText = inp('header_text', { placeholder: 'Header text (optional)', style: t.header_type === 'text' ? '' : 'display:none' });
+    headerSel.addEventListener('change', () => { t.header_type = headerSel.value; headerText.style.display = t.header_type === 'text' ? '' : 'none'; pv.render(); });
+    const catSel = el('select', { class: 'input', 'data-testid': 'tpl-category' }, ...['UTILITY', 'MARKETING', 'AUTHENTICATION'].map(o => el('option', { value: o, selected: t.category === o }, o)));
+    catSel.addEventListener('change', () => t.category = catSel.value);
+    const langSel = el('select', { class: 'input', 'data-testid': 'tpl-language' }, ...['en_US', 'en_GB', 'hi', 'ta', 'te', 'kn', 'mr'].map(o => el('option', { value: o, selected: t.language === o }, o)));
+    langSel.addEventListener('change', () => t.language = langSel.value);
+
+    // Buttons editor
+    const btnList = el('div', { class: 'tpl-btns', 'data-testid': 'tpl-buttons' });
+    const drawBtns = () => {
+      btnList.innerHTML = '';
+      t.buttons.forEach((b, i) => btnList.appendChild(el('div', { class: 'tpl-btn-row' },
+        (() => { const s = el('select', { class: 'input' }, ...['QUICK_REPLY', 'URL', 'PHONE_NUMBER'].map(o => el('option', { value: o, selected: b.type === o }, o.replace('_', ' ')))); s.addEventListener('change', () => { b.type = s.value; pv.render(); }); return s; })(),
+        (() => { const e = el('input', { class: 'input', value: b.text, placeholder: 'Button text' }); e.addEventListener('input', () => { b.text = e.value; pv.render(); }); return e; })(),
+        (() => { const e = el('input', { class: 'input', value: b.value || '', placeholder: 'URL / phone (if any)' }); e.addEventListener('input', () => { b.value = e.value; }); return e; })(),
+        el('button', { class: 'icon-btn', onclick: () => { t.buttons.splice(i, 1); drawBtns(); pv.render(); } }, el('i', { class: 'fa-solid fa-trash' })))));
+    };
+    drawBtns();
+    const addBtn = el('button', { class: 'btn btn--ghost', 'data-testid': 'tpl-add-button', onclick: () => { if (t.buttons.length >= 10) return; t.buttons.push({ type: 'QUICK_REPLY', text: '' }); drawBtns(); pv.render(); } }, el('i', { class: 'fa-solid fa-plus' }), 'Add button');
+
+    const field = (lbl, node) => el('div', { class: 'tpl-field' }, el('label', {}, lbl), node);
+    const pv = tplPreview(() => t);
+
+    const form = el('div', { class: 'tpl-builder' },
+      el('div', { class: 'tpl-form' },
+        field('Template name (a-z, 0-9, _)', inp('name', { placeholder: 'visit_confirmation', disabled: !!(existing && existing.id) })),
+        el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px' }, field('Category', catSel), field('Language', langSel)),
+        el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px' }, field('Header', headerSel), field('\u00a0', headerText)),
+        field('Body', bodyTa),
+        field('Footer (optional)', inp('footer', { placeholder: 'Agrocorp Realty' })),
+        field('Buttons', el('div', {}, btnList, addBtn))),
+      el('div', { class: 'tpl-preview-pane' }, el('div', { class: 'tpl-preview-label' }, 'Live preview'), pv.node));
+
+    const save = el('button', { class: 'btn btn--primary', 'data-testid': 'tpl-save', onclick: async () => {
+      try {
+        const payload = { name: t.name, language: t.language, category: t.category, header_type: t.header_type, header_text: t.header_text, body: t.body, footer: t.footer, buttons: t.buttons.filter(b => b.text) };
+        if (existing && existing.id) await api.put('/whatsapp/templates/' + existing.id, payload);
+        else await api.post('/whatsapp/templates', payload);
+        toast('Template saved as draft', 'success'); m.close(); onSaved();
+      } catch (e) { toast(e.data && e.data.message ? e.data.message : e.message, 'error'); }
+    } }, 'Save draft');
+    const m = CRM.modal({ title: existing && existing.id ? 'Edit template' : 'New WhatsApp template', bodyNode: form, wide: true, footNodes: [save] });
+  }
+
   CRM.pages.waTemplates = async function (view) {
-    const syncBtn = el('button', { class: 'btn btn--primary', 'data-testid': 'wa-tpl-sync', onclick: async () => { try { const r = await api.post('/whatsapp/templates/sync'); toast('Synced ' + r.synced + ' templates', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, el('i', { class: 'fa-solid fa-rotate' }), 'Sync from Meta');
-    CRM.setActions(syncBtn);
+    const canManage = CRM.can('messaging.manage');
+    const actions = [];
+    if (canManage) actions.push(el('button', { class: 'btn btn--primary', 'data-testid': 'wa-tpl-new', onclick: () => openTemplateBuilder(null, () => CRM.render()) }, el('i', { class: 'fa-solid fa-plus' }), 'New template'));
+    if (canManage) actions.push(el('button', { class: 'btn', 'data-testid': 'wa-tpl-sync', onclick: async () => { try { const r = await api.post('/whatsapp/templates/sync'); toast('Synced ' + r.synced + ' templates', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, el('i', { class: 'fa-solid fa-rotate' }), 'Sync from Meta'));
+    CRM.setActions(actions.length ? el('div', { style: 'display:flex;gap:8px' }, ...actions) : null);
+
     view.innerHTML = '<div class="spinner"></div>';
     const { templates } = await api.get('/whatsapp/templates');
     view.innerHTML = '';
-    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:14px' }, 'Approved WhatsApp templates. Agents pick these in the inbox & broadcasts. Sync pulls the latest from Meta (mock samples until live keys are added).'));
-    if (!templates.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-lines' }), el('div', {}, 'No templates yet — click Sync from Meta'))); return; }
+    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:14px' }, 'Build WhatsApp templates and submit them for approval. In sandbox mode drafts auto-approve so you can use them now; once Meta is connected, submissions go for real approval.'));
+    if (!templates.length) { view.appendChild(el('div', { class: 'empty' }, el('i', { class: 'fa-solid fa-file-lines' }), el('div', {}, canManage ? 'No templates yet — click New template' : 'No templates yet'))); return; }
+
     const rows = templates.map(t => el('tr', { 'data-testid': 'wa-tpl-row-' + t.id },
       el('td', { class: 'mono' }, t.name), el('td', {}, t.language), el('td', {}, t.category),
-      el('td', {}, el('span', { class: 'chip', style: 'color:var(--won)' }, t.status)),
-      el('td', { style: 'color:var(--text-3);font-size:13px' }, (t.body || '').slice(0, 70))));
-    view.appendChild(tableWrap(['Name', 'Lang', 'Category', 'Status', 'Body'], rows));
+      el('td', {}, el('span', { class: 'chip', style: 'color:' + (TPL_STATUS[t.status] || 'var(--text-3)') }, t.status)),
+      el('td', { style: 'color:var(--text-3);font-size:13px' }, (t.body || '').slice(0, 60)),
+      el('td', {}, canManage ? el('div', { style: 'display:flex;gap:6px' },
+        t.status === 'DRAFT' ? el('button', { class: 'btn btn--ghost', 'data-testid': 'wa-tpl-submit-' + t.id, onclick: async () => { try { const r = await api.post('/whatsapp/templates/' + t.id + '/submit'); toast(r.message, 'success'); CRM.render(); } catch (e) { toast(e.data && e.data.message ? e.data.message : e.message, 'error'); } } }, 'Submit') : null,
+        ['DRAFT', 'REJECTED'].includes(t.status) ? el('button', { class: 'icon-btn', 'data-testid': 'wa-tpl-edit-' + t.id, onclick: () => openTemplateBuilder(t, () => CRM.render()) }, el('i', { class: 'fa-solid fa-pen' })) : null,
+        el('button', { class: 'icon-btn', 'data-testid': 'wa-tpl-del-' + t.id, onclick: async () => { if (!confirm('Delete this template?')) return; try { await api.del('/whatsapp/templates/' + t.id); toast('Deleted', 'success'); CRM.render(); } catch (e) { toast(e.message, 'error'); } } }, el('i', { class: 'fa-solid fa-trash' }))) : el('span', { style: 'color:var(--text-3);font-size:12px' }, '—'))));
+    view.appendChild(tableWrap(['Name', 'Lang', 'Category', 'Status', 'Body', 'Actions'], rows));
   };
 
   // ========================= WA ANALYTICS =========================

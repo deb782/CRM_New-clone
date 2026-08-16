@@ -8,5 +8,10 @@ class WhatsappTemplate extends Model
 {
     protected $table = 'whatsapp_templates';
     protected $guarded = ['id'];
-    protected $casts = ['synced_at' => 'datetime'];
+    protected $casts = [
+        'synced_at' => 'datetime',
+        'submitted_at' => 'datetime',
+        'buttons' => 'array',
+        'example' => 'array',
+    ];
 }

@@ -305,6 +305,14 @@ Route::prefix('v1')->group(function () {
             Route::post('whatsapp/media/upload', [WhatsAppInboxController::class, 'uploadMedia']);
             Route::get('whatsapp/analytics', [WhatsAppInboxController::class, 'analytics']);
             Route::get('whatsapp/templates', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'index']);
+            // WhatsApp Template Builder (create/submit) — Admin + Sales Head/CRM Head
+            Route::middleware('permission:messaging.manage')->group(function () {
+                Route::post('whatsapp/templates', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'store']);
+                Route::put('whatsapp/templates/{template}', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'update']);
+                Route::delete('whatsapp/templates/{template}', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'destroy']);
+                Route::post('whatsapp/templates/{template}/submit', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'submit']);
+                Route::post('whatsapp/templates/sync', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'sync']);
+            });
             Route::get('whatsapp/canned-replies', [\App\Http\Controllers\Api\WhatsAppCannedReplyController::class, 'index']);
             Route::post('whatsapp/canned-replies', [\App\Http\Controllers\Api\WhatsAppCannedReplyController::class, 'store']);
             Route::put('whatsapp/canned-replies/{canned_reply}', [\App\Http\Controllers\Api\WhatsAppCannedReplyController::class, 'update']);

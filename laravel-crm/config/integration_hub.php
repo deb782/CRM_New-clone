@@ -14,7 +14,7 @@ return [
         'fields' => [
             ['key' => 'app_id', 'label' => 'Meta App ID', 'type' => 'text', 'help' => 'For "Connect WhatsApp". App Dashboard → Settings → Basic.'],
             ['key' => 'config_id', 'label' => 'Embedded Signup Config ID', 'type' => 'text', 'help' => 'Facebook Login for Business → Configurations (WhatsApp Embedded Signup, incl. whatsapp_business_management + whatsapp_business_messaging).'],
-            ['key' => 'graph_version', 'label' => 'Graph API Version', 'type' => 'text', 'default' => 'v21.0'],
+            ['key' => 'graph_version', 'label' => 'Graph API Version', 'type' => 'text', 'default' => 'v23.0'],
             ['key' => 'access_token', 'label' => 'Permanent Access Token (auto-filled / manual)', 'type' => 'password', 'secret' => true, 'required' => true, 'help' => 'Set automatically after Connect WhatsApp, or paste a System-user token.'],
             ['key' => 'phone_number_id', 'label' => 'Phone Number ID (auto-filled / manual)', 'type' => 'text', 'required' => true],
             ['key' => 'waba_id', 'label' => 'WhatsApp Business Account ID (auto-filled / manual)', 'type' => 'text'],
@@ -66,7 +66,7 @@ return [
             ['key' => 'config_id', 'label' => 'Login for Business Config ID', 'type' => 'text', 'help' => 'Facebook Login for Business → Configurations (must include leads_retrieval, pages_show_list, pages_manage_metadata, pages_manage_ads, pages_read_engagement, business_management).'],
             ['key' => 'app_secret', 'label' => 'App Secret', 'type' => 'password', 'secret' => true, 'help' => 'Server-only. Also validates inbound webhook signatures.'],
             ['key' => 'verify_token', 'label' => 'Webhook Verify Token', 'type' => 'text', 'required' => true, 'help' => 'Any random string; enter the same value in Meta’s webhook setup.'],
-            ['key' => 'graph_version', 'label' => 'Graph API Version', 'type' => 'text', 'default' => 'v21.0'],
+            ['key' => 'graph_version', 'label' => 'Graph API Version', 'type' => 'text', 'default' => 'v23.0'],
             ['key' => 'page_id', 'label' => 'Page ID (auto-filled / manual)', 'type' => 'text', 'help' => 'Set automatically after Connect with Facebook.'],
             ['key' => 'page_access_token', 'label' => 'Page Access Token (auto-filled / manual)', 'type' => 'password', 'secret' => true],
         ],

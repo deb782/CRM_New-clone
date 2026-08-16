@@ -29,7 +29,7 @@
       { route: 'inbox', icon: 'fa-whatsapp', iconStyle: 'brand', name: 'WhatsApp Inbox' },
       { route: 'broadcasts', icon: 'fa-bullhorn', name: 'WA Broadcasts', perm: 'config.manage' },
       { route: 'waAutomations', icon: 'fa-robot', name: 'WA Auto-Replies', perm: 'config.manage' },
-      { route: 'waTemplates', icon: 'fa-file-lines', name: 'WA Templates', perm: 'config.manage' },
+      { route: 'waTemplates', icon: 'fa-file-lines', name: 'WA Templates', perm: 'messaging.manage' },
       { route: 'waCanned', icon: 'fa-bolt', name: 'WA Canned Replies', perm: 'config.manage' },
       { route: 'waAnalytics', icon: 'fa-chart-line', name: 'WA Analytics', perm: 'config.manage' },
       { route: 'emailTemplates', icon: 'fa-envelope-open-text', name: 'Email Templates', perm: 'config.manage' },
