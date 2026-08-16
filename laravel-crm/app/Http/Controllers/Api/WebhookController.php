@@ -275,6 +275,31 @@ class WebhookController extends Controller
             $inbox->reply($conv, ['body' => $r['reply']]);
             $handled = true;
         }
+
+        // No rule handled it → auto-trigger a matching bot directly (keyword flows first, then the default fallback bot).
+        if (! $handled && empty($r['away'])) {
+            $flow = $engine->matchFlow($body);
+            if ($flow) {
+                // Keyword bots fire whenever their keyword appears; the default/fallback bot only greets on the
+                // customer's first message so it doesn't restart on every subsequent reply.
+                $isFirstInbound = $conv->messages()->where('direction', 'inbound')->count() <= 1;
+                if ($flow->trigger_type === 'keyword' || $isFirstInbound) {
+                    $res = $engine->start($flow, $conv->id, true);
+                    $send($res['messages'] ?? []);
+                    $applyCaptured($res['state']['data'] ?? []);
+                    if (empty($res['done'])) {
+                        $conv->bot_state = ['flow_id' => $flow->id, 'state' => $res['state']];
+                    }
+                    if (! empty($res['done']) && ($res['action'] ?? '') === 'handoff' && ! $conv->assigned_to) {
+                        $rr = app(\App\Services\InboundRouter::class)->evaluate($body, now(), true);
+                        if ($rr['assigned_to']) {
+                            $conv->assigned_to = $rr['assigned_to'];
+                        }
+                    }
+                    $handled = true;
+                }
+            }
+        }
         $conv->save();
 
         return $handled;

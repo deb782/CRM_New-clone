@@ -21,7 +21,7 @@
     view.innerHTML = '<div class="spinner"></div>';
     const { flows } = await api.get('/wa-flows');
     view.innerHTML = '';
-    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:14px' }, 'Design automated WhatsApp conversations — buttons, list menus, capture answers and hand off to an agent. Test them live here; they run for real once WhatsApp is connected.'));
+    view.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:14px' }, 'Design automated WhatsApp conversations — buttons, list menus, capture answers and hand off to an agent. Keyword bots start on their own when a customer\'s message contains a keyword; a Default bot greets first-time messages. Test them live here; they run for real once WhatsApp is connected.'));
     if (!flows.length) { view.appendChild(el('div', { class: 'empty', 'data-testid': 'wa-flow-empty' }, el('i', { class: 'fa-solid fa-robot' }), el('div', {}, 'No bots yet — click New bot'))); return; }
     const grid = el('div', { class: 'flow-cards' });
     flows.forEach(f => grid.appendChild(el('div', { class: 'flow-card', 'data-testid': 'wa-flow-card-' + f.id, onclick: () => openBuilder(view, f.id) },
@@ -56,7 +56,7 @@
     // ---- top bar ----
     const nameInput = el('input', { class: 'input flow-name', value: flow.name, 'data-testid': 'flow-name' });
     const trigSel = el('select', { class: 'input', 'data-testid': 'flow-trigger' }, ...['default', 'keyword'].map(o => el('option', { value: o, selected: flow.trigger_type === o }, o === 'default' ? 'Default (fallback bot)' : 'Keyword trigger')));
-    const kwInput = el('input', { class: 'input', value: (flow.keywords || []).join(', '), placeholder: 'e.g. hi, price, visit', style: flow.trigger_type === 'keyword' ? '' : 'display:none', 'data-testid': 'flow-keywords' });
+    const kwInput = el('input', { class: 'input', value: (flow.keywords || []).join(', '), placeholder: 'e.g. hi, price, visit', style: flow.trigger_type === 'keyword' ? '' : 'display:none', 'data-testid': 'flow-keywords', title: 'The bot auto-starts when a customer message contains any of these words' });
     trigSel.addEventListener('change', () => { kwInput.style.display = trigSel.value === 'keyword' ? '' : 'none'; });
     const statusChip = el('span', { class: 'chip', 'data-testid': 'flow-status', style: 'color:' + (flow.status === 'active' ? 'var(--won)' : 'var(--text-3)') }, flow.status);
 
