@@ -67,8 +67,8 @@ class WaFlowEngine
             if ($ctx) {
                 $this->track($flow, $convId, 'choose', $state['node'], $chosen);
             }
-        } elseif ($type === 'capture') {
-            $field = $cfg['field'] ?? 'note';
+        } elseif ($type === 'capture' || $type === 'book_visit') {
+            $field = $type === 'book_visit' ? 'visit_datetime' : ($cfg['field'] ?? 'note');
             $state['data'][$field] = $input;
             $next = $cfg['next'] ?? null;
         } else {
@@ -129,6 +129,10 @@ class WaFlowEngine
             if ($type === 'capture') {
                 $messages[] = ['type' => 'text', 'text' => $cfg['text'] ?? ''];
                 break; // wait for the user's reply
+            }
+            if ($type === 'book_visit') {
+                $messages[] = ['type' => 'text', 'text' => $cfg['text'] ?? 'What date and time works for your site visit?'];
+                break; // wait for the user's preferred date/time
             }
             if ($type === 'handoff') {
                 $messages[] = ['type' => 'text', 'text' => $cfg['note'] ?? 'Connecting you to an agent…'];

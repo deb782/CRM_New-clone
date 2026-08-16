@@ -217,6 +217,24 @@ class WebhookController extends Controller
         if (is_array($state) && ! empty($state['flow_id'])) {
             $flow = \App\Models\WaFlow::find($state['flow_id']);
             if ($flow) {
+                // If the customer is answering a "Book a visit" step, parse the date and schedule a real site visit.
+                $curKey = $state['state']['node'] ?? null;
+                $curNode = $flow->graph['nodes'][$curKey] ?? null;
+                if ($curNode && ($curNode['type'] ?? '') === 'book_visit') {
+                    $when = $this->parseWhen($body);
+                    if (! $when) {
+                        $prompt = ($curNode['config']['text'] ?? 'When would you like to visit?')
+                            ."\n\nPlease share a date & time — e.g. \"25 Dec 4pm\", \"tomorrow 11am\" or \"Saturday 3pm\".";
+                        $inbox->reply($conv, ['body' => $prompt]);
+
+                        return true; // stay on the same step until we get a valid date
+                    }
+                    try {
+                        app(\App\Services\SiteVisitService::class)->schedule($lead, ['scheduled_at' => $when]);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('WA bot book-visit: '.$e->getMessage());
+                    }
+                }
                 $res = $engine->step($flow, $state['state'] ?? ['node' => null, 'data' => []], $input, $conv->id, true);
                 $send($res['messages'] ?? []);
                 $applyCaptured($res['state']['data'] ?? []);
@@ -279,7 +297,7 @@ class WebhookController extends Controller
         // No rule handled it → auto-trigger a matching bot directly (keyword flows first, then the default fallback bot).
         if (! $handled && empty($r['away'])) {
             $flow = $engine->matchFlow($body);
-            if ($flow) {
+            if ($flow && ! $this->recentlyTriggered($conv->id, $flow->id)) {
                 // Keyword bots fire whenever their keyword appears; the default/fallback bot only greets on the
                 // customer's first message so it doesn't restart on every subsequent reply.
                 $isFirstInbound = $conv->messages()->where('direction', 'inbound')->count() <= 1;
@@ -306,6 +324,37 @@ class WebhookController extends Controller
     }
 
     /** Find a WaFlow linked to the quick-reply button the customer just tapped on a recent template. */
+    /** Parse a customer's free-text date/time (e.g. "tomorrow 11am", "25 Dec 4pm"); null if invalid/past. */
+    private function parseWhen(string $text): ?\Carbon\Carbon
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return null;
+        }
+        try {
+            $dt = \Carbon\Carbon::parse($text);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return $dt->isPast() ? null : $dt;
+    }
+
+    /** Cooldown guard: has this exact bot already auto-started in this conversation recently? */
+    private function recentlyTriggered(?int $convId, int $flowId, int $minutes = 30): bool
+    {
+        if (! $convId) {
+            return false;
+        }
+
+        return \App\Models\WaFlowEvent::where('conversation_id', $convId)
+            ->where('flow_id', $flowId)
+            ->where('event', 'enter')
+            ->where('created_at', '>=', now()->subMinutes($minutes))
+            ->exists();
+    }
+
+
     private function templateButtonFlow($conv, array $reply): ?\App\Models\WaFlow
     {
         $last = $conv->messages()->where('direction', 'outbound')->whereNotNull('template')->latest('id')->first();

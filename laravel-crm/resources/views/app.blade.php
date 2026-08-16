@@ -39,7 +39,7 @@
     <script src="{{ asset('assets/js/deals.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/config.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=17"></script>
-    <script src="{{ asset('assets/js/wa-flows.js') }}?v=3"></script>
+    <script src="{{ asset('assets/js/wa-flows.js') }}?v=4"></script>
     <script src="{{ asset('assets/js/wa-inbound.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/wa-campaigns.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>

@@ -7,6 +7,7 @@
     buttons: { icon: 'fa-hand-pointer', color: 'var(--lime)', label: 'Buttons' },
     list: { icon: 'fa-list-ul', color: '#7C3AED', label: 'List menu' },
     capture: { icon: 'fa-keyboard', color: 'var(--warm)', label: 'Capture' },
+    book_visit: { icon: 'fa-calendar-check', color: '#0EA5E9', label: 'Book visit' },
     handoff: { icon: 'fa-headset', color: 'var(--hot)', label: 'Agent handoff' },
     end: { icon: 'fa-flag-checkered', color: 'var(--text-3)', label: 'End' },
   };
@@ -111,7 +112,7 @@
 
     function addNode(type) {
       const key = 'n' + (counter++);
-      const cfg = { message: { text: '', next: null }, buttons: { text: '', buttons: [{ id: 'o1', label: 'Option 1', next: null }] }, list: { text: '', button_label: 'Choose', rows: [{ id: 'r1', label: 'Item 1', description: '', next: null }] }, capture: { text: '', field: 'name', next: null }, handoff: { note: 'Connecting you to an agent…' }, end: { text: '' } }[type];
+      const cfg = { message: { text: '', next: null }, buttons: { text: '', buttons: [{ id: 'o1', label: 'Option 1', next: null }] }, list: { text: '', button_label: 'Choose', rows: [{ id: 'r1', label: 'Item 1', description: '', next: null }] }, capture: { text: '', field: 'name', next: null }, book_visit: { text: 'What date & time works for your site visit? (e.g. "Sat 4pm" or "tomorrow 11am")', next: null }, handoff: { note: 'Connecting you to an agent…' }, end: { text: '' } }[type];
       graph.nodes[key] = { key, type, title: TYPE[type].label, config: cfg, x: 60 + Object.keys(graph.nodes).length % 4 * 300, y: 60 + Math.floor(Object.keys(graph.nodes).length / 4) * 260 };
       if (!graph.entry) graph.entry = key;
       renderCards();
@@ -154,6 +155,10 @@
         fsel.addEventListener('change', () => n.config.field = fsel.value); fsel.addEventListener('pointerdown', e => e.stopPropagation());
         bodyRows.push(fsel);
         bodyRows.push(outRow('Next', n.config.next, n.key, v => n.config.next = v));
+      } else if (n.type === 'book_visit') {
+        bodyRows.push(ta(n.config.text, 'Ask for a preferred date & time…', v => n.config.text = v));
+        bodyRows.push(el('div', { class: 'fn-terminal' }, el('i', { class: 'fa-solid fa-calendar-check' }), 'Schedules a real site visit + confirmation & reminders'));
+        bodyRows.push(outRow('After booking', n.config.next, n.key, v => n.config.next = v));
       } else if (n.type === 'buttons' || n.type === 'list') {
         bodyRows.push(ta(n.config.text, n.type === 'buttons' ? 'Prompt above buttons…' : 'Prompt above the list…', v => n.config.text = v));
         if (n.type === 'list') {
