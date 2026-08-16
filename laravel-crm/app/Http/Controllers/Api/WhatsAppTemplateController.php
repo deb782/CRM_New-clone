@@ -102,6 +102,7 @@ class WhatsAppTemplateController extends Controller
             'buttons.*.type' => 'required_with:buttons|in:QUICK_REPLY,URL,PHONE_NUMBER',
             'buttons.*.text' => 'required_with:buttons|string|max:25',
             'buttons.*.value' => 'nullable|string|max:2000',
+            'buttons.*.flow_id' => 'nullable|integer|exists:wa_flows,id',
             'example' => 'nullable|array',
         ]);
     }

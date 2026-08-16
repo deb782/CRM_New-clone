@@ -34,6 +34,14 @@ interface Contract
      */
     public function sendInteractive(string $phone, string $body, array $buttons): array;
 
+    /**
+     * Send an interactive list message (single-select menu of rows).
+     *
+     * @param  array<int, array{id?:string, title:string, description?:string}>  $rows
+     * @return array{provider_id:?string, status:string}
+     */
+    public function sendList(string $phone, string $body, string $buttonLabel, array $rows): array;
+
     /** Mark an inbound message as read on the provider (best-effort). */
     public function markRead(string $messageId): void;
 

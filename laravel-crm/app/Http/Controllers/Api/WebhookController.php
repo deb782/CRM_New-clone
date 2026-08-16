@@ -121,6 +121,7 @@ class WebhookController extends Controller
                     if (! $lead) continue;
 
                     [$body, $type, $media] = $this->extractMetaMessage($m);
+                    $reply = $this->extractReply($m);
                     if (strtoupper(trim($body)) === 'STOP') {
                         $lead->update(['whatsapp_opt_out' => true]);
                         continue;
@@ -133,7 +134,7 @@ class WebhookController extends Controller
                     app(AutomationService::class)->fire('whatsapp.replied', $lead);
                     $handled = false;
                     try {
-                        $handled = $this->handleInboundAutomation($conv->fresh(), $lead, $body, $inbox);
+                        $handled = $this->handleInboundAutomation($conv->fresh(), $lead, $body, $inbox, $reply);
                     } catch (\Throwable $e) {
                         \Illuminate\Support\Facades\Log::warning('WA inbound automation: '.$e->getMessage());
                     }
@@ -158,20 +159,41 @@ class WebhookController extends Controller
     }
 
     /** P2/P3: drive an active bot session or apply inbound rules (office-hours, keyword routing, auto-assign). */
-    private function handleInboundAutomation($conv, $lead, string $body, InboxService $inbox): bool
+    private function handleInboundAutomation($conv, $lead, string $body, InboxService $inbox, ?array $reply = null): bool
     {
         $engine = app(\App\Services\WaFlowEngine::class);
+        // Send bot messages as REAL interactive/list payloads when connected; text fallback otherwise.
         $send = function ($msgs) use ($inbox, $conv) {
             foreach ($msgs as $mm) {
-                $text = $mm['text'] ?? '';
-                if (($mm['type'] ?? '') === 'buttons') {
-                    $text .= "\n".implode("\n", array_map(fn ($b) => '• '.($b['label'] ?? ''), $mm['buttons'] ?? []));
-                }
-                if (($mm['type'] ?? '') === 'list') {
-                    $text .= "\n".implode("\n", array_map(fn ($r) => '• '.($r['label'] ?? ''), $mm['rows'] ?? []));
-                }
-                if (trim($text) !== '') {
-                    $inbox->reply($conv, ['body' => $text]);
+                $type = $mm['type'] ?? 'text';
+                try {
+                    if ($type === 'buttons') {
+                        $btns = array_map(fn ($b) => ['id' => $b['id'] ?? '', 'title' => $b['label'] ?? ''], $mm['buttons'] ?? []);
+                        $inbox->reply($conv, ['type' => 'interactive', 'body' => $mm['text'] ?? '', 'buttons' => $btns]);
+                    } elseif ($type === 'list') {
+                        $rows = array_map(fn ($r) => ['id' => $r['id'] ?? '', 'title' => $r['label'] ?? '', 'description' => $r['description'] ?? ''], $mm['rows'] ?? []);
+                        $inbox->reply($conv, ['type' => 'list', 'body' => $mm['text'] ?? '', 'button_label' => $mm['button_label'] ?? 'Choose', 'rows' => $rows]);
+                    } else {
+                        $text = $mm['text'] ?? '';
+                        if (trim($text) !== '') {
+                            $inbox->reply($conv, ['body' => $text]);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Graceful text fallback (e.g. provider rejects interactive) so the bot never stalls.
+                    $text = $mm['text'] ?? '';
+                    if ($type === 'buttons') {
+                        $text .= "\n".implode("\n", array_map(fn ($b) => '• '.($b['label'] ?? ''), $mm['buttons'] ?? []));
+                    }
+                    if ($type === 'list') {
+                        $text .= "\n".implode("\n", array_map(fn ($r) => '• '.($r['label'] ?? ''), $mm['rows'] ?? []));
+                    }
+                    if (trim($text) !== '') {
+                        try {
+                            $inbox->reply($conv, ['body' => $text]);
+                        } catch (\Throwable $e2) {
+                        }
+                    }
                 }
             }
         };
@@ -187,12 +209,15 @@ class WebhookController extends Controller
             }
         };
 
+        // Prefer the interactive reply id (matches a bot node option id) over raw text.
+        $input = ($reply['id'] ?? '') !== '' ? $reply['id'] : $body;
+
         // Active bot session → advance it
         $state = $conv->bot_state;
         if (is_array($state) && ! empty($state['flow_id'])) {
             $flow = \App\Models\WaFlow::find($state['flow_id']);
             if ($flow) {
-                $res = $engine->step($flow, $state['state'] ?? ['node' => null, 'data' => []], $body);
+                $res = $engine->step($flow, $state['state'] ?? ['node' => null, 'data' => []], $input);
                 $send($res['messages'] ?? []);
                 $applyCaptured($res['state']['data'] ?? []);
                 $conv->bot_state = ! empty($res['done']) ? null : ['flow_id' => $flow->id, 'state' => $res['state']];
@@ -207,6 +232,22 @@ class WebhookController extends Controller
                 return true;
             }
             $conv->bot_state = null;
+        }
+
+        // No active session → did the customer tap a template quick-reply button linked to a bot?
+        if ($reply) {
+            $flow = $this->templateButtonFlow($conv, $reply);
+            if ($flow) {
+                $res = $engine->start($flow);
+                $send($res['messages'] ?? []);
+                $applyCaptured($res['state']['data'] ?? []);
+                if (empty($res['done'])) {
+                    $conv->bot_state = ['flow_id' => $flow->id, 'state' => $res['state']];
+                }
+                $conv->save();
+
+                return true;
+            }
         }
 
         // No active session → evaluate inbound rules
@@ -239,6 +280,52 @@ class WebhookController extends Controller
         return $handled;
     }
 
+    /** Find a WaFlow linked to the quick-reply button the customer just tapped on a recent template. */
+    private function templateButtonFlow($conv, array $reply): ?\App\Models\WaFlow
+    {
+        $last = $conv->messages()->where('direction', 'outbound')->whereNotNull('template')->latest('id')->first();
+        if (! $last) {
+            return null;
+        }
+        $tpl = \App\Models\WhatsappTemplate::where('name', $last->template)->first();
+        if (! $tpl || empty($tpl->buttons)) {
+            return null;
+        }
+        $title = strtolower(trim($reply['title'] ?? ''));
+        $id = strtolower(trim($reply['id'] ?? ''));
+        foreach ($tpl->buttons as $b) {
+            if (($b['type'] ?? '') !== 'QUICK_REPLY' || empty($b['flow_id'])) {
+                continue;
+            }
+            $btnText = strtolower(trim($b['text'] ?? ''));
+            if ($btnText !== '' && ($btnText === $title || $btnText === $id)) {
+                return \App\Models\WaFlow::find($b['flow_id']);
+            }
+        }
+
+        return null;
+    }
+
+    /** Extract the id/title of an interactive button/list reply or a template quick-reply response. */
+    private function extractReply(array $m): ?array
+    {
+        $type = $m['type'] ?? '';
+        if ($type === 'interactive') {
+            $r = data_get($m, 'interactive.button_reply') ?? data_get($m, 'interactive.list_reply');
+            if ($r) {
+                return ['id' => (string) ($r['id'] ?? ''), 'title' => (string) ($r['title'] ?? '')];
+            }
+        }
+        if ($type === 'button') { // response to a template quick-reply button
+            return [
+                'id' => (string) ($m['button']['payload'] ?? $m['button']['text'] ?? ''),
+                'title' => (string) ($m['button']['text'] ?? ''),
+            ];
+        }
+
+        return null;
+    }
+
     private function extractMetaMessage(array $m): array
     {
         $type = $m['type'] ?? 'text';
@@ -250,6 +337,7 @@ class WebhookController extends Controller
             'video' => [$m['video']['caption'] ?? '[Video received]', 'video', $m['video']['link'] ?? null],
             'audio' => ['[Voice message received]', 'audio', null],
             'location' => ['Location: '.data_get($m, 'location.latitude').', '.data_get($m, 'location.longitude'), 'location', null],
+            'button' => [$m['button']['text'] ?? '[Button reply]', 'button', null],
             'interactive' => [data_get($m, 'interactive.button_reply.title') ?? data_get($m, 'interactive.list_reply.title') ?? '[Interactive reply]', 'interactive', null],
             default => ['['.$type.' message]', $type, null],
         };

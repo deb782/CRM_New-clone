@@ -48,6 +48,13 @@ class WatiDriver implements Contract
         return $this->send($phone, $body.($labels ? "\n[".$labels.']' : ''));
     }
 
+    public function sendList(string $phone, string $body, string $buttonLabel, array $rows): array
+    {
+        $labels = implode(' | ', array_map(fn ($r) => $r['title'] ?? '', $rows));
+
+        return $this->send($phone, $body.($labels ? "\n[".$labels.']' : ''));
+    }
+
     public function fetchTemplates(): array
     {
         return [];

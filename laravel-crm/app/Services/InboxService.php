@@ -125,6 +125,7 @@ class InboxService
             $res = match ($type) {
                 'image', 'document', 'video' => $this->driver->sendMedia($phone, $type, (string) $mediaUrl, $body ?: null),
                 'interactive' => $this->driver->sendInteractive($phone, $body, $buttons ?: []),
+                'list' => $this->driver->sendList($phone, $body, $data['button_label'] ?? 'Choose', $data['rows'] ?? []),
                 default => $this->driver->send($phone, $body),
             };
         }
@@ -132,6 +133,10 @@ class InboxService
         $meta = [];
         if ($buttons) {
             $meta['buttons'] = $buttons;
+        }
+        if ($type === 'list') {
+            $meta['rows'] = $data['rows'] ?? [];
+            $meta['button_label'] = $data['button_label'] ?? 'Choose';
         }
         if ($type === 'template' && $variables) {
             $meta['variables'] = $variables;

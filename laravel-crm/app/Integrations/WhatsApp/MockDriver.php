@@ -31,6 +31,11 @@ class MockDriver implements Contract
         return $this->ok();
     }
 
+    public function sendList(string $phone, string $body, string $buttonLabel, array $rows): array
+    {
+        return $this->ok();
+    }
+
     public function markRead(string $messageId): void
     {
         // no-op in mock

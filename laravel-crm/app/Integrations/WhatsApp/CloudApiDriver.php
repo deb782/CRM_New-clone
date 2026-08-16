@@ -78,6 +78,35 @@ class CloudApiDriver implements Contract
         ]);
     }
 
+    public function sendList(string $phone, string $body, string $buttonLabel, array $rows): array
+    {
+        $secRows = [];
+        foreach (array_slice($rows, 0, 10) as $idx => $r) {
+            $row = [
+                'id' => (string) ($r['id'] ?? ('row_'.$idx)),
+                'title' => \Illuminate\Support\Str::limit((string) ($r['title'] ?? 'Option'), 24, ''),
+            ];
+            if (! empty($r['description'])) {
+                $row['description'] = \Illuminate\Support\Str::limit((string) $r['description'], 72, '');
+            }
+            $secRows[] = $row;
+        }
+
+        return $this->post([
+            'messaging_product' => 'whatsapp',
+            'to' => $phone,
+            'type' => 'interactive',
+            'interactive' => [
+                'type' => 'list',
+                'body' => ['text' => $body],
+                'action' => [
+                    'button' => \Illuminate\Support\Str::limit($buttonLabel ?: 'Choose', 20, ''),
+                    'sections' => [['title' => 'Options', 'rows' => $secRows]],
+                ],
+            ],
+        ]);
+    }
+
     public function sendTemplate(string $phone, string $name, array $variables = [], string $language = 'en_US'): array
     {
         $template = ['name' => $name, 'language' => ['code' => $language]];

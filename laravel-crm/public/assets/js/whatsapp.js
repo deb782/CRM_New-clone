@@ -434,11 +434,14 @@
       bubble.appendChild(el('div', { class: 'wa-time' }, '12:30'));
       wrap.appendChild(bubble);
       (v.buttons || []).forEach(b => wrap.appendChild(el('div', { class: 'wa-btn' },
-        el('i', { class: 'fa-solid ' + (b.type === 'URL' ? 'fa-arrow-up-right-from-square' : b.type === 'PHONE_NUMBER' ? 'fa-phone' : 'fa-reply') }), ' ' + (b.text || 'Button'))));
+        el('i', { class: 'fa-solid ' + (b.type === 'URL' ? 'fa-arrow-up-right-from-square' : b.type === 'PHONE_NUMBER' ? 'fa-phone' : 'fa-reply') }), ' ' + (b.text || 'Button'),
+        (b.type === 'QUICK_REPLY' && b.flow_id) ? el('i', { class: 'fa-solid fa-robot', style: 'margin-left:6px;color:var(--accent);font-size:11px', title: 'Launches a bot' }) : null)));
     };
     render();
     return { node: wrap, render };
   }
+
+  let botFlows = [];
 
   function openTemplateBuilder(existing, onSaved) {
     const t = Object.assign({ name: '', language: 'en_US', category: 'UTILITY', header_type: 'none', header_text: '', body: '', footer: '', buttons: [] }, existing || {});
@@ -458,13 +461,29 @@
     const btnList = el('div', { class: 'tpl-btns', 'data-testid': 'tpl-buttons' });
     const drawBtns = () => {
       btnList.innerHTML = '';
-      t.buttons.forEach((b, i) => btnList.appendChild(el('div', { class: 'tpl-btn-row' },
-        (() => { const s = el('select', { class: 'input' }, ...['QUICK_REPLY', 'URL', 'PHONE_NUMBER'].map(o => el('option', { value: o, selected: b.type === o }, o.replace('_', ' ')))); s.addEventListener('change', () => { b.type = s.value; pv.render(); }); return s; })(),
-        (() => { const e = el('input', { class: 'input', value: b.text, placeholder: 'Button text' }); e.addEventListener('input', () => { b.text = e.value; pv.render(); }); return e; })(),
-        (() => { const e = el('input', { class: 'input', value: b.value || '', placeholder: 'URL / phone (if any)' }); e.addEventListener('input', () => { b.value = e.value; }); return e; })(),
-        el('button', { class: 'icon-btn', onclick: () => { t.buttons.splice(i, 1); drawBtns(); pv.render(); } }, el('i', { class: 'fa-solid fa-trash' })))));
+      t.buttons.forEach((b, i) => {
+        const typeSel = (() => { const s = el('select', { class: 'input' }, ...['QUICK_REPLY', 'URL', 'PHONE_NUMBER'].map(o => el('option', { value: o, selected: b.type === o }, o.replace('_', ' ')))); s.addEventListener('change', () => { b.type = s.value; drawBtns(); pv.render(); }); return s; })();
+        const textIn = (() => { const e = el('input', { class: 'input', value: b.text, placeholder: 'Button text' }); e.addEventListener('input', () => { b.text = e.value; pv.render(); }); return e; })();
+        // QUICK_REPLY buttons can launch a chatbot flow; URL/PHONE take a value.
+        let extra;
+        if (b.type === 'QUICK_REPLY') {
+          const fs = el('select', { class: 'input', 'data-testid': 'tpl-btn-flow-' + i, title: 'Launch a bot when tapped' },
+            el('option', { value: '', selected: !b.flow_id }, '↳ No bot'),
+            ...botFlows.map(f => el('option', { value: String(f.id), selected: String(b.flow_id) === String(f.id) }, '🤖 ' + f.name)));
+          fs.addEventListener('change', () => { b.flow_id = fs.value ? Number(fs.value) : null; });
+          extra = fs;
+        } else {
+          extra = (() => { const e = el('input', { class: 'input', value: b.value || '', placeholder: b.type === 'URL' ? 'https://…' : '+91…' }); e.addEventListener('input', () => { b.value = e.value; }); return e; })();
+        }
+        btnList.appendChild(el('div', { class: 'tpl-btn-row' }, typeSel, textIn, extra,
+          el('button', { class: 'icon-btn', onclick: () => { t.buttons.splice(i, 1); drawBtns(); pv.render(); } }, el('i', { class: 'fa-solid fa-trash' }))));
+      });
     };
     drawBtns();
+    // Load active bot flows so quick-reply buttons can be linked to a chatbot.
+    if (!botFlows.length) {
+      api.get('/wa-flows').then(r => { botFlows = (r.flows || []).filter(f => f.status === 'active'); drawBtns(); }).catch(() => {});
+    }
     const addBtn = el('button', { class: 'btn btn--ghost', 'data-testid': 'tpl-add-button', onclick: () => { if (t.buttons.length >= 10) return; t.buttons.push({ type: 'QUICK_REPLY', text: '' }); drawBtns(); pv.render(); } }, el('i', { class: 'fa-solid fa-plus' }), 'Add button');
 
     const field = (lbl, node) => el('div', { class: 'tpl-field' }, el('label', {}, lbl), node);
@@ -482,7 +501,7 @@
 
     const save = el('button', { class: 'btn btn--primary', 'data-testid': 'tpl-save', onclick: async () => {
       try {
-        const payload = { name: t.name, language: t.language, category: t.category, header_type: t.header_type, header_text: t.header_text, body: t.body, footer: t.footer, buttons: t.buttons.filter(b => b.text) };
+        const payload = { name: t.name, language: t.language, category: t.category, header_type: t.header_type, header_text: t.header_text, body: t.body, footer: t.footer, buttons: t.buttons.filter(b => b.text).map(b => ({ type: b.type, text: b.text, value: b.type === 'QUICK_REPLY' ? null : (b.value || null), flow_id: b.type === 'QUICK_REPLY' && b.flow_id ? b.flow_id : null })) };
         if (existing && existing.id) await api.put('/whatsapp/templates/' + existing.id, payload);
         else await api.post('/whatsapp/templates', payload);
         toast('Template saved as draft', 'success'); m.close(); onSaved();
