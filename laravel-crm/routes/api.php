@@ -321,6 +321,14 @@ Route::prefix('v1')->group(function () {
                 Route::put('wa-inbound/rules/{rule}', [\App\Http\Controllers\Api\InboundRuleController::class, 'update']);
                 Route::delete('wa-inbound/rules/{rule}', [\App\Http\Controllers\Api\InboundRuleController::class, 'destroy']);
                 Route::post('wa-inbound/test', [\App\Http\Controllers\Api\InboundRuleController::class, 'test']);
+                // Campaign Manager (P4)
+                Route::get('wa-campaigns', [\App\Http\Controllers\Api\WaCampaignController::class, 'index']);
+                Route::post('wa-campaigns', [\App\Http\Controllers\Api\WaCampaignController::class, 'store']);
+                Route::post('wa-campaigns/preview', [\App\Http\Controllers\Api\WaCampaignController::class, 'preview']);
+                Route::get('wa-campaigns/{campaign}', [\App\Http\Controllers\Api\WaCampaignController::class, 'show']);
+                Route::put('wa-campaigns/{campaign}', [\App\Http\Controllers\Api\WaCampaignController::class, 'update']);
+                Route::delete('wa-campaigns/{campaign}', [\App\Http\Controllers\Api\WaCampaignController::class, 'destroy']);
+                Route::post('wa-campaigns/{campaign}/launch', [\App\Http\Controllers\Api\WaCampaignController::class, 'launch']);
             });
             Route::middleware('permission:messaging.manage')->group(function () {
                 Route::post('whatsapp/templates', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'store']);

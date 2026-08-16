@@ -31,6 +31,7 @@
       { route: 'waAutomations', icon: 'fa-robot', name: 'WA Auto-Replies', perm: 'config.manage' },
       { route: 'waFlows', icon: 'fa-robot', name: 'WhatsApp Bots', perm: 'messaging.manage' },
       { route: 'waInbound', icon: 'fa-inbox', name: 'Inbound Rules', perm: 'messaging.manage' },
+      { route: 'waCampaigns', icon: 'fa-bullhorn', name: 'Campaigns', perm: 'messaging.manage' },
       { route: 'waTemplates', icon: 'fa-file-lines', name: 'WA Templates', perm: 'messaging.manage' },
       { route: 'waCanned', icon: 'fa-bolt', name: 'WA Canned Replies', perm: 'config.manage' },
       { route: 'waAnalytics', icon: 'fa-chart-line', name: 'WA Analytics', perm: 'config.manage' },

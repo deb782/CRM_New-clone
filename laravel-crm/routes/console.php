@@ -16,3 +16,6 @@ Schedule::command('crm:email-scheduled')->everyMinute()->withoutOverlapping();
 
 // crm:flow-run — resume workflow runs whose wait timers elapsed
 Schedule::command('crm:flow-run')->everyMinute()->withoutOverlapping();
+
+// wa:campaigns:dispatch — send scheduled WhatsApp campaigns
+Schedule::command('wa:campaigns:dispatch')->everyMinute()->withoutOverlapping();

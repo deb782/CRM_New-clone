@@ -647,3 +647,23 @@ tbody tr:last-child td { border-bottom: none; }
 .test-reply { background: #DCF8C6; color: #111; border-radius: 8px; padding: 8px 11px; font-size: 12.5px; margin-top: 4px; }
 .inbound-table { width: 100%; }
 .kw-chip { display: inline-block; background: var(--surface-2); border-radius: 6px; padding: 2px 7px; font-size: 11px; margin: 2px; }
+
+/* WhatsApp Campaign Manager */
+.camp-card { border: 1px solid var(--border); border-radius: 16px; padding: 18px; background: var(--surface); cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .15s; }
+.camp-card:hover { border-color: var(--border-strong); box-shadow: 0 8px 30px rgba(17,17,17,.06); transform: translateY(-2px); }
+.camp-funnel { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.cf-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.cf-lbl { width: 68px; color: var(--text-3); font-weight: 600; }
+.cf-track { flex: 1; height: 8px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.cf-fill { height: 100%; border-radius: 6px; transition: width .8s cubic-bezier(.22,1,.36,1); }
+.cf-row b { width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.camp-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+.btn--sm { padding: 6px 12px; font-size: 12.5px; }
+.camp-stats { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; margin-bottom: 16px; }
+.camp-stat { border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+.cs-val { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.cs-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); font-weight: 700; margin-top: 2px; }
+.camp-audience { border: 1px solid var(--border); border-radius: 14px; padding: 14px; background: var(--surface-2); margin-bottom: 14px; }
+.ca-head { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+.camp-tpl-preview { margin-top: 8px; background: #E5DDD5; color: #111; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; white-space: pre-wrap; }
+.sim-banner { background: color-mix(in srgb, var(--warm) 15%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warm) 40%, var(--border)); color: var(--text); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; margin-bottom: 14px; }
