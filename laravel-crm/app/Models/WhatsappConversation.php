@@ -8,7 +8,7 @@ class WhatsappConversation extends Model
 {
     protected $table = 'whatsapp_conversations';
     protected $guarded = ['id'];
-    protected $casts = ['last_message_at' => 'datetime', 'last_inbound_at' => 'datetime', 'tags' => 'array'];
+    protected $casts = ['last_message_at' => 'datetime', 'last_inbound_at' => 'datetime', 'tags' => 'array', 'bot_state' => 'array'];
 
     public function notes()
     {

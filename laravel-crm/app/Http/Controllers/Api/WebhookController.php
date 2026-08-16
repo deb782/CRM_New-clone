@@ -131,7 +131,15 @@ class WebhookController extends Controller
                     }
                     $inbox->recordInbound($conv, $body, $type, $media, $m['id'] ?? null);
                     app(AutomationService::class)->fire('whatsapp.replied', $lead);
-                    $inbox->runAutoReplies($conv, $body);
+                    $handled = false;
+                    try {
+                        $handled = $this->handleInboundAutomation($conv->fresh(), $lead, $body, $inbox);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('WA inbound automation: '.$e->getMessage());
+                    }
+                    if (! $handled) {
+                        $inbox->runAutoReplies($conv, $body);
+                    }
                 }
 
                 foreach ($value['statuses'] ?? [] as $s) {
@@ -147,6 +155,88 @@ class WebhookController extends Controller
         }
 
         return response()->json(['message' => 'EVENT_RECEIVED']);
+    }
+
+    /** P2/P3: drive an active bot session or apply inbound rules (office-hours, keyword routing, auto-assign). */
+    private function handleInboundAutomation($conv, $lead, string $body, InboxService $inbox): bool
+    {
+        $engine = app(\App\Services\WaFlowEngine::class);
+        $send = function ($msgs) use ($inbox, $conv) {
+            foreach ($msgs as $mm) {
+                $text = $mm['text'] ?? '';
+                if (($mm['type'] ?? '') === 'buttons') {
+                    $text .= "\n".implode("\n", array_map(fn ($b) => '• '.($b['label'] ?? ''), $mm['buttons'] ?? []));
+                }
+                if (($mm['type'] ?? '') === 'list') {
+                    $text .= "\n".implode("\n", array_map(fn ($r) => '• '.($r['label'] ?? ''), $mm['rows'] ?? []));
+                }
+                if (trim($text) !== '') {
+                    $inbox->reply($conv, ['body' => $text]);
+                }
+            }
+        };
+        $applyCaptured = function ($data) use ($lead) {
+            $fill = [];
+            foreach (['name', 'email', 'phone', 'preferred_location', 'property_type', 'budget_max', 'timeline'] as $f) {
+                if (! empty($data[$f])) {
+                    $fill[$f] = $data[$f];
+                }
+            }
+            if ($fill) {
+                $lead->update($fill);
+            }
+        };
+
+        // Active bot session → advance it
+        $state = $conv->bot_state;
+        if (is_array($state) && ! empty($state['flow_id'])) {
+            $flow = \App\Models\WaFlow::find($state['flow_id']);
+            if ($flow) {
+                $res = $engine->step($flow, $state['state'] ?? ['node' => null, 'data' => []], $body);
+                $send($res['messages'] ?? []);
+                $applyCaptured($res['state']['data'] ?? []);
+                $conv->bot_state = ! empty($res['done']) ? null : ['flow_id' => $flow->id, 'state' => $res['state']];
+                if (! empty($res['done']) && ($res['action'] ?? '') === 'handoff' && ! $conv->assigned_to) {
+                    $r = app(\App\Services\InboundRouter::class)->evaluate($body, now(), true);
+                    if ($r['assigned_to']) {
+                        $conv->assigned_to = $r['assigned_to'];
+                    }
+                }
+                $conv->save();
+
+                return true;
+            }
+            $conv->bot_state = null;
+        }
+
+        // No active session → evaluate inbound rules
+        $r = app(\App\Services\InboundRouter::class)->evaluate($body, now(), true);
+        if ($r['assigned_to']) {
+            $conv->assigned_to = $r['assigned_to'];
+        }
+        if (! empty($r['tags'])) {
+            $conv->tags = array_values(array_unique(array_merge($conv->tags ?? [], $r['tags'])));
+        }
+        $handled = false;
+        if (! empty($r['bot'])) {
+            $flow = \App\Models\WaFlow::find($r['bot']['id']);
+            if ($flow) {
+                $res = $engine->start($flow);
+                $send($res['messages'] ?? []);
+                $applyCaptured($res['state']['data'] ?? []);
+                if (empty($res['done'])) {
+                    $conv->bot_state = ['flow_id' => $flow->id, 'state' => $res['state']];
+                }
+                $handled = true;
+            }
+        }
+        if (! $handled && ! empty($r['reply'])) {
+            $inbox->reply($conv, ['body' => $r['reply']]);
+            $handled = true;
+        }
+        $conv->save();
+
+        return $handled;
     }
 
     private function extractMetaMessage(array $m): array

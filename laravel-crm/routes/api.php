@@ -314,6 +314,13 @@ Route::prefix('v1')->group(function () {
                 Route::delete('wa-flows/{flow}', [\App\Http\Controllers\Api\WaFlowController::class, 'destroy']);
                 Route::post('wa-flows/{flow}/activate', [\App\Http\Controllers\Api\WaFlowController::class, 'activate']);
                 Route::post('wa-flows/{flow}/test', [\App\Http\Controllers\Api\WaFlowController::class, 'test']);
+                // Inbound rules (P3)
+                Route::get('wa-inbound', [\App\Http\Controllers\Api\InboundRuleController::class, 'index']);
+                Route::put('wa-inbound/settings', [\App\Http\Controllers\Api\InboundRuleController::class, 'updateSettings']);
+                Route::post('wa-inbound/rules', [\App\Http\Controllers\Api\InboundRuleController::class, 'store']);
+                Route::put('wa-inbound/rules/{rule}', [\App\Http\Controllers\Api\InboundRuleController::class, 'update']);
+                Route::delete('wa-inbound/rules/{rule}', [\App\Http\Controllers\Api\InboundRuleController::class, 'destroy']);
+                Route::post('wa-inbound/test', [\App\Http\Controllers\Api\InboundRuleController::class, 'test']);
             });
             Route::middleware('permission:messaging.manage')->group(function () {
                 Route::post('whatsapp/templates', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'store']);
