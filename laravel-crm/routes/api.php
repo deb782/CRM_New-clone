@@ -305,7 +305,16 @@ Route::prefix('v1')->group(function () {
             Route::post('whatsapp/media/upload', [WhatsAppInboxController::class, 'uploadMedia']);
             Route::get('whatsapp/analytics', [WhatsAppInboxController::class, 'analytics']);
             Route::get('whatsapp/templates', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'index']);
-            // WhatsApp Template Builder (create/submit) — Admin + Sales Head/CRM Head
+            // WhatsApp Chatbot / Flow Builder (P2) — Admin + Sales Head/CRM Head
+            Route::middleware('permission:messaging.manage')->group(function () {
+                Route::get('wa-flows', [\App\Http\Controllers\Api\WaFlowController::class, 'index']);
+                Route::post('wa-flows', [\App\Http\Controllers\Api\WaFlowController::class, 'store']);
+                Route::get('wa-flows/{flow}', [\App\Http\Controllers\Api\WaFlowController::class, 'show']);
+                Route::put('wa-flows/{flow}', [\App\Http\Controllers\Api\WaFlowController::class, 'update']);
+                Route::delete('wa-flows/{flow}', [\App\Http\Controllers\Api\WaFlowController::class, 'destroy']);
+                Route::post('wa-flows/{flow}/activate', [\App\Http\Controllers\Api\WaFlowController::class, 'activate']);
+                Route::post('wa-flows/{flow}/test', [\App\Http\Controllers\Api\WaFlowController::class, 'test']);
+            });
             Route::middleware('permission:messaging.manage')->group(function () {
                 Route::post('whatsapp/templates', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'store']);
                 Route::put('whatsapp/templates/{template}', [\App\Http\Controllers\Api\WhatsAppTemplateController::class, 'update']);
