@@ -77,6 +77,95 @@ class WaFlowController extends Controller
         return response()->json($engine->step($flow, $state, $input));
     }
 
+    /** Bot analytics: sessions, completion, handoffs, per-node funnel + per-button tap counts + drop-off. */
+    public function analytics(WaFlow $flow)
+    {
+        $events = \App\Models\WaFlowEvent::where('flow_id', $flow->id)->get();
+        $sessions = $events->where('event', 'enter')->count();
+        $completed = $events->where('event', 'complete')->count();
+        $handoffs = $events->where('event', 'handoff')->count();
+        $reach = $events->where('event', 'reach')->groupBy('node_key')->map->count();
+        $choose = $events->where('event', 'choose')->groupBy(fn ($e) => $e->node_key.'|'.$e->option_id)->map->count();
+
+        $nodes = $flow->graph['nodes'] ?? [];
+        $funnel = [];
+        foreach ($nodes as $key => $node) {
+            $reached = (int) ($reach[$key] ?? 0);
+            $item = [
+                'key' => $key,
+                'title' => $node['title'] ?? $key,
+                'type' => $node['type'] ?? 'message',
+                'reached' => $reached,
+                'options' => [],
+            ];
+            if (in_array($node['type'] ?? '', ['buttons', 'list'])) {
+                $opts = ($node['type'] === 'buttons') ? ($node['config']['buttons'] ?? []) : ($node['config']['rows'] ?? []);
+                $picked = 0;
+                foreach ($opts as $o) {
+                    $taps = (int) ($choose[$key.'|'.($o['id'] ?? '')] ?? 0);
+                    $picked += $taps;
+                    $item['options'][] = ['id' => $o['id'] ?? '', 'label' => $o['label'] ?? '', 'taps' => $taps];
+                }
+                $item['dropped'] = max(0, $reached - $picked);
+            }
+            $funnel[] = $item;
+        }
+        usort($funnel, fn ($a, $b) => $b['reached'] <=> $a['reached']);
+
+        return response()->json([
+            'sessions' => $sessions,
+            'completed' => $completed,
+            'handoffs' => $handoffs,
+            'completion_rate' => $sessions ? round($completed * 100 / $sessions) : 0,
+            'funnel' => $funnel,
+        ]);
+    }
+
+    /** Save the current bot's graph as a reusable, team-shared template. */
+    public function saveTemplate(Request $r, WaFlow $flow)
+    {
+        $data = $r->validate([
+            'name' => 'required|string|max:120',
+            'description' => 'nullable|string|max:255',
+        ]);
+        $tpl = \App\Models\WaFlowTemplate::create([
+            'name' => $data['name'],
+            'description' => $data['description'] ?? $flow->description,
+            'graph' => $flow->graph,
+            'created_by' => $r->user()->id,
+        ]);
+
+        return response()->json(['template' => $tpl], 201);
+    }
+
+    public function templates()
+    {
+        return response()->json(['templates' => \App\Models\WaFlowTemplate::orderByDesc('id')->get()]);
+    }
+
+    /** Create a new draft bot from a saved template (reuse across projects). */
+    public function useTemplate(Request $r, \App\Models\WaFlowTemplate $template)
+    {
+        $flow = WaFlow::create([
+            'name' => $template->name.' (copy)',
+            'description' => $template->description,
+            'trigger_type' => 'default',
+            'keywords' => [],
+            'status' => 'draft',
+            'graph' => $template->graph,
+            'created_by' => $r->user()->id,
+        ]);
+
+        return response()->json(['flow' => $flow], 201);
+    }
+
+    public function deleteTemplate(\App\Models\WaFlowTemplate $template)
+    {
+        $template->delete();
+
+        return response()->json(['deleted' => true]);
+    }
+
     private function validated(Request $r): array
     {
         return $r->validate([

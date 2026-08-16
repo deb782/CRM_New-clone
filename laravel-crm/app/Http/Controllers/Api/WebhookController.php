@@ -217,7 +217,7 @@ class WebhookController extends Controller
         if (is_array($state) && ! empty($state['flow_id'])) {
             $flow = \App\Models\WaFlow::find($state['flow_id']);
             if ($flow) {
-                $res = $engine->step($flow, $state['state'] ?? ['node' => null, 'data' => []], $input);
+                $res = $engine->step($flow, $state['state'] ?? ['node' => null, 'data' => []], $input, $conv->id, true);
                 $send($res['messages'] ?? []);
                 $applyCaptured($res['state']['data'] ?? []);
                 $conv->bot_state = ! empty($res['done']) ? null : ['flow_id' => $flow->id, 'state' => $res['state']];
@@ -238,7 +238,7 @@ class WebhookController extends Controller
         if ($reply) {
             $flow = $this->templateButtonFlow($conv, $reply);
             if ($flow) {
-                $res = $engine->start($flow);
+                $res = $engine->start($flow, $conv->id, true);
                 $send($res['messages'] ?? []);
                 $applyCaptured($res['state']['data'] ?? []);
                 if (empty($res['done'])) {
@@ -262,7 +262,7 @@ class WebhookController extends Controller
         if (! empty($r['bot'])) {
             $flow = \App\Models\WaFlow::find($r['bot']['id']);
             if ($flow) {
-                $res = $engine->start($flow);
+                $res = $engine->start($flow, $conv->id, true);
                 $send($res['messages'] ?? []);
                 $applyCaptured($res['state']['data'] ?? []);
                 if (empty($res['done'])) {

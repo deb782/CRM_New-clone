@@ -227,6 +227,64 @@ class IntegrationController extends Controller
         return response()->json(['ok' => true, 'message' => 'WhatsApp connected via embedded signup.']);
     }
 
+    /** Go-Live "Connect check": confirm WhatsApp is truly live before relying on it. */
+    public function whatsappCheck()
+    {
+        $row = Integration::firstOrNew(['key' => 'meta_whatsapp']);
+        $c = $row->config ?? [];
+        $checks = [];
+        $add = function ($label, $status, $detail) use (&$checks) {
+            $checks[] = ['label' => $label, 'status' => $status, 'detail' => $detail];
+        };
+
+        $token = $c['access_token'] ?? '';
+        $pid = $c['phone_number_id'] ?? '';
+        $waba = $c['waba_id'] ?? '';
+        $hasCreds = $token && $pid && $waba;
+        $add('Credentials saved', $hasCreds ? 'pass' : 'fail',
+            $hasCreds ? 'Access token, phone number and WhatsApp Business Account are all set.'
+                      : 'Enter your Access Token, Phone Number ID and WhatsApp Business Account ID, then Save.');
+
+        $live = (bool) (config('integrations.whatsapp.cloud.token') && config('integrations.whatsapp.cloud.phone_id'));
+        $add('Live mode active', $live ? 'pass' : 'warn',
+            $live ? 'The CRM is using the live WhatsApp Cloud API.'
+                  : 'Still in sandbox — enable the integration to switch messaging to live.');
+
+        if ($hasCreds) {
+            try {
+                $version = $c['graph_version'] ?: 'v21.0';
+                $r = Http::timeout(12)->get("https://graph.facebook.com/{$version}/{$pid}", [
+                    'fields' => 'display_phone_number,verified_name,quality_rating',
+                    'access_token' => $token,
+                ]);
+                if ($r->successful()) {
+                    $add('WhatsApp number verified', 'pass',
+                        'Connected to '.($r->json('display_phone_number') ?: $pid).' ('.($r->json('verified_name') ?: '—').'). Quality rating: '.($r->json('quality_rating') ?: 'n/a').'.');
+                } else {
+                    $add('WhatsApp number verified', 'fail', 'Meta rejected the request: '.($r->json('error.message') ?: ('HTTP '.$r->status())));
+                }
+            } catch (\Throwable $e) {
+                $add('WhatsApp number verified', 'fail', 'Could not reach Meta: '.$e->getMessage());
+            }
+        } else {
+            $add('WhatsApp number verified', 'fail', 'Add credentials first.');
+        }
+
+        $approved = \App\Models\WhatsappTemplate::where('status', 'APPROVED')->count();
+        $add('Approved templates', $approved > 0 ? 'pass' : 'warn',
+            $approved > 0 ? ($approved.' approved template(s) ready to send.') : 'No approved templates yet — sync from Meta or create and submit one.');
+
+        $webhook = rtrim((string) config('app.url'), '/').'/api/v1/webhooks/whatsapp';
+        $vt = $c['verify_token'] ?? '';
+        $add('Webhook callback', $vt ? 'info' : 'warn',
+            'In Meta, set the callback URL to '.$webhook.($vt ? ' with your verify token.' : ' — but set a Verify Token here first.'));
+
+        $statuses = array_column($checks, 'status');
+        $overall = in_array('fail', $statuses, true) ? 'fail' : (in_array('warn', $statuses, true) ? 'warn' : 'pass');
+
+        return response()->json(['overall' => $overall, 'checks' => $checks, 'webhook' => $webhook]);
+    }
+
     private function testMcube(array $c): string
     {
         $url = $c['base_url'] ?? '';

@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/datepicker.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/journey.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
-    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=16">
+    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=17">
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v=2">
     <link rel="stylesheet" href="{{ asset('assets/css/webcapture.css') }}?v=1">
 </head>
@@ -39,7 +39,7 @@
     <script src="{{ asset('assets/js/deals.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/config.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=17"></script>
-    <script src="{{ asset('assets/js/wa-flows.js') }}?v=1"></script>
+    <script src="{{ asset('assets/js/wa-flows.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/wa-inbound.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/wa-campaigns.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
@@ -48,7 +48,7 @@
     <script src="{{ asset('assets/js/journey.js') }}?v=5"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
-    <script src="{{ asset('assets/js/integrations.js') }}?v=5"></script>
+    <script src="{{ asset('assets/js/integrations.js') }}?v=6"></script>
     <script src="{{ asset('assets/js/notifications.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/reports.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/forms-ui.js') }}?v=2"></script>

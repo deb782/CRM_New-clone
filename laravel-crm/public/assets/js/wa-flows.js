@@ -15,7 +15,9 @@
   // ============================ LIST VIEW ============================
   CRM.pages.waFlows = async function (view) {
     if (!CRM.can('messaging.manage')) { view.innerHTML = '<div class="empty">You do not have access to the bot builder.</div>'; return; }
-    CRM.setActions(el('button', { class: 'btn btn--primary', 'data-testid': 'wa-flow-new', onclick: () => newFlow() }, el('i', { class: 'fa-solid fa-plus' }), 'New bot'));
+    CRM.setActions(el('div', { style: 'display:flex;gap:8px' },
+      el('button', { class: 'btn', 'data-testid': 'wa-flow-templates', onclick: () => openTemplatesPicker(view) }, el('i', { class: 'fa-solid fa-bookmark' }), 'Templates'),
+      el('button', { class: 'btn btn--primary', 'data-testid': 'wa-flow-new', onclick: () => newFlow() }, el('i', { class: 'fa-solid fa-plus' }), 'New bot')));
     view.innerHTML = '<div class="spinner"></div>';
     const { flows } = await api.get('/wa-flows');
     view.innerHTML = '';
@@ -25,7 +27,9 @@
     flows.forEach(f => grid.appendChild(el('div', { class: 'flow-card', 'data-testid': 'wa-flow-card-' + f.id, onclick: () => openBuilder(view, f.id) },
       el('div', { class: 'fc-top' },
         el('div', { class: 'fc-name' }, el('i', { class: 'fa-solid fa-robot' }), f.name),
-        el('span', { class: 'chip', style: 'color:' + (f.status === 'active' ? 'var(--won)' : 'var(--text-3)') }, f.status)),
+        el('div', { style: 'display:flex;align-items:center;gap:8px' },
+          el('button', { class: 'icon-btn', title: 'Analytics', 'data-testid': 'wa-flow-analytics-' + f.id, onclick: (e) => { e.stopPropagation(); openAnalytics(f.id, f.name); } }, el('i', { class: 'fa-solid fa-chart-simple' })),
+          el('span', { class: 'chip', style: 'color:' + (f.status === 'active' ? 'var(--won)' : 'var(--text-3)') }, f.status))),
       el('div', { class: 'fc-meta' },
         el('span', {}, f.trigger_type === 'default' ? 'Default (fallback)' : 'Keyword: ' + ((f.keywords || []).join(', ') || '—')),
         el('span', {}, (f.node_count || 0) + ' steps')),
@@ -68,6 +72,8 @@
       nameInput, trigSel, kwInput, statusChip,
       el('div', { style: 'flex:1' }),
       el('button', { class: 'btn', 'data-testid': 'flow-test', onclick: async () => { await save(true); openSimulator(id); } }, el('i', { class: 'fa-solid fa-play' }), 'Test'),
+      el('button', { class: 'btn', 'data-testid': 'flow-analytics', onclick: () => openAnalytics(id, flow.name) }, el('i', { class: 'fa-solid fa-chart-simple' }), 'Analytics'),
+      el('button', { class: 'btn', 'data-testid': 'flow-save-template', onclick: async () => { await save(true); saveAsTemplate(id, nameInput.value); } }, el('i', { class: 'fa-solid fa-bookmark' }), 'Save as template'),
       el('button', { class: 'btn', 'data-testid': 'flow-save', onclick: () => save() }, el('i', { class: 'fa-solid fa-floppy-disk' }), 'Save'),
       el('button', { class: 'btn btn--primary', 'data-testid': 'flow-activate', onclick: async () => {
         await save(true);
@@ -150,6 +156,12 @@
         bodyRows.push(outRow('Next', n.config.next, n.key, v => n.config.next = v));
       } else if (n.type === 'buttons' || n.type === 'list') {
         bodyRows.push(ta(n.config.text, n.type === 'buttons' ? 'Prompt above buttons…' : 'Prompt above the list…', v => n.config.text = v));
+        if (n.type === 'list') {
+          const blbl = el('input', { class: 'input', value: n.config.button_label || 'Choose', placeholder: 'List button label (e.g. View projects)', maxlength: 20, 'data-testid': 'fn-list-btn-' + n.key });
+          blbl.addEventListener('input', () => n.config.button_label = blbl.value);
+          blbl.addEventListener('pointerdown', e => e.stopPropagation());
+          bodyRows.push(el('div', { class: 'fn-hint', style: 'font-size:11px;color:var(--text-3);margin:2px 0' }, 'Menu button label'), blbl);
+        }
         const optsKey = n.type === 'buttons' ? 'buttons' : 'rows';
         const optWrap = el('div', { class: 'fn-opts' });
         const drawOpts = () => {
@@ -160,11 +172,18 @@
             const anchor = el('span', { class: 'flow-anchor', 'data-node': n.key, 'data-target': o.next || '' });
             const tgt = targetSelect(o.next, n.key, v => { o.next = v; anchor.setAttribute('data-target', v || ''); });
             const del = el('button', { class: 'fn-x', onclick: (e) => { e.stopPropagation(); n.config[optsKey].splice(i, 1); drawOpts(); drawConnectors(); } }, el('i', { class: 'fa-solid fa-xmark' }));
-            optWrap.appendChild(el('div', { class: 'fn-opt' }, el('span', { class: 'fn-opt-ic' }, el('i', { class: 'fa-solid ' + (n.type === 'buttons' ? 'fa-reply' : 'fa-circle-dot') })), lbl, tgt, del, anchor));
+            const rowTop = el('div', { class: 'fn-opt' }, el('span', { class: 'fn-opt-ic' }, el('i', { class: 'fa-solid ' + (n.type === 'buttons' ? 'fa-reply' : 'fa-circle-dot') })), lbl, tgt, del, anchor);
+            if (n.type === 'list') {
+              const desc = el('input', { class: 'input', value: o.description || '', placeholder: 'Description (optional)', style: 'flex:1;font-size:12px', 'data-testid': 'fn-row-desc-' + o.id });
+              desc.addEventListener('input', () => o.description = desc.value); desc.addEventListener('pointerdown', e => e.stopPropagation());
+              optWrap.appendChild(el('div', { class: 'fn-opt-list' }, rowTop, el('div', { style: 'padding-left:24px;margin-top:4px' }, desc)));
+            } else {
+              optWrap.appendChild(rowTop);
+            }
           });
         };
         drawOpts();
-        const addOpt = el('button', { class: 'fn-add', onclick: (e) => { e.stopPropagation(); const idx = n.config[optsKey].length + 1; if (n.type === 'buttons' && n.config.buttons.length >= 3) { toast('WhatsApp allows max 3 buttons', 'error'); return; } n.config[optsKey].push({ id: (n.type === 'buttons' ? 'o' : 'r') + idx, label: 'Option ' + idx, next: null, description: '' }); drawOpts(); drawConnectors(); } }, el('i', { class: 'fa-solid fa-plus' }), n.type === 'buttons' ? 'Add button' : 'Add row');
+        const addOpt = el('button', { class: 'fn-add', onclick: (e) => { e.stopPropagation(); const idx = n.config[optsKey].length + 1; if (n.type === 'buttons' && n.config.buttons.length >= 3) { toast('WhatsApp allows max 3 buttons', 'error'); return; } if (n.type === 'list' && n.config.rows.length >= 10) { toast('WhatsApp allows max 10 list rows', 'error'); return; } n.config[optsKey].push({ id: (n.type === 'buttons' ? 'o' : 'r') + idx, label: 'Option ' + idx, next: null, description: '' }); drawOpts(); drawConnectors(); } }, el('i', { class: 'fa-solid fa-plus' }), n.type === 'buttons' ? 'Add button' : 'Add row');
         bodyRows.push(optWrap, addOpt);
       } else if (n.type === 'handoff') {
         bodyRows.push(ta(n.config.note, 'Message before handing to agent…', v => n.config.note = v));
@@ -264,4 +283,60 @@
     CRM.modal({ title: 'Test your bot', bodyNode: el('div', { class: 'sim-wrap' }, el('div', { class: 'sim-phone' }, el('div', { class: 'sim-topbar' }, el('i', { class: 'fa-brands fa-whatsapp' }), 'Preview chat'), chat, inputBar)) });
     run(null, null);
   }
+
+  // ============================ ANALYTICS ============================
+  async function openAnalytics(id, name) {
+    const body = el('div', { style: 'min-width:520px' }, el('div', { class: 'spinner' }));
+    const m = CRM.modal({ title: 'Bot analytics · ' + name, bodyNode: body, wide: true });
+    try {
+      const a = await api.get('/wa-flows/' + id + '/analytics');
+      body.innerHTML = '';
+      if (!a.sessions) {
+        body.appendChild(el('div', { class: 'empty', 'data-testid': 'wa-analytics-empty' }, el('i', { class: 'fa-solid fa-chart-simple' }), el('div', {}, 'No conversations yet. Analytics appear once people chat with this bot.')));
+        return;
+      }
+      const stat = (lbl, val) => el('div', { class: 'wa-astat' }, el('div', { class: 'wa-astat-n' }, String(val)), el('div', { class: 'wa-astat-l' }, lbl));
+      body.appendChild(el('div', { class: 'wa-astats', 'data-testid': 'wa-analytics-stats' },
+        stat('Sessions', a.sessions), stat('Completed', a.completed), stat('Completion', a.completion_rate + '%'), stat('Handoffs', a.handoffs)));
+      body.appendChild(el('div', { style: 'font-weight:600;margin:16px 0 8px' }, 'Step funnel & drop-off'));
+      const max = Math.max(1, ...a.funnel.map(f => f.reached));
+      a.funnel.forEach(f => {
+        const pct = Math.round(f.reached * 100 / max);
+        const rows = [el('div', { class: 'wa-fn-head' },
+          el('span', {}, el('i', { class: 'fa-solid fa-circle', style: 'font-size:7px;color:var(--accent);margin-right:6px' }), f.title),
+          el('span', { class: 'wa-fn-cnt' }, f.reached + ' reached' + (typeof f.dropped === 'number' && f.dropped > 0 ? ' · ' + f.dropped + ' dropped off' : ''))),
+          el('div', { class: 'wa-fn-bar' }, el('div', { class: 'wa-fn-fill', style: 'width:' + pct + '%' }))];
+        (f.options || []).forEach(o => rows.push(el('div', { class: 'wa-fn-opt' },
+          el('span', {}, el('i', { class: 'fa-solid fa-reply', style: 'font-size:10px;margin-right:6px;color:var(--text-3)' }), o.label),
+          el('span', { class: 'wa-fn-tap', 'data-testid': 'wa-tap-' + f.key + '-' + o.id }, o.taps + ' tap' + (o.taps === 1 ? '' : 's')))));
+        body.appendChild(el('div', { class: 'wa-fn-node' }, ...rows));
+      });
+    } catch (e) { body.innerHTML = ''; body.appendChild(el('div', { class: 'empty' }, e.message)); }
+  }
+
+  // ========================= SAVE AS TEMPLATE =========================
+  async function saveAsTemplate(id, defaultName) {
+    const name = prompt('Name this bot template (reusable across projects):', defaultName || 'My bot template');
+    if (!name) return;
+    try { await api.post('/wa-flows/' + id + '/save-template', { name }); toast('Saved to your bot template library', 'success'); }
+    catch (e) { toast(e.data && e.data.message ? e.data.message : e.message, 'error'); }
+  }
+
+  async function openTemplatesPicker(host) {
+    const body = el('div', { style: 'min-width:460px' }, el('div', { class: 'spinner' }));
+    const m = CRM.modal({ title: 'Bot template library', bodyNode: body });
+    const load = async () => {
+      const { templates } = await api.get('/wa-flow-templates');
+      body.innerHTML = '';
+      body.appendChild(el('div', { style: 'color:var(--text-3);font-size:13px;margin-bottom:12px' }, 'Reuse a saved bot in one click — it becomes a new draft you can tweak and activate.'));
+      if (!templates.length) { body.appendChild(el('div', { class: 'empty', 'data-testid': 'wa-tpl-lib-empty' }, el('i', { class: 'fa-solid fa-bookmark' }), el('div', {}, 'No saved templates yet. Open a bot and click "Save as template".'))); return; }
+      templates.forEach(t => body.appendChild(el('div', { class: 'wa-tpl-row', 'data-testid': 'wa-flowtpl-' + t.id },
+        el('div', {}, el('div', { style: 'font-weight:600' }, t.name), el('div', { style: 'font-size:12px;color:var(--text-3)' }, t.description || 'No description')),
+        el('div', { style: 'display:flex;gap:6px' },
+          el('button', { class: 'btn btn--sm btn--primary', 'data-testid': 'wa-flowtpl-use-' + t.id, onclick: async () => { try { const r = await api.post('/wa-flow-templates/' + t.id + '/use'); toast('Bot created from template', 'success'); m.close(); openBuilder(host, r.flow.id); } catch (e) { toast(e.message, 'error'); } } }, 'Use'),
+          el('button', { class: 'icon-btn', 'data-testid': 'wa-flowtpl-del-' + t.id, onclick: async () => { if (!confirm('Delete this template?')) return; await api.del('/wa-flow-templates/' + t.id); load(); } }, el('i', { class: 'fa-solid fa-trash' }))))));
+    };
+    try { await load(); } catch (e) { body.innerHTML = ''; body.appendChild(el('div', { class: 'empty' }, e.message)); }
+  }
+
 })();

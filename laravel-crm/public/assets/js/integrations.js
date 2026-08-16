@@ -63,6 +63,25 @@
       } catch (e) { if (manual) toast('Template sync failed: ' + (e.message || 'error'), 'error'); }
     }
 
+    async function runWaCheck() {
+      const body = el('div', { style: 'min-width:440px' }, el('div', { class: 'spinner' }));
+      const m2 = modal({ title: 'WhatsApp connection check', bodyNode: body });
+      try {
+        const r = await api.post('/integrations/meta_whatsapp/connection-check');
+        body.innerHTML = '';
+        const overall = { pass: ['#16a34a', 'fa-circle-check', 'You are live!'], warn: ['#d97706', 'fa-triangle-exclamation', 'Almost there'], fail: ['#dc2626', 'fa-circle-xmark', 'Not connected yet'] }[r.overall] || ['#666', 'fa-circle', ''];
+        body.appendChild(el('div', { class: 'ig-check-overall', 'data-testid': 'ig-wa-check-overall', style: 'color:' + overall[0] }, el('i', { class: 'fa-solid ' + overall[1] }), ' ' + overall[2]));
+        const ic = { pass: ['#16a34a', 'fa-circle-check'], warn: ['#d97706', 'fa-triangle-exclamation'], fail: ['#dc2626', 'fa-circle-xmark'], info: ['#2563eb', 'fa-circle-info'] };
+        (r.checks || []).forEach(c => {
+          const s = ic[c.status] || ic.info;
+          body.appendChild(el('div', { class: 'ig-check-row', 'data-testid': 'ig-check-' + c.status },
+            el('i', { class: 'fa-solid ' + s[1], style: 'color:' + s[0] + ';margin-top:2px' }),
+            el('div', {}, el('div', { style: 'font-weight:600' }, c.label), el('div', { style: 'font-size:12px;color:var(--text-3);word-break:break-word' }, c.detail))));
+        });
+      } catch (e) { body.innerHTML = ''; body.appendChild(el('div', { class: 'empty' }, e.message)); }
+    }
+
+
     function launchWaSignup(configId, m) {
       let code = null, session = null, submitted = false;
       const finish = async () => {
@@ -152,6 +171,7 @@
           }, el('i', { class: 'fa-brands fa-whatsapp' }), ' Connect WhatsApp'),
           el('div', { class: 'help', style: 'margin:8px 0 14px;text-align:center' }, 'Recommended. Or paste a permanent token in the fields below to connect manually.')) : null,
         it.key === 'meta_whatsapp' && it.configured ? el('button', { class: 'btn', style: 'width:100%;justify-content:center;margin-bottom:12px', 'data-testid': 'ig-wa-sync', onclick: () => syncWaTemplates(true) }, el('i', { class: 'fa-solid fa-rotate' }), ' Sync templates from Meta') : null,
+        it.key === 'meta_whatsapp' ? el('button', { class: 'btn', style: 'width:100%;justify-content:center;margin-bottom:12px', 'data-testid': 'ig-wa-check', onclick: () => runWaCheck() }, el('i', { class: 'fa-solid fa-heart-pulse' }), ' Run connection check') : null,
         it.key === 'meta_lead_ads' ? el('div', { class: 'ig-fb' },
           el('button', {
             class: 'btn', style: 'width:100%;background:#0866FF;border-color:#0866FF;color:#fff;justify-content:center',

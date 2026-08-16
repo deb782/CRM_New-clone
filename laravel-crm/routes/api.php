@@ -314,6 +314,11 @@ Route::prefix('v1')->group(function () {
                 Route::delete('wa-flows/{flow}', [\App\Http\Controllers\Api\WaFlowController::class, 'destroy']);
                 Route::post('wa-flows/{flow}/activate', [\App\Http\Controllers\Api\WaFlowController::class, 'activate']);
                 Route::post('wa-flows/{flow}/test', [\App\Http\Controllers\Api\WaFlowController::class, 'test']);
+                Route::get('wa-flows/{flow}/analytics', [\App\Http\Controllers\Api\WaFlowController::class, 'analytics']);
+                Route::post('wa-flows/{flow}/save-template', [\App\Http\Controllers\Api\WaFlowController::class, 'saveTemplate']);
+                Route::get('wa-flow-templates', [\App\Http\Controllers\Api\WaFlowController::class, 'templates']);
+                Route::post('wa-flow-templates/{template}/use', [\App\Http\Controllers\Api\WaFlowController::class, 'useTemplate']);
+                Route::delete('wa-flow-templates/{template}', [\App\Http\Controllers\Api\WaFlowController::class, 'deleteTemplate']);
                 // Inbound rules (P3)
                 Route::get('wa-inbound', [\App\Http\Controllers\Api\InboundRuleController::class, 'index']);
                 Route::put('wa-inbound/settings', [\App\Http\Controllers\Api\InboundRuleController::class, 'updateSettings']);
@@ -408,6 +413,7 @@ Route::prefix('v1')->group(function () {
             Route::post('integrations/{key}/toggle', [\App\Http\Controllers\Api\IntegrationController::class, 'toggle']);
             Route::post('integrations/meta_lead_ads/oauth', [\App\Http\Controllers\Api\IntegrationController::class, 'metaOauth']);
             Route::post('integrations/meta_whatsapp/oauth', [\App\Http\Controllers\Api\IntegrationController::class, 'whatsappOauth']);
+            Route::post('integrations/meta_whatsapp/connection-check', [\App\Http\Controllers\Api\IntegrationController::class, 'whatsappCheck']);
         });
 
         // Notifications (per-user)

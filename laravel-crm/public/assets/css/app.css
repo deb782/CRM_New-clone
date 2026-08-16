@@ -667,3 +667,20 @@ tbody tr:last-child td { border-bottom: none; }
 .ca-head { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; margin-bottom: 10px; }
 .camp-tpl-preview { margin-top: 8px; background: #E5DDD5; color: #111; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; white-space: pre-wrap; }
 .sim-banner { background: color-mix(in srgb, var(--warm) 15%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warm) 40%, var(--border)); color: var(--text); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; margin-bottom: 14px; }
+
+/* ---- WhatsApp bot analytics + connection check (2026-06) ---- */
+.wa-astats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.wa-astat{background:var(--surface-2,#f6f6f2);border:1px solid var(--line,#e7e7e1);border-radius:14px;padding:14px;text-align:center}
+.wa-astat-n{font-size:26px;font-weight:700;line-height:1}
+.wa-astat-l{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin-top:6px}
+.wa-fn-node{border:1px solid var(--line,#e7e7e1);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.wa-fn-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;margin-bottom:6px}
+.wa-fn-cnt{font-size:11px;color:var(--text-3);font-weight:500}
+.wa-fn-bar{height:8px;background:var(--surface-2,#eee);border-radius:6px;overflow:hidden}
+.wa-fn-fill{height:100%;background:var(--accent,#DFFF00);border-radius:6px;transition:width .5s ease}
+.wa-fn-opt{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-top:6px;padding-left:6px}
+.wa-fn-tap{color:var(--text-3);font-variant-numeric:tabular-nums}
+.wa-tpl-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border:1px solid var(--line,#e7e7e1);border-radius:12px;margin-bottom:8px}
+.fn-opt-list{margin-bottom:8px}
+.ig-check-overall{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ig-check-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line,#e7e7e1)}
