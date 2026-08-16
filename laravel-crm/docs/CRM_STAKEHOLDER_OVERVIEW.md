@@ -63,7 +63,8 @@ This CRM fixes all of the above by putting the **entire customer journey in one 
 - Rules run automatically in the background based on real lead activity.
 
 ### 3.6 Management & governance
-- **Personalised dashboards** with key numbers and pipeline health.
+- **Role-aware dashboards** — every role gets a home screen built for their job: sales teams get a live selling **cockpit** with **AI-written summaries of their top prospects**, a railway-style pipeline map and a personal calendar; management gets a company-wide overview; Accounts, Legal and CRM each get a focused view of collections, agreements and customer success.
+- **AI conversation summaries** — the system reads each hot lead's recent WhatsApp and notes and writes a one-line brief, so reps know where a customer stands before they call.
 - **Full audit log** — who did what, when.
 - **System health** monitoring.
 - **Live "customer journey" tracker** on every lead, showing exactly where they are.

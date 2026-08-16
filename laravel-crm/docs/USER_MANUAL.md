@@ -73,7 +73,12 @@ The CRM has **12 roles**. Each role only sees the menus and actions it needs. He
 Below is every section in simple terms, grouped exactly as they appear in the side menu.
 
 ### 5.1 Overview
-- **Dashboard** — your personalised home screen with key numbers (total leads, hot/warm/cold split, pipeline funnel, recent activity).
+- **Dashboard** — your home screen, **tailored to your role**:
+  - *Sales (BDE / BDM / Sales Head):* a live **cockpit** showing your **Top Prospects** with **AI-written conversation summaries** (a one-line read of each hot lead's latest WhatsApp/notes), a railway-style **Lead Flow Journey** map of your pipeline, this week's **calendar** of tasks and site visits, plus new/hot/open-task/conversion KPIs, a pipeline funnel and a 14-day leads trend. A **BDE** sees only their own leads; a **BDM / Sales Head** sees the whole team's book.
+  - *Admin (Super / Process):* a **company-wide overview** — total leads, hot/warm/cold split, pipeline funnel, top sources, recent leads and integration health. No individual-lead detail.
+  - *Accounts:* a **Collections Overview** — money due, overdue, received this month, pending demand letters, and a table of upcoming/overdue payments.
+  - *Legal:* **Agreements & Documentation** — agreements to sign/register and documents pending verification.
+  - *CRM:* **Customer Success** — active bookings, documents to collect and upcoming follow-ups.
 - **SLA Board** — a "heat board" showing what is due, overdue, or at risk, so nothing slips.
 - **Tasks** — your personal to-do list (follow-ups, calls, reminders).
 
