@@ -82,6 +82,17 @@ class LeadJourneySeeder extends Seeder
             ]);
         }
 
+        // Demo quick-reply buttons on follow-up messages (one-tap customer responses).
+        $btnMap = [
+            'FOLLOWUP_1' => [['label' => 'Book a visit', 'next_code' => 'CONVERTED_OPPORTUNITY'], ['label' => 'Not interested', 'next_code' => 'LOST']],
+            'FOLLOWUP_2' => [['label' => 'Book a visit', 'next_code' => 'CONVERTED_OPPORTUNITY'], ['label' => 'Not interested', 'next_code' => 'LOST']],
+            'FOLLOWUP_3' => [['label' => 'Book a visit', 'next_code' => 'CONVERTED_OPPORTUNITY'], ['label' => 'Not interested', 'next_code' => 'LOST']],
+            'CONTACTED' => [['label' => 'Interested', 'next_code' => 'FOLLOWUP_1'], ['label' => 'Book a visit', 'next_code' => 'CONVERTED_OPPORTUNITY']],
+        ];
+        foreach ($btnMap as $code => $btns) {
+            LeadStatus::where('code', $code)->update(['wa_buttons' => json_encode($btns)]);
+        }
+
         // Remove legacy statuses no longer part of the simplified journey.
         LeadStatus::whereNotIn('code', $keep)->delete();
     }

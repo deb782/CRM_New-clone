@@ -60,7 +60,16 @@ class FlowEngine
                     [$lead->name ?: 'there', explode(' ', trim((string) $lead->name))[0] ?: 'there'],
                     $target->wa_message
                 );
-                app(\App\Services\WhatsAppService::class)->send($lead, $body, 'journey:' . $target->code);
+                $wa = app(\App\Services\WhatsAppService::class);
+                $buttons = collect($target->wa_buttons ?? [])
+                    ->filter(fn ($b) => filled($b['label'] ?? null) && filled($b['next_code'] ?? null))
+                    ->map(fn ($b) => ['id' => 'jrny_' . $b['next_code'], 'title' => $b['label']])
+                    ->values()->all();
+                if (! empty($buttons)) {
+                    $wa->sendInteractive($lead, $body, $buttons, 'journey:' . $target->code);
+                } else {
+                    $wa->send($lead, $body, 'journey:' . $target->code);
+                }
             } catch (\Throwable $e) {
                 Log::warning('Journey WhatsApp send failed for lead ' . $lead->id . ': ' . $e->getMessage());
             }

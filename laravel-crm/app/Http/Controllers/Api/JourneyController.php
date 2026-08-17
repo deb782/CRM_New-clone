@@ -25,6 +25,7 @@ class JourneyController extends Controller
                 'color' => $s->color,
                 'wa_message' => $s->wa_message,
                 'wa_enabled' => (bool) $s->wa_enabled,
+                'wa_buttons' => $s->wa_buttons ?? [],
                 'allowed_next' => $s->allowed_next ?? [],
                 'gate_fields' => $s->gate_fields ?? [],
                 'sla_minutes' => $s->sla_minutes,
@@ -44,6 +45,9 @@ class JourneyController extends Controller
             'wa_message' => 'nullable|string|max:1000',
             'wa_enabled' => 'boolean',
             'color' => 'nullable|string|max:12',
+            'wa_buttons' => 'nullable|array|max:3',
+            'wa_buttons.*.label' => 'required|string|max:20',
+            'wa_buttons.*.next_code' => 'required|string|exists:lead_statuses,code',
         ]);
         $status->fill($data)->save();
         return response()->json(['status' => $status]);
@@ -59,8 +63,13 @@ class JourneyController extends Controller
             return response()->json(['message' => 'No WhatsApp message configured for this status.'], 422);
         }
         $body = str_replace(['{name}', '{first_name}'], [$lead->name ?: 'there', explode(' ', trim((string) $lead->name))[0] ?: 'there'], $status->wa_message);
-        $msg = $wa->send($lead, $body, 'journey:' . $status->code);
-        return response()->json(['ok' => true, 'status' => $msg->status, 'body' => $body]);
+        $buttons = collect($status->wa_buttons ?? [])
+            ->filter(fn ($b) => filled($b['label'] ?? null) && filled($b['next_code'] ?? null))
+            ->map(fn ($b) => ['id' => 'jrny_' . $b['next_code'], 'title' => $b['label']])->values()->all();
+        $msg = ! empty($buttons)
+            ? $wa->sendInteractive($lead, $body, $buttons, 'journey:' . $status->code)
+            : $wa->send($lead, $body, 'journey:' . $status->code);
+        return response()->json(['ok' => true, 'status' => $msg->status, 'body' => $body, 'buttons' => array_column($buttons, 'title')]);
     }
 
     /** Move a lead to a new status, enforcing allow-listed transitions + mandatory gates. */

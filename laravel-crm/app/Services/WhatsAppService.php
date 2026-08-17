@@ -45,7 +45,38 @@ class WhatsAppService
         return $msg;
     }
 
-    /** Import an inbound message (C1.3 / webhook). */
+    /**
+     * Send an interactive message with up to 3 quick-reply buttons.
+     * $buttons: array of ['id'=>string,'title'=>string]. Falls back to text if unsupported.
+     */
+    public function sendInteractive(Lead $lead, string $body, array $buttons, ?string $template = null): WhatsappMessage
+    {
+        if ($lead->do_not_contact || $lead->whatsapp_opt_out) {
+            return WhatsappMessage::create([
+                'lead_id' => $lead->id, 'contact_phone' => $lead->phone, 'direction' => 'outbound',
+                'template' => $template, 'body' => $body, 'status' => 'failed',
+            ]);
+        }
+        $btns = array_slice(array_map(fn ($b) => [
+            'id' => (string) ($b['id'] ?? ''), 'title' => mb_substr((string) ($b['title'] ?? ''), 0, 20),
+        ], $buttons), 0, 3);
+
+        try {
+            $res = $this->driver->sendInteractive((string) $lead->phone, $body, $btns);
+        } catch (\Throwable $e) {
+            // Graceful text fallback so the journey never stalls.
+            $res = $this->driver->send((string) $lead->phone, $body . "\n" . implode("\n", array_map(fn ($b) => '• ' . $b['title'], $btns)), $template);
+        }
+
+        $msg = WhatsappMessage::create([
+            'lead_id' => $lead->id, 'contact_phone' => $lead->phone, 'direction' => 'outbound',
+            'template' => $template, 'body' => $body, 'status' => $res['status'],
+            'provider_id' => $res['provider_id'] ?? null, 'sent_at' => now(),
+        ]);
+        $this->activity->log($lead, 'whatsapp', 'WhatsApp sent', $body, ['template' => $template, 'buttons' => array_column($btns, 'title')]);
+        $this->activity->comm($lead->id, 'whatsapp', 'outbound', $res['status']);
+        return $msg;
+    }
     public function import(Lead $lead, string $body, ?string $providerId = null): WhatsappMessage
     {
         $msg = WhatsappMessage::create([

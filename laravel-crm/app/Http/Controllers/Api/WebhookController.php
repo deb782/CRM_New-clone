@@ -212,6 +212,16 @@ class WebhookController extends Controller
         // Prefer the interactive reply id (matches a bot node option id) over raw text.
         $input = ($reply['id'] ?? '') !== '' ? $reply['id'] : $body;
 
+        // Journey stage quick-reply button tapped (id "jrny_<STATUS_CODE>") → advance the lead's status.
+        if ($lead && is_string($input) && str_starts_with($input, 'jrny_')) {
+            $code = substr($input, 5);
+            if (\App\Models\LeadStatus::where('code', $code)->exists()) {
+                app(\App\Services\FlowEngine::class)->applyStatus($lead, $code, false, null, 'Customer tapped WhatsApp button');
+                $inbox->reply($conv, ['type' => 'text', 'body' => 'Thanks! Noted your response — our team will take it from here. ✅']);
+                return true;
+            }
+        }
+
         // Active bot session → advance it
         $state = $conv->bot_state;
         if (is_array($state) && ! empty($state['flow_id'])) {
