@@ -47,7 +47,8 @@
     <script src="{{ asset('assets/js/email.js') }}?v=21"></script>
     <script src="{{ asset('assets/js/onboarding.js') }}?v=23"></script>
     <script src="{{ asset('assets/vendor/sortable.min.js') }}"></script>
-    <script src="{{ asset('assets/js/journey.js') }}?v=5"></script>
+    <script src="{{ asset('assets/js/journey.js') }}?v=6"></script>
+    <script src="{{ asset('assets/js/journey-msgs.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=4"></script>
     <script src="{{ asset('assets/js/integrations.js') }}?v=6"></script>
@@ -56,6 +57,6 @@
     <script src="{{ asset('assets/js/forms-ui.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/chatbot-ui.js') }}?v=5"></script>
     <script src="{{ asset('assets/js/webcapture.js') }}?v=2"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=35"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=36"></script>
 </body>
 </html>

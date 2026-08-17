@@ -22,6 +22,9 @@ class JourneyController extends Controller
             $stages[$s->stage_key]['statuses'][] = [
                 'code' => $s->code,
                 'display_name' => $s->display_name,
+                'color' => $s->color,
+                'wa_message' => $s->wa_message,
+                'wa_enabled' => (bool) $s->wa_enabled,
                 'allowed_next' => $s->allowed_next ?? [],
                 'gate_fields' => $s->gate_fields ?? [],
                 'sla_minutes' => $s->sla_minutes,
@@ -31,6 +34,33 @@ class JourneyController extends Controller
         }
 
         return response()->json(['stages' => array_values($stages)]);
+    }
+
+    /** Update the customer WhatsApp message / colour for a status (Journey messages editor). */
+    public function updateStatus(Request $request, string $code)
+    {
+        $status = LeadStatus::where('code', $code)->firstOrFail();
+        $data = $request->validate([
+            'wa_message' => 'nullable|string|max:1000',
+            'wa_enabled' => 'boolean',
+            'color' => 'nullable|string|max:12',
+        ]);
+        $status->fill($data)->save();
+        return response()->json(['status' => $status]);
+    }
+
+    /** Send a status's WhatsApp message to one lead now (test / manual broadcast). */
+    public function testMessage(Request $request, string $code, \App\Services\WhatsAppService $wa)
+    {
+        $status = LeadStatus::where('code', $code)->firstOrFail();
+        $data = $request->validate(['lead_id' => 'required|exists:leads,id']);
+        $lead = Lead::findOrFail($data['lead_id']);
+        if (blank($status->wa_message)) {
+            return response()->json(['message' => 'No WhatsApp message configured for this status.'], 422);
+        }
+        $body = str_replace(['{name}', '{first_name}'], [$lead->name ?: 'there', explode(' ', trim((string) $lead->name))[0] ?: 'there'], $status->wa_message);
+        $msg = $wa->send($lead, $body, 'journey:' . $status->code);
+        return response()->json(['ok' => true, 'status' => $msg->status, 'body' => $body]);
     }
 
     /** Move a lead to a new status, enforcing allow-listed transitions + mandatory gates. */

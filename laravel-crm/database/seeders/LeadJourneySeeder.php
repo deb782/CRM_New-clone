@@ -6,96 +6,83 @@ use App\Models\LeadStatus;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeds the 5-stage lead status catalog from the Agrocorp CRM Operating Guidebook.
- * Each status has allow-listed transitions, optional mandatory gates and SLA clocks.
+ * Simplified BDE-led lead journey (Agrocorp demo):
+ *   STAGE 1 Lead Entry -> STAGE 2 Qualification -> STAGE 3 FollowUp -> STAGE 4 Meeting & Site Visit.
+ * Statuses & colours mirror the CRM board. Each status can carry a customer WhatsApp message
+ * that fires automatically on entering the status (see FlowEngine::applyStatus).
  */
 class LeadJourneySeeder extends Seeder
 {
     public function run(): void
     {
-        $laneSla = ['S1' => 120, 'S2' => 1440, 'S3' => 2880, 'S4' => 1440, 'S5' => null];
         $laneName = [
             'S1' => 'Lead Entry',
             'S2' => 'Qualification',
+            'S2F' => 'FollowUp Stage',
             'S3' => 'Meeting & Site Visit',
-            'S4' => 'Booking & Verification',
-            'S5' => 'Customer Lifecycle',
         ];
+        $laneSla = ['S1' => 120, 'S2' => 1440, 'S2F' => 2880, 'S3' => 2880];
 
-        // stage_key, code, display, allowed_next[], sla_minutes, pipeline_slug, gate_fields[], disposition, terminal
+        // stage, code, display, color, next[], pipeline_slug, gate[], disposition, terminal, wa_message
         $rows = [
-            // Stage 1
-            ['S1', 'S1_NEW', 'New Lead', ['S1_REVIEW', 'S1_ASSIGNED', 'S1_DUPLICATE_REVIEW', 'CLOSED_INVALID'], null, 'new_lead', [], null, false],
-            ['S1', 'S1_REVIEW', 'Validation / Routing', ['S1_ASSIGNED', 'S1_DUPLICATE_REVIEW', 'CLOSED_INVALID'], null, 'new_lead', [], null, false],
-            ['S1', 'S1_DUPLICATE_REVIEW', 'Duplicate Review', ['S1_ASSIGNED', 'CLOSED_DUPLICATE'], null, 'new_lead', [], null, false],
-            ['S1', 'S1_ASSIGNED', 'Assigned – Contact Due', ['S1_FIRST_ATTEMPT', 'S1_REASSIGNMENT'], 120, 'contacted', [], null, false],
-            ['S1', 'S1_REASSIGNMENT', 'Reassignment Required', ['S1_ASSIGNED'], null, 'contacted', [], null, false],
-            ['S1', 'S1_FIRST_ATTEMPT', 'First Contact Attempted', ['S2_CONTACTING', 'S2_QUALIFYING', 'S2_NRTY'], null, 'contacted', [], null, false],
+            // STAGE 1 — Lead Entry
+            ['S1', 'NOT_CONTACTED', 'Not Contacted', '#E0A63C',
+                ['CONTACTED', 'JUNK_INVALID', 'NO_RESPONSE', 'LOST'], 'new_lead', [], null, false,
+                'Hi {name}, thank you for your interest in Agrocorp. Our team will reach out to you shortly. 🌱'],
 
-            // Stage 2
-            ['S2', 'S2_CONTACTING', 'Contacting / Profiling', ['S2_QUALIFYING', 'S2_NRTY', 'S2_NURTURE', 'CLOSED_DISQUALIFIED'], 1440, 'contacted', [], null, false],
-            ['S2', 'S2_NRTY', 'NRTY / Retry Programme', ['S2_QUALIFYING', 'S2_NURTURE', 'CLOSED_UNRESPONSIVE'], null, 'contacted', [], null, false],
-            ['S2', 'S2_QUALIFYING', 'Connected – Qualification', ['S2_NURTURE', 'S2_MEETING_PLAN', 'CLOSED_DISQUALIFIED'], 1440, 'interested', [], null, false],
-            ['S2', 'S2_NURTURE', 'Active Nurture', ['S2_QUALIFYING', 'S2_MEETING_PLAN', 'S2_LONG_TERM'], null, 'interested', [], null, false],
-            ['S2', 'S2_MEETING_PLAN', 'Meeting / Visit Planning', ['S2_MEETING_SCHEDULED', 'S2_NURTURE'], null, 'interested', [], null, false],
-            ['S2', 'S2_MEETING_SCHEDULED', 'Meeting / Visit Scheduled', ['S3_HANDOVER_PENDING', 'S3_APPT_CONFIRMED'], null, 'site_visit_scheduled', ['budget_min', 'timeline'], null, false],
-            ['S2', 'S2_LONG_TERM', 'Long-Term Recycle', ['S2_NURTURE', 'S2_QUALIFYING', 'CLOSED_LOST'], null, 'interested', [], 'nurture', false],
+            // STAGE 2 — Qualification (BDE initial call + authenticity check)
+            ['S2', 'CONTACTED', 'Contacted', '#7C5CC4',
+                ['FOLLOWUP_1', 'JUNK_INVALID', 'NO_RESPONSE', 'UNRESPONSIVE', 'CONVERTED_OPPORTUNITY', 'LOST'], 'contacted', [], null, false,
+                'Hi {name}, great speaking with you! We\'ll share the details we discussed and stay in touch.'],
+            ['S2', 'JUNK_INVALID', 'Junk/Invalid', '#7A211B',
+                [], 'not_interested', [], 'lost', true, null],
+            ['S2', 'NO_RESPONSE', 'No Response', '#E08A2B',
+                ['CONTACTED', 'UNRESPONSIVE', 'LOST'], 'no_response', [], null, false, null],
+            ['S2', 'UNRESPONSIVE', 'Unresponsive', '#1B2338',
+                [], 'no_response', [], 'lost', true, null],
 
-            // Stage 3
-            ['S3', 'S3_HANDOVER_PENDING', 'Handover Pending', ['S3_APPT_CONFIRMED', 'S3_RESCHEDULE'], 2880, 'opportunity', [], null, false],
-            ['S3', 'S3_APPT_CONFIRMED', 'Appointment Confirmed', ['S3_MEETING_COMPLETED', 'S3_RESCHEDULE', 'S3_NO_SHOW'], null, 'opportunity', [], null, false],
-            ['S3', 'S3_RESCHEDULE', 'Reschedule in Progress', ['S3_APPT_CONFIRMED', 'S2_MEETING_PLAN'], null, 'opportunity', [], null, false],
-            ['S3', 'S3_NO_SHOW', 'No Show – Recovery', ['S3_RESCHEDULE', 'S3_FOLLOW_UP', 'CLOSED_LOST'], null, 'opportunity', [], null, false],
-            ['S3', 'S3_MEETING_COMPLETED', 'Meeting / Visit Completed', ['S3_COST_SHEET_PREP', 'S3_FOLLOW_UP', 'CLOSED_LOST'], null, 'site_visit_completed', [], null, false],
-            ['S3', 'S3_COST_SHEET_PREP', 'Cost Sheet Preparation', ['S3_COST_SHEET_SHARED'], null, 'negotiation', [], null, false],
-            ['S3', 'S3_COST_SHEET_SHARED', 'Cost Sheet Shared', ['S3_FOLLOW_UP', 'S3_BOOKING_INTENT'], null, 'negotiation', [], null, false],
-            ['S3', 'S3_FOLLOW_UP', 'Commercial Follow-Up / Negotiation', ['S3_COST_SHEET_SHARED', 'S3_BOOKING_INTENT', 'CLOSED_LOST'], null, 'negotiation', [], null, false],
-            ['S3', 'S3_BOOKING_INTENT', 'Booking Intent – Payment Pending', ['S3_PAYMENT_SUBMITTED', 'S3_FOLLOW_UP'], null, 'opportunity', [], null, false],
-            ['S3', 'S3_PAYMENT_SUBMITTED', 'Booking Payment Submitted', ['S4_VERIFY_PENDING'], null, 'opportunity', [], null, false],
+            // STAGE 3 — FollowUp
+            ['S2F', 'FOLLOWUP_1', 'General Follow-Up 1', '#2F6FED',
+                ['FOLLOWUP_2', 'CONVERTED_OPPORTUNITY', 'NO_RESPONSE', 'LOST'], 'interested', [], null, false,
+                'Hi {name}, just following up on your interest in our projects. Would you like to schedule a visit?'],
+            ['S2F', 'FOLLOWUP_2', 'General Follow-Up 2', '#4A9D5B',
+                ['FOLLOWUP_3', 'CONVERTED_OPPORTUNITY', 'NO_RESPONSE', 'LOST'], 'interested', [], null, false,
+                'Hi {name}, we have a few great options that match what you\'re looking for. Shall we set up a site visit?'],
+            ['S2F', 'FOLLOWUP_3', 'General Follow-Up 3', '#D6437F',
+                ['CONVERTED_OPPORTUNITY', 'UNRESPONSIVE', 'LOST'], 'interested', [], null, false,
+                'Hi {name}, a quick final check-in — our advisor would love to show you the site at your convenience.'],
 
-            // Stage 4
-            ['S4', 'S4_VERIFY_PENDING', 'Booking Payment Verification Pending', ['S4_VERIFIED', 'S4_PAYMENT_EXCEPTION'], 1440, 'opportunity', [], null, false],
-            ['S4', 'S4_PAYMENT_EXCEPTION', 'Payment Exception', ['S4_VERIFY_PENDING', 'S3_BOOKING_INTENT', 'CLOSED_LOST'], null, 'opportunity', [], null, false],
-            ['S4', 'S4_VERIFIED', 'Booking Payment Verified', ['S4_HANDOVER_PENDING'], null, 'opportunity', [], null, false],
-            ['S4', 'S4_HANDOVER_PENDING', 'Post-Sales Handover Pending', ['S4_HANDOVER_ACCEPTED'], null, 'opportunity', [], null, false],
-            ['S4', 'S4_HANDOVER_ACCEPTED', 'Post-Sales Handover Accepted', ['S4_CONVERSION_READY'], null, 'opportunity', [], null, false],
-            ['S4', 'S4_CONVERSION_READY', 'Conversion Checks Complete', ['S4_CONVERTED'], null, 'opportunity', [], null, false],
-            ['S4', 'S4_CONVERTED', 'Converted to Customer', ['S5_DOCS_PENDING'], null, 'won', [], null, false],
+            // STAGE 4 — Meeting & Site Visit (site visit booked -> handed to BDM)
+            ['S3', 'CONVERTED_OPPORTUNITY', 'Converted to Opportunity', '#3CBA9A',
+                ['LOST'], 'opportunity', [], null, false,
+                'Hi {name}, your site visit is confirmed! Our team looks forward to meeting you. 📍'],
 
-            // Stage 5
-            ['S5', 'S5_DOCS_PENDING', 'Agreement / KYC Documents Pending', ['S5_LEGAL_REVIEW', 'S5_AGREEMENT_READY'], null, 'won', [], null, false],
-            ['S5', 'S5_LEGAL_REVIEW', 'Legal Review / Revision', ['S5_AGREEMENT_READY', 'S5_DOCS_PENDING'], null, 'won', [], null, false],
-            ['S5', 'S5_AGREEMENT_READY', 'Agreement Ready for Execution', ['S5_AGREEMENT_EXECUTED'], null, 'won', [], null, false],
-            ['S5', 'S5_AGREEMENT_EXECUTED', 'Agreement Executed / Registered', ['S5_PAYMENT_PLAN_ACTIVE'], null, 'won', [], null, false],
-            ['S5', 'S5_PAYMENT_PLAN_ACTIVE', 'Payment Plan Active', ['S5_CURRENT', 'S5_DUE_SOON', 'S5_OVERDUE'], null, 'won', [], null, false],
-            ['S5', 'S5_CURRENT', 'Payments Current', ['S5_DUE_SOON', 'S5_RELATIONSHIP'], null, 'won', [], null, false],
-            ['S5', 'S5_DUE_SOON', 'Instalment Due Soon', ['S5_CURRENT', 'S5_OVERDUE'], null, 'won', [], null, false],
-            ['S5', 'S5_OVERDUE', 'Payment Overdue', ['S5_CURRENT', 'S5_RESTRUCTURE'], null, 'won', [], null, false],
-            ['S5', 'S5_RESTRUCTURE', 'Payment Exception / Restructure Review', ['S5_PAYMENT_PLAN_ACTIVE', 'S5_OVERDUE'], null, 'won', [], null, false],
-            ['S5', 'S5_RELATIONSHIP', 'Ongoing Relationship / Service', [], null, 'won', [], null, false],
-
-            // Terminal dispositions
-            ['S1', 'CLOSED_INVALID', 'Closed – Invalid', [], null, 'not_interested', [], 'lost', true],
-            ['S1', 'CLOSED_DUPLICATE', 'Closed – Duplicate', [], null, 'not_interested', [], 'lost', true],
-            ['S2', 'CLOSED_DISQUALIFIED', 'Closed – Disqualified', [], null, 'not_interested', [], 'lost', true],
-            ['S2', 'CLOSED_UNRESPONSIVE', 'Closed – Unresponsive', [], null, 'no_response', [], 'lost', true],
-            ['S3', 'CLOSED_LOST', 'Closed – Lost', [], null, 'lost', [], 'lost', true],
+            // Global terminal
+            ['S3', 'LOST', 'Lost', '#E0483D', [], 'lost', [], 'lost', true, null],
         ];
 
-        foreach ($rows as $i => [$stage, $code, $name, $next, $sla, $pipe, $gates, $disp, $terminal]) {
+        $keep = [];
+        foreach ($rows as $i => [$stage, $code, $name, $color, $next, $pipe, $gates, $disp, $terminal, $wa]) {
+            $keep[] = $code;
             LeadStatus::updateOrCreate(['code' => $code], [
                 'stage_key' => $stage,
                 'stage_name' => $laneName[$stage],
                 'display_name' => $name,
+                'color' => $color,
+                'wa_message' => $wa,
+                'wa_enabled' => $wa !== null,
                 'sort' => $i,
                 'is_terminal' => $terminal,
                 'disposition' => $disp,
                 'allowed_next' => $next,
                 'gate_fields' => $gates,
-                'sla_minutes' => $sla,
+                'sla_minutes' => null,
                 'pipeline_slug' => $pipe,
                 'lane_sla_minutes' => $laneSla[$stage],
             ]);
         }
+
+        // Remove legacy statuses no longer part of the simplified journey.
+        LeadStatus::whereNotIn('code', $keep)->delete();
     }
 }

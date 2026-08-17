@@ -52,6 +52,20 @@ class FlowEngine
         $lead->status_sla_due_at = null;
         $lead->save();
 
+        // Fire the customer WhatsApp message configured for this status (Step B).
+        if ($target->wa_enabled && filled($target->wa_message) && filled($lead->phone)) {
+            try {
+                $body = str_replace(
+                    ['{name}', '{first_name}'],
+                    [$lead->name ?: 'there', explode(' ', trim((string) $lead->name))[0] ?: 'there'],
+                    $target->wa_message
+                );
+                app(\App\Services\WhatsAppService::class)->send($lead, $body, 'journey:' . $target->code);
+            } catch (\Throwable $e) {
+                Log::warning('Journey WhatsApp send failed for lead ' . $lead->id . ': ' . $e->getMessage());
+            }
+        }
+
         try {
             \App\Models\AuditLog::create([
                 'auditable_type' => Lead::class, 'auditable_id' => $lead->id,

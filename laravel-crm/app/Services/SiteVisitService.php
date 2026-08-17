@@ -16,6 +16,7 @@ class SiteVisitService
         private ActivityService $activity,
         private EmailService $email,
         private WhatsAppService $whatsapp,
+        private FlowEngine $flow,
     ) {}
 
     /** Schedule a site visit (I1.1). Confirmation sent via email + WhatsApp; reminders scheduled. */
@@ -33,8 +34,9 @@ class SiteVisitService
             'confirmation_status' => 'pending',
         ]);
 
-        // Move lead into Site Visit Scheduled stage
-        $this->leads->transition($lead, 'site_visit_scheduled', 'site visit scheduled', true);
+        // Booking a site visit converts the lead to an Opportunity and hands it to a BDM.
+        $this->flow->applyStatus($lead, 'CONVERTED_OPPORTUNITY', false, Auth::id(), 'Site visit booked');
+        $this->handToBdm($lead, $visit);
 
         Task::create([
             'lead_id' => $lead->id,
@@ -47,13 +49,30 @@ class SiteVisitService
         ]);
 
         $when = $visit->scheduled_at->format('D, d M Y · h:i A');
-        $this->whatsapp->send($lead, "Your site visit is confirmed for {$when}. Meeting point: ".($visit->meeting_point ?: 'Sales office').". Reply to reschedule.");
         if ($lead->email) {
             $this->email->send($lead, 'Your site visit is confirmed', "Hi {$lead->name},\n\nWe've scheduled your site visit for {$when}.\nMeeting point: ".($visit->meeting_point ?: 'Sales office')."\n\nSee you there!");
         }
         $this->activity->log($lead, 'system', 'Site visit scheduled', $when);
 
         return $visit->fresh(['project', 'plot', 'assignee']);
+    }
+
+    /** Transfer the lead from a BDE to a Business Development Manager on conversion. */
+    private function handToBdm(Lead $lead, SiteVisit $visit): void
+    {
+        $currentRole = $lead->owner?->role?->slug;
+        if ($currentRole === 'sales_bdm') {
+            return; // already with a BDM
+        }
+        $bdm = \App\Models\User::where('is_active', true)
+            ->whereHas('role', fn ($q) => $q->where('slug', 'sales_bdm'))
+            ->get()
+            ->sortBy(fn ($u) => Lead::where('owner_id', $u->id)->whereNotIn('status', ['won', 'lost', 'not_interested'])->count())
+            ->first();
+        if ($bdm && $lead->owner_id !== $bdm->id) {
+            $lead->forceFill(['owner_id' => $bdm->id])->save();
+            $this->activity->log($lead, 'system', 'Lead transferred to BDM', $bdm->name);
+        }
     }
 
     public function confirm(SiteVisit $visit): SiteVisit

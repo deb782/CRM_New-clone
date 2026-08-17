@@ -172,6 +172,8 @@ Route::prefix('v1')->group(function () {
         // Lead journey status catalog + guarded status transitions (available to all staff)
         Route::get('journey/statuses', [\App\Http\Controllers\Api\JourneyController::class, 'statuses']);
         Route::post('journey/leads/{lead}/transition', [\App\Http\Controllers\Api\JourneyController::class, 'transition']);
+        Route::put('journey/statuses/{code}', [\App\Http\Controllers\Api\JourneyController::class, 'updateStatus'])->middleware('permission:workflow.manage');
+        Route::post('journey/statuses/{code}/test-message', [\App\Http\Controllers\Api\JourneyController::class, 'testMessage'])->middleware('permission:workflow.manage');
 
         // App settings — visit reminder windows
         Route::get('settings/reminders', [\App\Http\Controllers\Api\SettingsController::class, 'reminders']);
