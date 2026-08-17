@@ -1,0 +1,289 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="pdf.css">
+<title>Agrocorp CRM — Setup &amp; Demo Guide</title></head>
+<body>
+
+<section class="cover">
+  <div class="top-mark"><img src="agrocorp-mark.png"><span>Agrocorp&trade;</span></div>
+  <div class="center">
+    <img src="agrocorp-logo.webp">
+    <div class="kicker">Go-Live &amp; Demo Playbook</div>
+    <h1>Set up the system &amp; run the demo</h1>
+    <div class="sub">A complete, click-by-click guide: publish the CRM to your live domain, connect WhatsApp and email, and present the full lead-to-customer journey with confidence.</div>
+    <div class="pill-row"><span class="pill">Deploy</span><span class="pill">Connect</span><span class="pill">Demo</span></div>
+  </div>
+  <div class="foot"><b>How to use this guide:</b> do the parts in order. Do not skip. Replace anything in &lt;angle brackets&gt; with your real value.</div>
+</section>
+
+<div class="rh"><div class="l"><img src="agrocorp-mark.png"><b>Agrocorp CRM</b></div><div class="r">Setup &amp; Demo Guide</div></div>
+
+<h2>Before you begin — the 4 golden rules</h2>
+<p class="lead">Read these once. They prevent 90% of go-live problems.</p>
+<table>
+  <tr><th>#</th><th>Rule</th><th>Why it matters</th></tr>
+  <tr><td>1</td><td>Run <code>php artisan key:generate</code> only <b>once</b>. Never change <code>APP_KEY</code> after that.</td><td>If it changes, all saved integration passwords become unreadable and WhatsApp/email stop working.</td></tr>
+  <tr><td>2</td><td>The website must serve the <code>public</code> folder, not the project root.</td><td>Otherwise you get a blank page or a directory listing.</td></tr>
+  <tr><td>3</td><td>The Meta "Verify Token" must be <b>identical</b> to the one you type in the CRM.</td><td>The webhook won't connect if they differ by even one character.</td></tr>
+  <tr><td>4</td><td>Write down every value you create as you go.</td><td>You'll reuse DB credentials, Meta IDs/tokens and the Gmail app password across steps.</td></tr>
+</table>
+<div class="note"><b>About the screenshots:</b> pictures in this guide show the <b>Agrocorp CRM</b> screens you'll use. Steps that happen on another company's website (Hostinger, Meta/Facebook, Google) are written out click-by-click because those screens live on their sites, not inside the CRM.</div>
+
+<h2 class="sec">What you need ready</h2>
+<ol class="rock">
+  <li>A <strong>Hostinger</strong> plan with <strong>SSH access</strong> (VPS is best; Cloud/Business also work).</li>
+  <li>Your <strong>domain</strong> connected to Hostinger.</li>
+  <li>A terminal on your computer (Windows: <strong>PowerShell</strong>; Mac: <strong>Terminal</strong>).</li>
+  <li>A <strong>Facebook</strong> login and a <strong>Meta Business</strong> account (you can create the Business account during Part E).</li>
+  <li>A <strong>Gmail / Google Workspace</strong> mailbox you control (e.g. crm@yourdomain.com).</li>
+  <li><strong>Your own phone (with WhatsApp) and email</strong> — you'll use these as the "demo customer" so real messages arrive on screen.</li>
+  <li>About <strong>2–3 hours</strong>. Start early — Meta can take a while to approve message templates.</li>
+</ol>
+
+<!-- ============================ PART A ============================ -->
+<h2 class="sec newpage">PART A &mdash; Put the code on Hostinger</h2>
+<p class="lead">Get the application files onto your server and point the website at them.</p>
+
+<div class="step"><div class="t">A1. Turn on SSH and connect <span class="pill">On Hostinger</span></div>
+<ol class="rock">
+  <li>Log into Hostinger and open <strong>hPanel</strong>.</li>
+  <li>Left menu &rarr; <strong>Advanced &rarr; SSH Access</strong>. If disabled, click <strong>Enable</strong>.</li>
+  <li>Write down the <strong>SSH IP/Host</strong>, <strong>Port</strong> (often 65002) and <strong>Username</strong>.</li>
+  <li>On your computer's terminal type, then press Enter:<br><code>ssh -p &lt;Port&gt; &lt;Username&gt;@&lt;Host&gt;</code></li>
+  <li>First time it asks to continue &rarr; type <code>yes</code> &rarr; Enter. Then type your Hostinger password (the characters stay hidden &mdash; that's normal).</li>
+  <li>Go to your domain folder: <code>cd ~/domains/&lt;yourdomain.com&gt;</code> (run <code>ls ~/domains</code> if unsure of the exact name).</li>
+</ol></div>
+
+<div class="step"><div class="t">A2. Copy the project into a folder named <code>app</code></div>
+<p><b>Easiest (GitHub):</b></p>
+<ol class="rock">
+  <li>In the Emergent chat, click <strong>Save to GitHub</strong> and copy the repository URL.</li>
+  <li>On the server run: <code>git clone &lt;your-repo-url&gt; app</code></li>
+  <li>Wait for "done." &mdash; you now have <code>~/domains/&lt;yourdomain.com&gt;/app</code>.</li>
+</ol>
+<p><b>Alternative (ZIP upload):</b> hPanel &rarr; <strong>File Manager</strong> &rarr; open your domain folder &rarr; create a folder <code>app</code> &rarr; <strong>Upload</strong> the ZIP &rarr; right-click &rarr; <strong>Extract</strong>. Confirm <code>artisan</code>, <code>composer.json</code>, <code>public</code> and <code>routes</code> sit directly inside <code>app</code>.</p></div>
+
+<div class="step"><div class="t">A3. Make the website show the <code>public</code> folder <span class="pill">On Hostinger</span></div>
+<ol class="rock">
+  <li>hPanel &rarr; <strong>Websites</strong> &rarr; click your domain &rarr; <strong>Dashboard</strong>.</li>
+  <li>Find <strong>Website root / Document root</strong> (may be under Advanced / Website settings).</li>
+  <li>Set it to: <code>domains/&lt;yourdomain.com&gt;/app/public</code> and <strong>Save</strong>.</li>
+</ol>
+<div class="note"><b>If your plan has no document-root setting</b> (some serve only from <code>public_html</code>): ask Hostinger support to set the web root, or move the project outside <code>public_html</code> and copy the contents of <code>app/public</code> into <code>public_html</code>, editing the two <code>require</code> paths in <code>public_html/index.php</code> to point to <code>../app/vendor/autoload.php</code> and <code>../app/bootstrap/app.php</code>.</div></div>
+
+<!-- ============================ PART B ============================ -->
+<h2 class="sec newpage">PART B &mdash; Install &amp; configure the app</h2>
+<p class="lead">Run every command from inside the project folder: <code>cd ~/domains/&lt;yourdomain.com&gt;/app</code></p>
+
+<div class="step"><div class="t">B1. Install and prepare</div>
+<ol class="rock">
+  <li>Install libraries: <code>composer install --no-dev --optimize-autoloader</code></li>
+  <li>Create the settings file: <code>cp .env.example .env</code></li>
+  <li>Generate the key <b>once</b>: <code>php artisan key:generate</code> (you'll see "Application key set successfully").</li>
+</ol></div>
+
+<div class="step"><div class="t">B2. Create the database <span class="pill">On Hostinger</span></div>
+<ol class="rock">
+  <li>hPanel &rarr; <strong>Databases &rarr; MySQL</strong>.</li>
+  <li>Create a database (e.g. <code>agrocorp_crm</code>), a user (e.g. <code>agrocorp_user</code>) and a strong password.</li>
+  <li>Write down the <b>full names</b> it shows (Hostinger adds a prefix like <code>u123_agrocorp_crm</code>).</li>
+</ol></div>
+
+<div class="step"><div class="t">B3. Fill in the <code>.env</code> file</div>
+<p>Edit <code>.env</code> (<code>nano .env</code> on the server, or File Manager &rarr; Edit). Set at least:</p>
+<pre class="code">APP_NAME="Agrocorp CRM"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://&lt;yourdomain.com&gt;
+APP_TIMEZONE=Asia/Kolkata
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=&lt;full db name&gt;
+DB_USERNAME=&lt;full db user&gt;
+DB_PASSWORD=&lt;db password&gt;
+SESSION_DRIVER=database
+SESSION_SECURE_COOKIE=true
+MAIL_MAILER=log</pre>
+<div class="note">Leave the <code>APP_KEY</code> line exactly as <code>key:generate</code> created it. Keep <code>MAIL_MAILER=log</code> for now &mdash; you'll switch email on from inside the CRM in Part F.</div></div>
+
+<div class="step"><div class="t">B4. Build the database &amp; finish setup</div>
+<ol class="rock">
+  <li>Create tables: <code>php artisan migrate --force</code></li>
+  <li>Load starter data + demo users: <code>php artisan db:seed --force</code></li>
+  <li>Make uploads public: <code>php artisan storage:link</code></li>
+  <li>Fix permissions: <code>chmod -R 775 storage bootstrap/cache</code></li>
+  <li>Speed it up: <code>php artisan config:cache</code> then <code>php artisan route:cache</code></li>
+</ol>
+<div class="note">After any future change to <code>.env</code>, run <code>php artisan config:clear</code> then <code>php artisan config:cache</code>.</div></div>
+
+<!-- ============================ PART C ============================ -->
+<h2 class="sec newpage">PART C &mdash; Turn on HTTPS and the scheduler</h2>
+
+<div class="step"><div class="t">C1. HTTPS (SSL) <span class="pill">On Hostinger</span></div>
+<ol class="rock">
+  <li>hPanel &rarr; <strong>Security &rarr; SSL</strong> &rarr; select your domain &rarr; <strong>Install SSL</strong> (free) &rarr; wait until "Active".</li>
+  <li>Turn on <strong>Force HTTPS</strong> so <code>http://</code> automatically redirects to <code>https://</code>.</li>
+</ol></div>
+
+<div class="step"><div class="t">C2. Cron / scheduler &mdash; REQUIRED for reminders &amp; campaigns <span class="pill">On Hostinger</span></div>
+<ol class="rock">
+  <li>hPanel &rarr; <strong>Advanced &rarr; Cron Jobs</strong> &rarr; <strong>Create</strong>.</li>
+  <li>Frequency: <strong>Every Minute</strong> (or set all five boxes to <code>*</code>).</li>
+  <li>Command (replace the path; run <code>which php</code> to find your PHP path):<br>
+  <code>cd /home/&lt;user&gt;/domains/&lt;yourdomain.com&gt;/app &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code></li>
+  <li>Save.</li>
+</ol>
+<div class="note"><b>Why this matters:</b> without cron, payment reminders, visit reminders and scheduled WhatsApp/email campaigns will never fire.</div></div>
+
+<!-- ============================ PART D ============================ -->
+<h2 class="sec newpage">PART D &mdash; First login &amp; a quick health check</h2>
+<figure><img src="screenshots/login_brand.png"><figcaption>The Agrocorp CRM sign-in screen. If you see this at https://&lt;yourdomain.com&gt;, your deployment is working.</figcaption></figure>
+<ol class="rock">
+  <li>Open <strong>https://&lt;yourdomain.com&gt;</strong> in Chrome or Edge.</li>
+  <li>Sign in with the seeded admin account (email and password are in your credentials file).</li>
+  <li><strong>Immediately change the password:</strong> top-right avatar &rarr; <strong>Account Settings &rarr; Security</strong>.</li>
+</ol>
+<div class="note"><b>Blank page or error?</b> On the server run <code>php artisan config:clear</code>, then read the last lines of <code>storage/logs/laravel.log</code>. Usual causes: website root not pointed at <code>/public</code> (A3), wrong DB details (B3), or unwritable <code>storage</code> (rerun the <code>chmod</code> in B4).</div>
+
+<!-- ============================ PART E ============================ -->
+<h2 class="sec newpage">PART E &mdash; Connect real WhatsApp (fast demo path)</h2>
+<p class="lead">You do <b>not</b> need Business Verification for the demo. Meta gives you a free <b>test number</b> that can message up to 5 phone numbers you verify. Use that.</p>
+
+<div class="step"><div class="t">E1. Create the Meta app <span class="pill">On developers.facebook.com</span></div>
+<ol class="rock">
+  <li>Go to <strong>developers.facebook.com</strong> and log in with Facebook.</li>
+  <li>Top-right &rarr; <strong>My Apps &rarr; Create App</strong>.</li>
+  <li>"What do you want your app to do?" &rarr; choose <strong>Other</strong> &rarr; Next.</li>
+  <li>App type &rarr; <strong>Business</strong> &rarr; Next.</li>
+  <li>Name it <strong>Agrocorp CRM</strong> &rarr; pick your Business account if asked &rarr; <strong>Create app</strong>.</li>
+</ol></div>
+
+<div class="step"><div class="t">E2. Add WhatsApp &amp; copy the credentials</div>
+<ol class="rock">
+  <li>In the app, find the <strong>WhatsApp</strong> product &rarr; click <strong>Set up</strong>.</li>
+  <li>You land on <strong>WhatsApp &rarr; API Setup</strong>. Copy and write down: the <strong>Temporary access token</strong>, the <strong>Phone number ID</strong>, and the <strong>WhatsApp Business Account ID (WABA ID)</strong>.</li>
+  <li>Left menu &rarr; <strong>App settings &rarr; Basic</strong> &rarr; reveal and copy the <strong>App Secret</strong>.</li>
+  <li>Invent a <strong>Verify Token</strong> word, e.g. <code>agrocorp_verify_2026</code>. Write it down.</li>
+</ol></div>
+
+<div class="step"><div class="t">E3. Add YOUR phone as a recipient</div>
+<ol class="rock">
+  <li>On the API Setup screen, open the <strong>"To"</strong> dropdown &rarr; <strong>Manage phone number list</strong>.</li>
+  <li>Enter your WhatsApp number in full international format (e.g. +91XXXXXXXXXX).</li>
+  <li>Enter the confirmation code Meta sends you on WhatsApp. Repeat for teammates (max 5).</li>
+</ol></div>
+
+<div class="step"><div class="t">E4. Enter the credentials in the CRM</div>
+<figure><img src="screenshots/demo_integrations.png"><figcaption>CRM &rarr; Integrations. Open the <b>Meta WhatsApp Cloud</b> card, fill the fields, Save, then use <b>Run connection check</b>.</figcaption></figure>
+<ol class="rock">
+  <li>CRM &rarr; <strong>Integrations</strong> &rarr; open <strong>Meta WhatsApp Cloud</strong>.</li>
+  <li>Fill: <strong>Access Token</strong>, <strong>Phone Number ID</strong>, <strong>WABA ID</strong>, <strong>App Secret</strong>, and <strong>Verify Token</strong> (= <code>agrocorp_verify_2026</code>).</li>
+  <li>Click <strong>Save</strong>, then <strong>Run connection check</strong> &mdash; you want "WhatsApp number verified" to be <b>green</b>.</li>
+  <li>Toggle the integration <strong>ON / Enable</strong>. Templates auto-sync.</li>
+</ol></div>
+
+<div class="step"><div class="t">E5. Set the webhook <span class="pill">On developers.facebook.com</span></div>
+<ol class="rock">
+  <li>Meta app &rarr; <strong>WhatsApp &rarr; Configuration &rarr; Webhook &rarr; Edit</strong>.</li>
+  <li>Callback URL: <code>https://&lt;yourdomain.com&gt;/api/v1/webhooks/whatsapp</code></li>
+  <li>Verify token: <code>agrocorp_verify_2026</code> (exactly as in the CRM) &rarr; <strong>Verify and save</strong>.</li>
+  <li>Under <strong>Webhook fields</strong> &rarr; <strong>Manage</strong> &rarr; <strong>Subscribe</strong> to <code>messages</code>.</li>
+</ol></div>
+
+<div class="step"><div class="t">E6. Create &amp; approve templates</div>
+<figure><img src="screenshots/demo_templates.png"><figcaption>CRM &rarr; WhatsApp Templates. Build a template, click Submit, and wait for status <b>APPROVED</b>. The pre-made <b>hello_world</b> template is always available.</figcaption></figure>
+<ol class="rock">
+  <li>CRM &rarr; <strong>WhatsApp Templates</strong> &rarr; <strong>New template</strong> &rarr; fill name (lowercase_with_underscores), body and buttons &rarr; <strong>Save draft</strong> &rarr; <strong>Submit</strong>.</li>
+  <li>Wait for the status to change to <strong>APPROVED</strong> (click <strong>Sync from Meta</strong> to refresh). Submit any templates you'll demo <b>today</b>.</li>
+  <li>Tip: quick-reply buttons can <b>launch a chatbot</b> &mdash; pick a bot in the button's "Launch bot" dropdown.</li>
+</ol></div>
+
+<!-- ============================ PART F ============================ -->
+<h2 class="sec newpage">PART F &mdash; Connect real email (Gmail)</h2>
+<div class="step"><div class="t">F1. Prepare the mailbox <span class="pill">On myaccount.google.com</span></div>
+<ol class="rock">
+  <li>Go to <strong>myaccount.google.com &rarr; Security</strong>.</li>
+  <li>Turn on <strong>2-Step Verification</strong>.</li>
+  <li>Open <strong>App passwords</strong> &rarr; App: <strong>Mail</strong> &rarr; Device: "Other" &rarr; type "Agrocorp CRM" &rarr; <strong>Generate</strong>. Copy the 16-character password.</li>
+</ol></div>
+<div class="step"><div class="t">F2. Enter it in the CRM</div>
+<ol class="rock">
+  <li>CRM &rarr; <strong>Integrations</strong> &rarr; <strong>Google / SMTP Email</strong>.</li>
+  <li>Host <code>smtp.gmail.com</code>, Port <code>587</code>, Mailbox (your address), App Password (the 16 characters), From Name/Email.</li>
+  <li>Click <strong>Save</strong> &rarr; <strong>Test</strong> (want "SMTP authenticated") &rarr; <strong>Enable</strong>.</li>
+  <li>Real test: use "Forgot password" or add a lead with your email and check your inbox (and spam).</li>
+</ol></div>
+
+<!-- ============================ PART G ============================ -->
+<h2 class="sec">PART G &mdash; Create your demo people</h2>
+<figure><img src="screenshots/demo_users.png"><figcaption>CRM &rarr; Users &amp; Roles. Add the people you'll act as during the demo.</figcaption></figure>
+<ol class="rock">
+  <li>CRM &rarr; <strong>Users &amp; Roles</strong> &rarr; add a <strong>BDE</strong> and a <strong>Sales Head</strong> with real emails you can open.</li>
+  <li>Set memorable demo passwords and write them down.</li>
+  <li>Create the <strong>demo customer lead using your own phone + email</strong> so every WhatsApp/email lands on your devices on screen.</li>
+</ol>
+
+<!-- ============================ PART H ============================ -->
+<h2 class="sec">PART H &mdash; The night before</h2>
+<ol class="rock">
+  <li><strong>WhatsApp office hours:</strong> CRM &rarr; <strong>Inbound Rules</strong> &rarr; set business hours to cover the demo time, or turn office hours off. (Outside hours, bots reply with an "away" message.)</li>
+  <li><strong>Pre-warm the AI dashboard:</strong> log in as a Sales user and open the Dashboard once (the first load is slow ~10–30s, then instant).</li>
+  <li><strong>Templates:</strong> confirm the ones you'll show say <strong>APPROVED</strong>.</li>
+  <li><strong>Full dry-run:</strong> do the whole demo once, end to end, with your phone + email as the customer.</li>
+  <li><strong>Backup:</strong> screen-record the dry-run in case the internet misbehaves.</li>
+</ol>
+
+<!-- ============================ PART I ============================ -->
+<h2 class="sec newpage">PART I &mdash; Run the demo (matches your 12 points)</h2>
+<p class="lead">A smooth order that tells a story from first contact to a paying customer.</p>
+
+<div class="step"><div class="t">1–2. Admin login &amp; team</div>
+<p>Log in as admin and show the company-wide dashboard, then open <strong>Users &amp; Roles</strong> to show the team by department.</p>
+<figure><img src="screenshots/demo_dashboard.png"><figcaption>The dashboard &mdash; a live overview of the whole business (pipeline, hot/warm/cold, sources, integration health).</figcaption></figure></div>
+
+<div class="step"><div class="t">3–4. Project &amp; inventory mapping</div>
+<figure><img src="screenshots/demo_inventory.png"><figcaption>Inventory &mdash; projects, phases and colour-coded plot availability (Available / Held / Booked / Sold).</figcaption></figure></div>
+
+<div class="step"><div class="t">5–6. Integrations &amp; templates</div>
+<p>Open <strong>Integrations</strong> and show WhatsApp + Email connected (green), then show an <strong>APPROVED</strong> WhatsApp template. Optionally show the <strong>WhatsApp Bots</strong> builder.</p>
+<figure><img src="screenshots/demo_bots.png"><figcaption>WhatsApp Bots &mdash; a visual builder with message, buttons, list, capture, <b>Book a visit</b> and agent-handoff steps.</figcaption></figure></div>
+
+<div class="step"><div class="t">7–8. Lead capture &amp; round-robin</div>
+<p>Capture a lead from a source (website form / chatbot, or message your WhatsApp test number from your phone), and add one manually to show <strong>round-robin</strong> auto-assignment to a BDE.</p>
+<figure><img src="screenshots/demo_leads.png"><figcaption>Leads list &mdash; every captured lead with owner, temperature and stage.</figcaption></figure></div>
+
+<div class="step"><div class="t">9–10. BDE works the lead + live comms</div>
+<p>Log in as the BDE, open the <strong>Lead Cockpit</strong>, qualify the lead and <strong>schedule a site visit</strong> &mdash; your phone receives the real WhatsApp confirmation. Show the activity timeline filling with sent messages and automations.</p>
+<figure><img src="screenshots/demo_leadcockpit.png"><figcaption>The full-width Lead Cockpit &mdash; details, qualification, journey, an activity composer (Note / WhatsApp / Email / Call) and the live timeline.</figcaption></figure></div>
+
+<div class="step"><div class="t">11. Pre-sales &rarr; sales &rarr; post-sales</div>
+<p>Move the lead through the stages on the pipeline. Some stages ask for a couple of fields (budget, timeline) &mdash; pre-fill them so nothing blocks you on stage.</p>
+<figure><img src="screenshots/demo_pipeline.png"><figcaption>The pipeline &mdash; drag a lead between stages; transitions follow the business rules.</figcaption></figure></div>
+
+<div class="step"><div class="t">12. Booking, cost sheet &amp; payments</div>
+<ol class="rock">
+  <li>Mark the deal <strong>Won</strong> &rarr; a booking is created and the unit is held/booked.</li>
+  <li>Generate the <strong>cost sheet</strong>, pick a <strong>payment plan</strong>, and record a <strong>payment</strong> &mdash; a serial receipt is produced.</li>
+  <li>To show a payment/visit <strong>reminder instantly</strong> (instead of waiting), an admin can SSH in and run:<br>
+  <code>php artisan crm:reminders</code> (and <code>php artisan crm:email-scheduled</code>, <code>php artisan wa:campaigns:dispatch</code>).</li>
+</ol></div>
+
+<!-- ============================ PART J ============================ -->
+<h2 class="sec newpage">PART J &mdash; If something goes wrong (quick fixes)</h2>
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td>Blank page / HTTP 500</td><td><code>php artisan config:clear</code> then read <code>storage/logs/laravel.log</code>. Usual causes: web root not on <code>/public</code>, wrong DB details, unwritable <code>storage</code>.</td></tr>
+  <tr><td>"419 page expired" at login</td><td><code>APP_URL</code> must be your exact https domain; keep <code>SESSION_SECURE_COOKIE=true</code>; then <code>php artisan config:clear</code>.</td></tr>
+  <tr><td>WhatsApp won't send</td><td>Integrations &rarr; <b>Run connection check</b>. Red number = token expired (regenerate on Meta API Setup) or recipient not in your verified list (E3).</td></tr>
+  <tr><td>Webhook won't verify</td><td>The Verify Token in Meta must exactly match the CRM field; the site must be reachable on https.</td></tr>
+  <tr><td>Reminders/campaigns don't fire</td><td>The cron (C2) is missing or the PHP path is wrong. Run <code>which php</code> and use that full path; test with <code>php artisan crm:reminders</code>.</td></tr>
+  <tr><td>Emails not arriving</td><td>Re-Test SMTP; ensure 2-Step is on and you used the 16-character app password (not your login); check spam.</td></tr>
+  <tr><td>Template stuck PENDING</td><td>Meta is reviewing it; use <code>hello_world</code> meanwhile and click <b>Sync from Meta</b> to refresh.</td></tr>
+  <tr><td>Razorpay / e-sign</td><td>These stay simulated unless you add those provider keys &mdash; narrate them as "mock" for the demo.</td></tr>
+</table>
+<div class="note"><b>Where to get help fast:</b> Hosting steps &rarr; Hostinger 24/7 chat (hPanel &rarr; Help). WhatsApp/Meta &rarr; developers.facebook.com/docs/whatsapp/cloud-api. CRM side &rarr; the Integrations "Run connection check" tells you exactly what's missing.</div>
+
+<div class="foot" style="margin-top:26px"><b>You're ready.</b> Deploy (A–C) &rarr; verify (D) &rarr; connect WhatsApp &amp; email (E–F) &rarr; prep people (G–H) &rarr; present (I). Keep this guide open on a second screen during the demo.</div>
+
+</body></html>
