@@ -250,10 +250,12 @@ class WebhookController extends Controller
                 $inbox->reply($conv, ['type' => 'text', 'body' => 'Please share a date & time (e.g. "Sat 25th, 4 PM") so we can set up your new visit.']);
                 return true;
             }
-            $this->annotateReschedule($lead, $pref);
+            $when = $this->annotateReschedule($lead, $pref);
             $conv->bot_state = null;
             $conv->save();
-            $inbox->reply($conv, ['type' => 'text', 'body' => 'Thank you! ✅ Our team will confirm your new slot shortly.']);
+            $inbox->reply($conv, ['type' => 'text', 'body' => $when
+                ? 'Perfect — we\'ve noted ' . $when->format('D, d M · h:i A') . '. Our team will confirm your new slot shortly. ✅'
+                : 'Thank you! ✅ Our team will confirm your new slot shortly.']);
             return true;
         }
 
@@ -369,19 +371,31 @@ class WebhookController extends Controller
     }
 
     /** Find a WaFlow linked to the quick-reply button the customer just tapped on a recent template. */
-    /** Log the customer's preferred reschedule slot + surface it on the BDM's reschedule task. */
-    private function annotateReschedule(Lead $lead, string $preferred): void
+    /** Parse the customer's preferred slot, stash it on the BDM's reschedule task (proposed_at) for one-tap confirm. */
+    private function annotateReschedule(Lead $lead, string $preferred): ?\Carbon\Carbon
     {
+        $when = $this->parseWhen($preferred);
         try {
-            app(ActivityService::class)->log($lead, 'note', 'Reschedule preference from customer', $preferred);
+            app(ActivityService::class)->log($lead, 'note', 'Reschedule preference from customer', $preferred . ($when ? ' → ' . $when->format('D, d M Y · h:i A') : ''));
             $task = \App\Models\Task::where('lead_id', $lead->id)->whereNull('completed_at')
                 ->where('meta->reschedule', true)->latest()->first();
-            if ($task && $preferred !== '') {
-                $task->update(['title' => 'Reschedule ' . $lead->name . ' — preferred: ' . \Illuminate\Support\Str::limit($preferred, 60)]);
+            if ($task) {
+                $meta = $task->meta ?? [];
+                $meta['preferred_text'] = $preferred;
+                if ($when) {
+                    $meta['proposed_at'] = $when->toIso8601String();
+                }
+                $task->meta = $meta;
+                $task->title = $when
+                    ? 'Confirm reschedule: ' . $lead->name . ' → ' . $when->format('D, d M · h:i A')
+                    : 'Reschedule ' . $lead->name . ' — preferred: ' . \Illuminate\Support\Str::limit($preferred, 50);
+                $task->save();
             }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('annotateReschedule: ' . $e->getMessage());
         }
+
+        return $when;
     }
 
     /** Parse a customer's free-text date/time (e.g. "tomorrow 11am", "25 Dec 4pm"); null if invalid/past. */

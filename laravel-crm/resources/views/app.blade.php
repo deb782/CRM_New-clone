@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/tracker.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v=17">
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v=2">
-    <link rel="stylesheet" href="{{ asset('assets/css/cockpit.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('assets/css/cockpit.css') }}?v=3">
     <link rel="stylesheet" href="{{ asset('assets/css/webcapture.css') }}?v=1">
 </head>
 <body>
@@ -34,7 +34,7 @@
     <script>window.CRM = { API: (location.port === '8000' ? '/api/v1' : '/crm-api/v1'), asset: '{{ asset('assets') }}' };</script>
     <script src="{{ asset('assets/js/api.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v=17"></script>
-    <script src="{{ asset('assets/js/sales-cockpit.js') }}?v=3"></script>
+    <script src="{{ asset('assets/js/sales-cockpit.js') }}?v=4"></script>
     <script src="{{ asset('assets/js/leads.js') }}?v=17"></script>
     <script src="{{ asset('assets/js/datepicker.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/inventory.js') }}?v=12"></script>

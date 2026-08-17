@@ -127,6 +127,24 @@ class SalesDashboardController extends Controller
             $lostQ->where('owner_id', $userId);
         }
 
+        // Pending reschedule requests (customer tapped "Reschedule") with a one-tap proposed slot.
+        $rrQ = Task::whereNull('completed_at')->where('meta->reschedule', true)->with('lead:id,name');
+        if (! $isAll) {
+            $rrQ->where('assigned_to', $userId);
+        }
+        $reschedules = $rrQ->latest()->get()->map(function ($t) {
+            $visit = SiteVisit::where('lead_id', $t->lead_id)->whereIn('status', ['scheduled', 'confirmed', 'rescheduled'])->orderByDesc('scheduled_at')->first();
+            $m = $t->meta ?? [];
+            return [
+                'task_id' => $t->id,
+                'lead_id' => $t->lead_id,
+                'lead_name' => $t->lead?->name,
+                'proposed_at' => $m['proposed_at'] ?? null,
+                'preferred_text' => $m['preferred_text'] ?? null,
+                'visit_id' => $visit?->id,
+            ];
+        })->values();
+
         return [
             'stats' => [
                 'active_opportunities' => (clone $leadQ)->whereNotIn('status_code', ['OPP_WON', 'OPP_LOST', 'OPP_POST_SV_LOST'])->count(),
@@ -138,6 +156,7 @@ class SalesDashboardController extends Controller
             'pipeline' => $this->laneCadence('bdm', $pipeline),
             'upcoming' => $upcoming,
             'engagements' => $engagements,
+            'reschedule_requests' => $reschedules,
             'calendar' => $this->calendarFull($userId, $isAll),
         ];
     }
@@ -179,6 +198,7 @@ class SalesDashboardController extends Controller
             'at' => $v->scheduled_at?->toIso8601String(),
             'title' => 'Site visit · ' . ($v->lead?->name ?? 'Lead'),
             'kind' => 'visit',
+            'visit_id' => $v->id,
             'lead_id' => $v->lead_id,
             'lead_name' => $v->lead?->name,
             'status' => $v->status,

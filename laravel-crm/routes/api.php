@@ -276,6 +276,7 @@ Route::prefix('v1')->group(function () {
         Route::get('site-visits/{siteVisit}', [SiteVisitController::class, 'show']);
         Route::post('site-visits/{siteVisit}/confirm', [SiteVisitController::class, 'confirm']);
         Route::post('site-visits/{siteVisit}/reschedule', [SiteVisitController::class, 'reschedule']);
+        Route::post('reschedules/{task}/confirm', [SiteVisitController::class, 'confirmReschedule'])->middleware('permission:leads.edit');
         Route::post('site-visits/{siteVisit}/checkin', [SiteVisitController::class, 'checkin']);
         Route::post('site-visits/{siteVisit}/checkout', [SiteVisitController::class, 'checkout']);
         Route::post('site-visits/{siteVisit}/complete', [SiteVisitController::class, 'complete']);

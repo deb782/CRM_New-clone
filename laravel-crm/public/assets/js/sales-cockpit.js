@@ -163,9 +163,37 @@
     });
     wrap.appendChild(eng);
 
-    // Full-month calendar — everything on the BDM's plate (visits + tasks).
+    // One-tap reschedule requests (customer tapped "Reschedule"; proposed slot auto-filled from their reply).
+    const rr = d.reschedule_requests || [];
+    if (rr.length) {
+      wrap.appendChild(h('div', { class: 'ck-h2', style: 'margin-top:26px' }, 'Reschedule requests', h('span', { class: 'cnt' }, rr.length)));
+      const box = h('div', { class: 'eng-list', 'data-testid': 'bdm-reschedules' });
+      rr.forEach(r => {
+        const propTxt = r.proposed_at ? when(r.proposed_at) : (r.preferred_text || 'awaiting reply');
+        box.appendChild(h('div', { class: 'eng-row' },
+          h('div', { style: 'min-width:0' }, h('div', { class: 'en-name' }, r.lead_name || 'Lead'), h('div', { class: 'en-mode' }, 'Wants: ' + propTxt)),
+          (r.proposed_at && r.visit_id)
+            ? h('button', {
+                class: 'btn-pill', style: 'width:auto;padding:9px 16px', 'data-testid': 'confirm-resched-' + r.task_id,
+                onclick: async () => {
+                  try { await api.post('/reschedules/' + r.task_id + '/confirm', {}); toast('Rescheduled to ' + when(r.proposed_at), 'success'); renderBDM(view); }
+                  catch (e) { toast(e.message || 'Could not reschedule', 'error'); }
+                }
+              }, 'Confirm ' + when(r.proposed_at))
+            : h('span', { class: 'en-next' }, 'awaiting date')));
+      });
+      wrap.appendChild(box);
+    }
+
+    // Full-month calendar — everything on the BDM's plate (visits + tasks). Drag a visit to another day to reschedule.
     wrap.appendChild(h('div', { class: 'ck-h2', style: 'margin-top:26px' }, 'Your month'));
-    wrap.appendChild(monthCalendar(d.calendar || [], { title: 'This month · visits & tasks' }));
+    wrap.appendChild(monthCalendar(d.calendar || [], {
+      title: 'This month · visits & tasks',
+      onReschedule: async (vid, iso) => {
+        try { await api.post('/site-visits/' + vid + '/reschedule', { scheduled_at: iso, reason: 'Rescheduled from calendar' }); toast('Visit moved', 'success'); renderBDM(view); }
+        catch (e) { toast(e.message || 'Could not move visit', 'error'); }
+      },
+    }));
     CRM.setTitle('Sales Command');
   }
 
@@ -182,6 +210,7 @@
     const pad = (n) => String(n).padStart(2, '0');
     const key = (y, m, d) => y + '-' + pad(m + 1) + '-' + pad(d);
     let selected = key(year, month, today.getDate());
+    let dragVisit = null;
     const head = h('div', { class: 'cal-head' });
     const grid = h('div', { class: 'cal-grid' });
     const agenda = h('div', { class: 'cal-agenda' });
@@ -191,11 +220,19 @@
       const list = (byDate[selected] || []).slice().sort((a, b) => new Date(a.at) - new Date(b.at));
       agenda.appendChild(h('div', { class: 'cal-agenda-h' }, new Date(selected + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })));
       if (!list.length) { agenda.appendChild(h('div', { class: 'cal-none' }, 'Nothing scheduled')); return; }
-      list.forEach(it => agenda.appendChild(h('div', { class: 'cal-item ' + it.kind, 'data-testid': 'cal-item', onclick: () => { if (it.lead_id) location.hash = '#/leads'; } },
-        h('span', { class: 'cal-ic' }, h('i', { class: 'fa-solid ' + (it.kind === 'visit' ? 'fa-location-dot' : 'fa-list-check') })),
-        h('div', { style: 'min-width:0' },
-          h('div', { class: 'cal-it-t' }, it.title),
-          h('div', { class: 'cal-it-m' }, (it.lead_name ? it.lead_name + ' · ' : '') + (it.at ? new Date(it.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''))))));
+      list.forEach(it => {
+        const item = h('div', { class: 'cal-item ' + it.kind + (it.kind === 'visit' && it.visit_id && opts.onReschedule ? ' drag' : ''), 'data-testid': 'cal-item', onclick: () => { if (it.lead_id) location.hash = '#/leads'; } },
+          h('span', { class: 'cal-ic' }, h('i', { class: 'fa-solid ' + (it.kind === 'visit' ? 'fa-location-dot' : 'fa-list-check') })),
+          h('div', { style: 'min-width:0' },
+            h('div', { class: 'cal-it-t' }, it.title),
+            h('div', { class: 'cal-it-m' }, (it.lead_name ? it.lead_name + ' · ' : '') + (it.at ? new Date(it.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''))));
+        if (it.kind === 'visit' && it.visit_id && opts.onReschedule) {
+          item.setAttribute('draggable', 'true');
+          item.addEventListener('dragstart', () => { dragVisit = it; });
+          item.addEventListener('dragend', () => { dragVisit = null; });
+        }
+        agenda.appendChild(item);
+      });
     }
     function render() {
       head.innerHTML = ''; grid.innerHTML = '';
@@ -220,6 +257,18 @@
           if (list.some(x => x.kind === 'visit')) dots.appendChild(h('i', { class: 'v' }));
           if (list.some(x => x.kind === 'task')) dots.appendChild(h('i', { class: 't' }));
           cell.appendChild(dots);
+        }
+        if (opts.onReschedule) {
+          cell.addEventListener('dragover', (e) => { if (dragVisit) { e.preventDefault(); cell.classList.add('cal-drop'); } });
+          cell.addEventListener('dragleave', () => cell.classList.remove('cal-drop'));
+          cell.addEventListener('drop', async (e) => {
+            e.preventDefault(); cell.classList.remove('cal-drop');
+            if (!dragVisit || !dragVisit.visit_id) return;
+            const t = dragVisit.at ? new Date(dragVisit.at) : new Date();
+            const nd = new Date(year, month, d, t.getHours(), t.getMinutes());
+            const vid = dragVisit.visit_id; dragVisit = null;
+            await opts.onReschedule(vid, nd.toISOString());
+          });
         }
         grid.appendChild(cell);
       }
@@ -287,7 +336,13 @@
     const right = h('div', { class: 'dash-right' }, kpiRow,
       funnelCard('Pre-Sales funnel (BDE)', d.funnel_bde || []),
       funnelCard('Opportunity funnel (BDM)', d.funnel_bdm || []),
-      monthCalendar(d.calendar || [], { title: 'This month · site visits & meets' }));
+      monthCalendar(d.calendar || [], {
+        title: 'This month · site visits & meets',
+        onReschedule: async (vid, iso) => {
+          try { await api.post('/site-visits/' + vid + '/reschedule', { scheduled_at: iso, reason: 'Rescheduled from calendar' }); toast('Visit moved', 'success'); renderSalesAdmin(view); }
+          catch (e) { toast(e.message || 'Could not move visit', 'error'); }
+        },
+      }));
 
     wrap.appendChild(h('div', { class: 'dash-grid' }, hero, right));
     CRM.setTitle('Sales Admin Command');

@@ -212,6 +212,9 @@
 .cal-ic { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; font-size:.8rem; }
 .cal-item.visit .cal-ic { background:#EAF0DD; color:#4F5823; }
 .cal-item.task .cal-ic { background:#FDF1DD; color:#B26A00; }
+.cal-item.drag { cursor:grab; }
+.cal-item.drag:active { cursor:grabbing; }
+.cal-cell.cal-drop { outline:2px dashed #4F5823; outline-offset:-3px; background:#F0F1E6; }
 .cal-it-t { font-weight:600; font-size:.88rem; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .cal-it-m { font-size:.75rem; color:#999; }
 .dash-admin2 { font-family:'Manrope',sans-serif; }

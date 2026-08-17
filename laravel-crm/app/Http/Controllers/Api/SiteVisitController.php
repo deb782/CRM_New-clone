@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Lead;
 use App\Models\SiteVisit;
+use App\Models\Task;
 use App\Services\SiteVisitService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -70,6 +71,22 @@ class SiteVisitController extends Controller
     {
         $data = $request->validate(['scheduled_at' => 'required|date', 'reason' => 'nullable|string']);
         return response()->json(['visit' => $this->service->reschedule($siteVisit, $data)]);
+    }
+
+    /** One-tap confirm of a customer-requested reschedule: move the visit to the proposed slot + close the task. */
+    public function confirmReschedule(Task $task)
+    {
+        $meta = $task->meta ?? [];
+        $visit = SiteVisit::where('lead_id', $task->lead_id)->orderByDesc('scheduled_at')->first();
+        if (! $visit) {
+            return response()->json(['message' => 'No site visit found for this lead.'], 422);
+        }
+        if (! empty($meta['proposed_at'])) {
+            $this->service->reschedule($visit, ['scheduled_at' => $meta['proposed_at'], 'reason' => 'Customer-requested reschedule']);
+        }
+        $task->update(['completed_at' => now()]);
+
+        return response()->json(['ok' => true, 'visit' => $visit->fresh()]);
     }
 
     public function checkin(Request $request, SiteVisit $siteVisit)
