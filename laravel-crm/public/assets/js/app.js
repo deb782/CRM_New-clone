@@ -14,6 +14,7 @@
     { label: 'Sales', perm: 'leads.view', items: [
       { route: 'leads', icon: 'fa-users', name: 'Leads' },
       { route: 'pipeline', icon: 'fa-diagram-project', name: 'Pipeline' },
+      { route: 'opportunities', icon: 'fa-bullseye', name: 'Opportunity Pipeline' },
       { route: 'callList', icon: 'fa-phone-volume', name: 'Call List' },
       { route: 'visits', icon: 'fa-calendar-check', name: 'Site Visits' },
       { route: 'inventory', icon: 'fa-building', name: 'Inventory' },
@@ -75,7 +76,7 @@
     ]},
   ];
 
-  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', preview: 'Preview Roles', onboarding: 'Welcome & Setup', workflows: 'Lead Journey Builder', journeyMsgs: 'Journey Stage Messages', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal', profile: 'Account Settings', access: 'Roles & Access', integrations: 'Integrations', reports: 'Reports & Analytics', webforms: 'Website Form Builder', webchatbot: 'Website Chatbot Builder' };
+  const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', opportunities: 'Opportunity Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', preview: 'Preview Roles', onboarding: 'Welcome & Setup', workflows: 'Lead Journey Builder', journeyMsgs: 'Journey Stage Messages', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal', profile: 'Account Settings', access: 'Roles & Access', integrations: 'Integrations', reports: 'Reports & Analytics', webforms: 'Website Form Builder', webchatbot: 'Website Chatbot Builder' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
   applyTheme(localStorage.getItem('crm_theme') || 'light');

@@ -65,6 +65,7 @@ class LeadJourneySeeder extends Seeder
         foreach ($rows as $i => [$stage, $code, $name, $color, $next, $pipe, $gates, $disp, $terminal, $wa]) {
             $keep[] = $code;
             LeadStatus::updateOrCreate(['code' => $code], [
+                'status_group' => 'bde',
                 'stage_key' => $stage,
                 'stage_name' => $laneName[$stage],
                 'display_name' => $name,
@@ -93,7 +94,7 @@ class LeadJourneySeeder extends Seeder
             LeadStatus::where('code', $code)->update(['wa_buttons' => json_encode($btns)]);
         }
 
-        // Remove legacy statuses no longer part of the simplified journey.
-        LeadStatus::whereNotIn('code', $keep)->delete();
+        // Remove legacy statuses no longer part of the simplified journey (BDE group only).
+        LeadStatus::where('status_group', 'bde')->whereNotIn('code', $keep)->delete();
     }
 }

@@ -17,6 +17,7 @@ class SiteVisitService
         private EmailService $email,
         private WhatsAppService $whatsapp,
         private FlowEngine $flow,
+        private EngagementService $engagement,
     ) {}
 
     /** Schedule a site visit (I1.1). Confirmation sent via email + WhatsApp; reminders scheduled. */
@@ -34,35 +35,57 @@ class SiteVisitService
             'confirmation_status' => 'pending',
         ]);
 
-        // Booking a site visit converts the lead to an Opportunity and hands it to a BDM.
-        $this->flow->applyStatus($lead, 'CONVERTED_OPPORTUNITY', false, Auth::id(), 'Site visit booked');
-        $this->handToBdm($lead, $visit);
+        $mode = ($data['mode'] ?? 'site_visit') === 'google_meet' ? 'google_meet' : 'site_visit';
 
+        // BDE conversion: fire the customer booking confirmation, hand the lead to a BDM,
+        // then open the BDM Opportunity pipeline (separate status group).
+        $this->flow->applyStatus($lead, 'CONVERTED_OPPORTUNITY', false, Auth::id(), 'Site visit booked');
+        $bdm = $this->handToBdm($lead, $visit);
+        $lead->refresh();
+        $this->flow->applyStatus($lead, 'OPP_NOT_CONTACTED', false, Auth::id(), 'Entered BDM Opportunity pipeline');
+        $lead->refresh();
+
+        // BDM slot-confirmation task (goes to the BDM now owning the lead).
+        $when = $visit->scheduled_at->format('D, d M Y · h:i A');
+        $modeLabel = $mode === 'google_meet' ? 'Google Meet' : 'site visit';
+        Task::create([
+            'lead_id' => $lead->id,
+            'assigned_to' => $lead->owner_id ?? $visit->assigned_to,
+            'title' => 'Confirm '.$modeLabel.' slot with '.$lead->name.' ('.$when.')',
+            'type' => 'call',
+            'due_at' => now()->addHours(4),
+            'priority' => 'high',
+            'meta' => ['site_visit_id' => $visit->id, 'bdm_handover' => true],
+        ]);
+
+        // Original site-visit execution task (kept for the visit day).
         Task::create([
             'lead_id' => $lead->id,
             'assigned_to' => $visit->assigned_to,
-            'title' => 'Conduct site visit: '.$lead->name,
+            'title' => 'Conduct '.$modeLabel.': '.$lead->name,
             'type' => 'follow_up',
             'due_at' => $visit->scheduled_at,
             'priority' => 'high',
             'meta' => ['site_visit_id' => $visit->id],
         ]);
 
-        $when = $visit->scheduled_at->format('D, d M Y · h:i A');
         if ($lead->email) {
-            $this->email->send($lead, 'Your site visit is confirmed', "Hi {$lead->name},\n\nWe've scheduled your site visit for {$when}.\nMeeting point: ".($visit->meeting_point ?: 'Sales office')."\n\nSee you there!");
+            $this->email->send($lead, 'Your '.$modeLabel.' is confirmed', "Hi {$lead->name},\n\nWe've scheduled your {$modeLabel} for {$when}.\nMeeting point: ".($visit->meeting_point ?: 'Sales office')."\n\nSee you there!");
         }
-        $this->activity->log($lead, 'system', 'Site visit scheduled', $when);
+        $this->activity->log($lead, 'system', ucfirst($modeLabel).' scheduled', $when);
+
+        // Start the every-2-day WhatsApp engagement nudge loop until the appointment / a status change.
+        $this->engagement->start($lead, $visit->scheduled_at, $visit->id, $mode);
 
         return $visit->fresh(['project', 'plot', 'assignee']);
     }
 
     /** Transfer the lead from a BDE to a Business Development Manager on conversion. */
-    private function handToBdm(Lead $lead, SiteVisit $visit): void
+    private function handToBdm(Lead $lead, SiteVisit $visit): ?\App\Models\User
     {
         $currentRole = $lead->owner?->role?->slug;
         if ($currentRole === 'sales_bdm') {
-            return; // already with a BDM
+            return $lead->owner; // already with a BDM
         }
         $bdm = \App\Models\User::where('is_active', true)
             ->whereHas('role', fn ($q) => $q->where('slug', 'sales_bdm'))
@@ -73,6 +96,8 @@ class SiteVisitService
             $lead->forceFill(['owner_id' => $bdm->id])->save();
             $this->activity->log($lead, 'system', 'Lead transferred to BDM', $bdm->name);
         }
+
+        return $bdm ?? $lead->owner;
     }
 
     public function confirm(SiteVisit $visit): SiteVisit

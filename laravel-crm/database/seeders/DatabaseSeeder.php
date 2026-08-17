@@ -37,6 +37,10 @@ class DatabaseSeeder extends Seeder
         $this->inventory($projects);
         $this->channelPartners();
         $this->financeOps();
+        $this->call([
+            LeadJourneySeeder::class,
+            BdmOpportunitySeeder::class,
+        ]);
     }
 
     private function financeOps(): void

@@ -19,3 +19,6 @@ Schedule::command('crm:flow-run')->everyMinute()->withoutOverlapping();
 
 // wa:campaigns:dispatch — send scheduled WhatsApp campaigns
 Schedule::command('wa:campaigns:dispatch')->everyMinute()->withoutOverlapping();
+
+// crm:engagement-nudge — auto WhatsApp appointment nudges (every 2 days until meeting/status change)
+Schedule::command('crm:engagement-nudge')->hourly()->withoutOverlapping();

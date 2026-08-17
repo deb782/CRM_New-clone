@@ -11,13 +11,19 @@ use Illuminate\Http\Request;
 class JourneyController extends Controller
 {
     /** Full status catalog grouped by macro stage — powers the builder + status pills. */
-    public function statuses()
+    public function statuses(Request $request)
     {
-        $all = LeadStatus::orderBy('stage_key')->orderBy('sort')->get();
+        $group = $request->query('group', 'bde'); // bde | bdm | all
+        $q = LeadStatus::orderBy('stage_key')->orderBy('sort');
+        if ($group !== 'all') {
+            $q->where('status_group', $group);
+        }
+        $all = $q->get();
         $stages = [];
         foreach ($all as $s) {
             $stages[$s->stage_key]['key'] = $s->stage_key;
             $stages[$s->stage_key]['name'] = $s->stage_name;
+            $stages[$s->stage_key]['group'] = $s->status_group;
             $stages[$s->stage_key]['sla_minutes'] = $s->lane_sla_minutes;
             $stages[$s->stage_key]['statuses'][] = [
                 'code' => $s->code,
@@ -35,6 +41,48 @@ class JourneyController extends Controller
         }
 
         return response()->json(['stages' => array_values($stages)]);
+    }
+
+    /** BDM Opportunity pipeline board — 13-stage lanes with the leads currently in each stage. */
+    public function opportunityBoard()
+    {
+        $statuses = LeadStatus::where('status_group', 'bdm')->orderBy('stage_key')->orderBy('sort')->get();
+        $leads = Lead::whereIn('status_code', $statuses->pluck('code'))
+            ->with('owner:id,name')
+            ->orderByDesc('updated_at')
+            ->get(['id', 'name', 'phone', 'email', 'status_code', 'owner_id', 'temperature', 'score', 'source', 'project_id', 'updated_at']);
+        $byStatus = $leads->groupBy('status_code');
+
+        $lanes = [];
+        foreach ($statuses as $s) {
+            $laneLeads = ($byStatus[$s->code] ?? collect())->map(fn ($l) => [
+                'id' => $l->id,
+                'name' => $l->name,
+                'phone' => $l->phone,
+                'temperature' => $l->temperature,
+                'score' => $l->score,
+                'source' => $l->source,
+                'owner' => $l->owner?->name,
+                'updated_at' => $l->updated_at?->toIso8601String(),
+            ])->values();
+            $lanes[$s->stage_key]['key'] = $s->stage_key;
+            $lanes[$s->stage_key]['name'] = $s->stage_name;
+            $lanes[$s->stage_key]['statuses'][] = [
+                'code' => $s->code,
+                'display_name' => $s->display_name,
+                'color' => $s->color,
+                'is_terminal' => $s->is_terminal,
+                'disposition' => $s->disposition,
+                'allowed_next' => $s->allowed_next ?? [],
+                'count' => $laneLeads->count(),
+                'leads' => $laneLeads,
+            ];
+        }
+
+        return response()->json([
+            'lanes' => array_values($lanes),
+            'total' => $leads->count(),
+        ]);
     }
 
     /** Update the customer WhatsApp message / colour for a status (Journey messages editor). */

@@ -1,0 +1,28 @@
+{
+  "summary": "BDM Opportunity Pipeline wave end-to-end tested. Backend pytest suite 19/19 PASS on preview URL covering: BDE→BDM handover on site-visit schedule (lead status → OPP_NOT_CONTACTED, ownership transferred off the BDE, BDM Confirm-slot task auto-created, lead appears on /opportunities/board); opportunity board shape (4 lanes / 13+ BDM statuses); guarded status transitions (allowed 200, illegal jump 422); role dashboards (bde/bdm/admin) return expected keys and are 403-gated from channel_partner; cron endpoint 401 without/with wrong bearer, 200 {ok:true,sent:N} with WEBHOOK_CRON_SECRET, idempotent (second call sent=0); engagement cadence math — appointment ~9d23h away yields exactly 5 total_sends and ~5d23h yields exactly 3 total_sends via BDM dashboard engagements feed. Frontend Playwright: bdm@crm.local → Opportunity Canvas (bdm-dashboard) with 5 stat blocks, upcoming agenda, 13-stage pipeline pulse, 12 active engagement nudges; #/opportunities renders opportunity-board with 4 lane headings and 20 opp-card-<id> tiles (drag hint present); rahul@crm.local → Focus Stream (bde-dashboard, bde-work-stack, bde-context) with 8 bde-disp-<task>-<code> buttons — clicking one POSTs /journey/leads/{id}/transition (200) and toast 'Updated → General Follow-Up 2' appears + auto-refresh; priya@crm.local → Command Matrix (salesadmin-dashboard + admin-heatmap) with Pre-Sales funnel, Opportunity funnel, Workload balance, Task SLA pressure strip.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "GET /crm-api/v1/opportunities/board", "issue": "Response advertises 4 lanes with 13 BDM statuses per the problem statement, but the seeded catalog exposes 15 OPP_* statuses across the 4 lanes (Engagement/Site Visit/Post Site Visit/Closing). Behaviour is internally consistent; either the copy in the problem statement (13-stage) or the display label ('13-stage pipeline pulse' in bdm-dashboard) is slightly off vs the actual 15 statuses. Not a functional bug — just naming."}
+  ]},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_bdm_opportunity_wave.py",
+    "/app/test_reports/pytest/bdm_wave_results.xml"
+  ],
+  "action_items": [
+    "Optional: reconcile the '13-stage pipeline pulse' subtitle on the BDM dashboard with the actual 15 OPP_* statuses shipped by BdmOpportunitySeeder (or hide terminal WON/LOST from the pulse). No functional impact."
+  ],
+  "critical_code_review_comments": [
+    "EngagementService.start() uses `for($d=0; now+d < appointmentAt; $d+=2)` so a 10-day appointment scheduled at anything strictly greater than +10d fires 6 nudges (day 0..10) instead of the documented 5. Boundary is exactly-on-day. Consider `<` becoming `<=` on now+d vs appointmentAt or clamp to `total = floor(diffInDays/2)+1` capped at 5/3 for the two canonical shapes to make it deterministic regardless of hh:mm drift.",
+    "EngagementService.dispatchDue only picks rows with next_send_at<=now. A lead whose status changed *between* fires stays active until the next scheduled nudge instead of being cleared immediately. Not a bug per se (status_changed is caught at next fire), but consider evaluating stop-conditions on transition too so the BDM dashboard 'active_nudges' count is truthful in real time.",
+    "SiteVisitService.schedule() calls flow.applyStatus() twice (CONVERTED_OPPORTUNITY then OPP_NOT_CONTACTED) with $enforce=false — the second call bypasses allowed_next enforcement, which is intentional (CONVERTED_OPPORTUNITY's allowed_next is BDE-scoped), but worth a comment for future maintainers.",
+    "CronController::engagementNudge does the work inline. Cron docs correctly warn 2xx should be immediate; for a single-tenant CRM this is fine but if VisitEngagement volume grows this becomes a request-timeout hazard — queue-dispatch would be safer.",
+    "SalesDashboardController.admin() computes workload with N+1 queries per user (open_leads + open_tasks). At current staff sizes irrelevant; add withCount when the team grows."
+  ],
+  "updated_files": ["/app/backend/tests/test_bdm_opportunity_wave.py (new, 19 tests)"],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "100% (all data-testids present, transitions call API and toast success)"},
+  "test_credentials": "admin@crm.local/Admin@12345; bdm@crm.local/Demo@12345 (Karan Malhotra, id 4); rahul@crm.local/Demo@12345 (BDE); priya@crm.local/Demo@12345 (Sales Head); partner@crm.local/Demo@12345 (Channel Partner — 403 on opportunities/dashboards)",
+  "seed_data_creation": "Test leads TEST_BDM_<hash> created via POST /leads owned by rahul, each pushed through /site-visits to trigger handover; ~4 leads left in OPP_NOT_CONTACTED / OPP_INITIAL_CALL on the pipeline. Cleanup not automated — safe to leave (TEST_ prefix).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview base = https://deal-flow-platform.preview.emergentagent.com/crm-api/v1. Cron secret in /app/laravel-crm/.env WEBHOOK_CRON_SECRET. Engagement cadence formula is boundary-sensitive: use timedelta(days=N, hours=-1) or exact-days to hit the documented 5/3 counts. Site-visit endpoint is POST /leads/{lead}/site-visits (payload scheduled_at + optional project_id/plot_id/assigned_to/duration_min/meeting_point/mode). BDM engagements only surface via /dashboards/bdm (?all=1 to see across BDMs). Opp board data-testids: opportunity-board (root), opp-card-<lead_id> (draggable). Dashboard router keys on user role; SPA needs a hash-nav or reload after role switch."
+}

@@ -1,121 +1,95 @@
 {
-  "theme_strategy": {
-    "theme_type": "light",
-    "rationale": "App is an established internal ops tool/CRM (Agrocorp CRM) with a predefined warm off-white and near-black identity. Maintains high focus, clarity, and reading comfort for data-dense dashboards."
-  },
   "typography": {
-    "font_family": "Manrope, sans-serif",
-    "rules": {
-      "headings": "font-weight: 800; letter-spacing: -0.02em; color: var(--color-near-black);",
-      "body": "font-weight: 500; letter-spacing: 0em; color: var(--color-gray-700);",
-      "labels": "text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; color: var(--color-gray-500);",
-      "h1": "font-size: clamp(2rem, 4vw, 2.5rem); line-height: 1.1;",
-      "h2": "font-size: 1.5rem; line-height: 1.2;",
-      "h3": "font-size: 1.125rem; line-height: 1.3;",
-      "body_base": "font-size: 0.875rem; line-height: 1.5;",
-      "small": "font-size: 0.75rem; line-height: 1.4;"
+    "font_family": "'Manrope', sans-serif",
+    "hierarchy": {
+      "h1_hero": { "size": "3.5rem", "weight": "300", "letter_spacing": "-0.03em", "line_height": "1.1", "description": "Used for massive SLA numbers or primary dashboard greetings." },
+      "h2_section": { "size": "1.75rem", "weight": "600", "letter_spacing": "-0.02em", "line_height": "1.2", "description": "Main section headers." },
+      "h3_card": { "size": "1.25rem", "weight": "700", "letter_spacing": "-0.01em", "line_height": "1.3", "description": "Card titles and Lead names." },
+      "body_base": { "size": "1rem", "weight": "500", "letter_spacing": "normal", "line_height": "1.6", "description": "Standard list items and contexts." },
+      "table_header": { "size": "0.75rem", "weight": "400", "letter_spacing": "0.08em", "line_height": "1", "text_transform": "uppercase", "description": "Strictly for column headers and micro-labels." }
     }
   },
   "colors": {
-    "css_variables": {
-      "--color-bg": "#F9F8F6",
-      "--color-surface": "#FFFFFF",
-      "--color-surface-hover": "#F2F0EA",
-      "--color-near-black": "#111111",
-      "--color-gray-900": "#1C1C1C",
-      "--color-gray-700": "#4A4A4A",
-      "--color-gray-500": "#8A8A8A",
-      "--color-gray-200": "#E5E5E5",
-      "--color-lime": "#B4ED21",
-      "--color-lime-hover": "#A2D81B",
-      "--color-powder-blue": "#B0D0FF",
-      "--color-powder-blue-hover": "#98C0FA",
-      "--color-railway-track": "#111111",
-      "--color-railway-orange": "#FF7A00",
-      "--color-danger": "#FF4B4B"
-    }
+    "background": { "main": "#F5F5F2", "description": "Warm off-white, editorial feel. Never use pure white for the main body." },
+    "surface": { "main": "#FFFFFF", "hover": "#FAFAFA", "description": "Flat white for cards. No transparency, no glassmorphism." },
+    "text": { "primary": "#111111", "secondary": "#666666", "tertiary": "#999999", "description": "Near-black for extreme contrast, greys for metadata." },
+    "brand": { "olive": "#4F5823", "olive_light": "#E9EDD9", "description": "Core brand color. Used for progress bars, active states, and heatmaps." },
+    "accent": { "lime": "#CCFF00", "description": "Electric lime. HIGHLY RESTRICTED. Use ONLY for urgent SLA breaches, 'Due Now' indicators, and primary 'Wow' moment calls-to-action." },
+    "status": { "danger": "#FF3B30", "warning": "#FF9500", "success": "#34C759", "description": "Use sparingly. Prefer brand olive and accent lime for the UI language." }
   },
   "visual_enhancers": {
-    "borders": "1px solid var(--color-gray-200)",
-    "border_radius": {
-      "card": "12px",
-      "button": "8px",
-      "pill": "9999px"
-    },
     "shadows": {
-      "card": "0 2px 10px rgba(17, 17, 17, 0.03), 0 4px 20px rgba(17, 17, 17, 0.02)",
-      "hover": "0 8px 30px rgba(17, 17, 17, 0.06)"
+      "card": "none",
+      "card_border": "1px solid rgba(17, 17, 17, 0.06)",
+      "dropdown": "0 10px 40px rgba(0, 0, 0, 0.08)",
+      "focus_ring": "0 0 0 3px #CCFF00"
     },
-    "spacing": "Use base-4 scale. Generous padding inside cards (24px or 32px) to let data breathe."
+    "radii": {
+      "card": "18px",
+      "pill": "9999px",
+      "input": "8px",
+      "tag": "6px"
+    },
+    "textures": "None. Keep surfaces perfectly flat and matte to maintain the editorial print aesthetic."
+  },
+  "component_patterns": {
+    "pill_button": {
+      "css": "background: #111; color: #FFF; border-radius: 9999px; padding: 0.75rem 1.5rem; font-weight: 600; font-family: 'Manrope'; transition: transform 0.2s ease, background 0.2s ease;",
+      "hover": "background: #4F5823; transform: translateY(-1px);"
+    },
+    "table_header_cell": {
+      "css": "text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; font-weight: 400; color: #666; border-bottom: 1px solid rgba(17,17,17,0.1); padding-bottom: 0.75rem;"
+    },
+    "metric_block": {
+      "css": "display: flex; flex-direction: column; gap: 0.25rem;",
+      "structure": "Top: Lightweight uppercase label. Bottom: Massive ultra-light number (e.g., font-weight: 300; font-size: 3rem)."
+    }
   },
   "layouts": {
-    "grid_system": "CSS Grid for the main dashboard wrapper. 12-column layout.",
-    "container_css": "display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; padding: 32px; max-width: 1600px; margin: 0 auto;",
-    "regions": {
-      "kpi_row": "grid-column: span 12; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;",
-      "middle_left_pipeline": "grid-column: span 8;",
-      "middle_right_graphs": "grid-column: span 4; display: grid; grid-template-rows: 1fr 1fr; gap: 24px;",
-      "bottom_left_prospects": "grid-column: span 8;",
-      "bottom_right_calendar_activity": "grid-column: span 4; display: grid; grid-template-rows: auto auto; gap: 24px;"
+    "bde_presales_dashboard": {
+      "name": "The Focus Stream",
+      "structure": "3-Column Asymmetric Grid (250px | 1fr | 300px)",
+      "left_column": "Daily Stats (Cards: Calls Due, Contacted Today, Conversions).",
+      "center_column": "The 'Due Now' Work Stack. Not a table. A vertical feed of tasks sorted strictly by time-to-breach.",
+      "right_column": "Context Panel. Loads dynamically based on the active lead in the center column. Shows score, source, and 1-tap collateral buttons.",
+      "wow_factor": "The 'Active Lead' focus card. The top lead in the center column expands automatically into a large, prominent card. It features a massive ticking SLA timer in Electric Lime, a bold lead name, and three massive black pill buttons for 1-tap disposition (Contacted, No Response, Invalid) that trigger a smooth slide-away animation upon click."
+    },
+    "bdm_sales_dashboard": {
+      "name": "The Opportunity Canvas",
+      "structure": "2-Row Split (Top: 300px Fixed | Bottom: 1fr)",
+      "top_row": "Today's Agenda. A horizontally scrolling flex row of 'Confirmed Booking / Meet' cards. High contrast (Black cards with white text) to differentiate from the pipeline.",
+      "bottom_row": "The 13-Stage Pipeline.",
+      "wow_factor": "The 'Pipeline Pulse'. Since 13 stages are too wide for a standard view, build a horizontally scrolling canvas using CSS scroll-snap. The cards inside the pipeline are NOT generic boxes; they are dense, flat strips. Each strip features an 'Aging Line' at the bottom (a border-bottom that changes from Olive to Lime to Red as the lead ages in that stage without movement) and a pulsing dot if the WhatsApp engagement loop is currently active."
+    },
+    "admin_dashboard": {
+      "name": "The Command Matrix",
+      "structure": "Bento Grid Layout (CSS Grid: auto-rows: minmax(200px, auto); gap: 24px;)",
+      "top_half": "Left: Conversion Funnel. Right: Workload Balance (BDE vs BDM).",
+      "bottom_half": "Full width: Stage-Aging Heatmap.",
+      "wow_factor": "The 'Gravity Heatmap'. A pure CSS Grid matrix displaying the 13 pipeline stages (Y-axis) against aging days (X-axis). The cells use dynamic background colors mapped to the Olive brand color scale (e.g., #E9EDD9 for low volume, #4F5823 for high volume). Hovering over a cell dims the rest of the board (using CSS :has() or vanilla JS) to instantly highlight exactly where deals are getting stuck."
     }
   },
-  "widgets": {
-    "kpi_cards": {
-      "layout": "Minimalist rectangular cards. No thick shadows, rely on 1px borders.",
-      "structure": "Top: Label + Icon. Middle: Massive Number (font-weight: 800, text-4xl). Bottom: Delta pill (Lime for positive +X%, Gray for neutral).",
-      "hover": "Subtle Y-axis lift (transform: translateY(-2px)) and shadow increase."
-    },
-    "top_prospects": {
-      "layout": "List-view inside a card. Each row is highly dense but clear.",
-      "row_structure": "Left: Avatar & Name. Middle: 1-2 line AI Chat Summary (italicized, powder-blue background block). Right: Score (Lime pill if > 80), Temperature badge, and 'Open Cockpit' action.",
-      "ai_summary_styling": "background: rgba(176, 208, 255, 0.2); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: var(--color-gray-900); border-left: 3px solid var(--color-powder-blue);"
-    },
-    "railway_pipeline_map": {
-      "concept": "Render the CRM sales funnel as a technical railway signalling map.",
-      "background": "Dark block (var(--color-near-black)) to mimic a control terminal, creating massive contrast against the off-white dashboard.",
-      "css_rules": {
-        "container": "background: #111; padding: 32px 24px; border-radius: 12px; overflow-x: auto; display: flex; align-items: center; color: white;",
-        "track_line": "height: 3px; background: #4A4A4A; flex-grow: 1; position: relative;",
-        "station_node": "display: flex; flex-direction: column; align-items: center; position: relative; z-index: 2;",
-        "station_block": "background: var(--color-railway-orange); color: #111; padding: 4px 10px; font-size: 0.75rem; font-weight: 800; border-radius: 2px; text-transform: uppercase; letter-spacing: 1px;",
-        "lead_count": "color: var(--color-lime); font-size: 1.25rem; font-weight: 800; font-family: monospace; margin-top: 8px;"
-      }
-    },
-    "calendar_tasks": {
-      "layout": "Compact 7-day strip (Weekly view) instead of a massive monthly grid.",
-      "interaction": "Clicking a day chip updates the task list below it.",
-      "styling": "Selected day chip: background var(--color-lime), color var(--color-near-black). Task items: small card strips with powder-blue left borders for site visits, gray for calls."
-    },
-    "graphs": {
-      "layout": "Card-based containers.",
-      "pipeline_funnel": "Horizontal stacked bars. Use Lime, Powder Blue, and neutral grays.",
-      "leads_over_time": "Minimalist trend line. Line color: Lime. Area under curve: linear-gradient(Lime to transparent). Hide axis grids for a cleaner look."
-    },
-    "activity_feed": {
-      "layout": "Vertical timeline line. Nodes for each activity.",
-      "styling": "Left border 2px solid var(--color-gray-200). Padding-left 16px. Use powder-blue for email icons, lime for whatsapp/chat."
-    }
+  "motion": {
+    "philosophy": "Editorial and snappy. No bouncy animations. Everything should feel like pages turning or crisp slides.",
+    "hover_state": "transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);",
+    "disposition_action": "When a BDE clicks 'Contacted', the lead card should shrink slightly (transform: scale(0.98)), fade to 0 opacity over 200ms, and collapse its height to 0 to smoothly pull the next lead up into focus."
   },
-  "micro_interactions": {
-    "buttons": "transition: all 0.2s ease; On hover: scale(1.02) for primary actions.",
-    "list_rows": "hover:bg-var(--color-surface-hover) transition-colors duration-150.",
-    "loading_states": "Use skeleton loaders with a subtle shimmer effect (linear-gradient animation) using the powder-blue color at 10% opacity."
+  "accessibility": {
+    "contrast": "Ensure the near-black text on off-white backgrounds meets AAA standards. Electric Lime text MUST only be used on dark/black backgrounds for legibility, or as thick borders/icons on light backgrounds.",
+    "focus": "All interactive elements must have a 2px solid #CCFF00 outline on :focus-visible."
   },
-  "instructions_to_main_agent": [
-    "CRITICAL: The tech stack is Vanilla JS SPA with Laravel Blade. DO NOT use React, Vue, or Tailwind. You must use native CSS or the existing app.css file.",
-    "DOM rendering is handled via `CRM.el(tag, attributes, children)` helper in `dashboard.js`. Write your component logic utilizing this helper.",
-    "Add styles to `/app/laravel-crm/public/assets/css/app.css`. Use CSS custom properties defined in `colors.css_variables`.",
-    "Build the 'Railway Pipeline Map' exactly as described using HTML/CSS (divs and flexbox). No canvas or SVGs required, simple pseudo-elements and flex gaps will achieve the SimSig UI look.",
-    "Ensure `data-testid` attributes are passed in the `attributes` object of `CRM.el()` for all interactive elements (e.g., `data-testid=\"kpi-card-hot-leads\"`).",
-    "DO NOT alter the predefined color palette. Maintain the 'Agrocorp CRM' brand: Off-white background, Lime and Powder Blue accents, Manrope font."
-  ],
+  "instructions_to_main_agent": {
+    "tech_stack_enforcement": "Build the layouts and components using PURE HTML, CSS, and Vanilla JavaScript. DO NOT use React, Vue, Tailwind, or Shadcn. The project is an existing Laravel Blade + Vanilla JS SPA.",
+    "styling_approach": "Create a scoped CSS file or style block utilizing semantic class names (e.g., .crm-board, .crm-card, .btn-pill, .stat-hero). Use CSS Grid for the layouts. Use CSS variables for the color palette defined above.",
+    "interactivity": "Implement the 'Wow Factors' using vanilla JS DOM manipulation (e.g., adding/removing 'is-active' classes, handling click events for the disposition buttons to animate their removal from the DOM).",
+    "empty_states": "Design beautiful empty states for the BDE Work Stack ('Queue Clear - Excellent Work') using large, light Manrope typography and a subtle Olive-tinted icon."
+  },
   "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
-    "You tend to converge toward generic, 'on distribution' outputs. Avoid this.",
-    "Do not use generic centered layouts or muddy gradients.",
-    "Never use purely transparent backgrounds on overlays/dropdowns.",
-    "Enforce high contrast (APCA compliant) for text.",
-    "Use 2-3x more spacing (padding/margin) than default frameworks to create 'Premium Data Density'.",
-    "Micro-animations are mandatory on hover states (excluding universal 'transition: all').",
-    "Never use placeholder AI emojis for icons. Use SVGs or the project's existing icon set."
+    "Strictly adhere to the established editorial-minimal design system. NO glassmorphism, NO heavy dropshadows, NO gradients.",
+    "The background of the body/main container MUST be #F5F5F2.",
+    "Cards MUST be flat white (#FFFFFF) with an 18px border-radius and a very subtle 1px border (#E5E5E0) rather than a shadow.",
+    "Typography MUST be Manrope. Use extreme weight contrast: very light weights for massive numbers, extra bold for small titles.",
+    "The Electric Lime color (#CCFF00) is your precision scalpel. Use it ONLY to draw the eye to the single most important action or urgent alert on the screen.",
+    "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., `data-testid=\"bde-disposition-contacted-btn\"`, `data-testid=\"bdm-pipeline-column-stage-1\"`)."
   ]
 }

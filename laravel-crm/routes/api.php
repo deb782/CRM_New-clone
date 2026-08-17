@@ -55,6 +55,8 @@ Route::prefix('v1')->group(function () {
         Route::get('email/open/{token}', [\App\Http\Controllers\Api\EmailTrackingController::class, 'open']);
         Route::get('email/click/{token}', [\App\Http\Controllers\Api\EmailTrackingController::class, 'click']);
         Route::get('email/unsubscribe/{token}', [\App\Http\Controllers\Api\EmailTrackingController::class, 'unsubscribe']);
+        // Platform scheduler webhook (Bearer WEBHOOK_CRON_SECRET) — fires the engagement nudge loop.
+        Route::post('cron/engagement-nudge', [\App\Http\Controllers\Api\CronController::class, 'engagementNudge']);
     });
     // Public booking form (token link)
     Route::middleware('throttle:60,1')->group(function () {
@@ -171,6 +173,9 @@ Route::prefix('v1')->group(function () {
 
         // Lead journey status catalog + guarded status transitions (available to all staff)
         Route::get('journey/statuses', [\App\Http\Controllers\Api\JourneyController::class, 'statuses']);
+        // BDM Opportunity pipeline board + role command-center dashboards
+        Route::get('opportunities/board', [\App\Http\Controllers\Api\JourneyController::class, 'opportunityBoard'])->middleware('permission:leads.view');
+        Route::get('dashboards/{role}', [\App\Http\Controllers\Api\SalesDashboardController::class, 'show'])->middleware('permission:leads.view');
         Route::post('journey/leads/{lead}/transition', [\App\Http\Controllers\Api\JourneyController::class, 'transition']);
         Route::put('journey/statuses/{code}', [\App\Http\Controllers\Api\JourneyController::class, 'updateStatus'])->middleware('permission:workflow.manage');
         Route::post('journey/statuses/{code}/test-message', [\App\Http\Controllers\Api\JourneyController::class, 'testMessage'])->middleware('permission:workflow.manage');

@@ -1,0 +1,8 @@
+crons:
+  - name: engagement-nudge
+    description: "Sends the auto WhatsApp appointment nudge (every 2 days until the meeting date or a status change)"
+    cron: "0 * * * *"
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    endpoint: "{{BASE_URL}}/crm-api/v1/cron/engagement-nudge"
+    method: POST
+    enabled: true
