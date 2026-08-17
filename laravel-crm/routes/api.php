@@ -76,6 +76,43 @@ Route::prefix('v1')->group(function () {
         Route::options('public/chatbots/{slug}/{any?}', fn () => response('', 204))->where('any', '.*');
     });
 
+    // --- Channel Partner Portal (separate bearer auth, isolated from staff) ---
+    Route::prefix('cp')->group(function () {
+        Route::middleware('throttle:20,1')->group(function () {
+            Route::post('auth/login', [\App\Http\Controllers\Api\Cp\AuthController::class, 'login']);
+            Route::post('auth/forgot-password', [\App\Http\Controllers\Api\Cp\AuthController::class, 'forgotPassword']);
+            Route::post('auth/reset-password', [\App\Http\Controllers\Api\Cp\AuthController::class, 'resetPassword']);
+        });
+        Route::middleware('cp.auth')->group(function () {
+            Route::get('auth/me', [\App\Http\Controllers\Api\Cp\AuthController::class, 'me']);
+            Route::post('auth/logout', [\App\Http\Controllers\Api\Cp\AuthController::class, 'logout']);
+            Route::post('auth/change-password', [\App\Http\Controllers\Api\Cp\AuthController::class, 'changePassword']);
+
+            Route::get('dashboard', [\App\Http\Controllers\Api\Cp\PortalController::class, 'dashboard']);
+            Route::get('projects', [\App\Http\Controllers\Api\Cp\PortalController::class, 'projects']);
+            Route::get('inventory', [\App\Http\Controllers\Api\Cp\PortalController::class, 'inventory']);
+            Route::get('documents', [\App\Http\Controllers\Api\Cp\PortalController::class, 'documents']);
+            Route::get('profile', [\App\Http\Controllers\Api\Cp\PortalController::class, 'profile']);
+            Route::put('profile', [\App\Http\Controllers\Api\Cp\PortalController::class, 'updateProfile']);
+            Route::post('profile/submit-kyc', [\App\Http\Controllers\Api\Cp\PortalController::class, 'submitKyc']);
+
+            Route::get('leads', [\App\Http\Controllers\Api\Cp\LeadController::class, 'index']);
+            Route::post('leads', [\App\Http\Controllers\Api\Cp\LeadController::class, 'store']);
+            Route::get('leads/{cpLead}', [\App\Http\Controllers\Api\Cp\LeadController::class, 'show']);
+            Route::put('leads/{cpLead}', [\App\Http\Controllers\Api\Cp\LeadController::class, 'update']);
+
+            Route::get('representatives', [\App\Http\Controllers\Api\Cp\RepresentativeController::class, 'index']);
+            Route::post('representatives', [\App\Http\Controllers\Api\Cp\RepresentativeController::class, 'store']);
+            Route::delete('representatives/{representative}', [\App\Http\Controllers\Api\Cp\RepresentativeController::class, 'destroy']);
+
+            Route::get('tickets', [\App\Http\Controllers\Api\Cp\TicketController::class, 'index']);
+            Route::post('tickets', [\App\Http\Controllers\Api\Cp\TicketController::class, 'store']);
+            Route::get('tickets/{ticket}', [\App\Http\Controllers\Api\Cp\TicketController::class, 'show']);
+            Route::post('tickets/{ticket}/reply', [\App\Http\Controllers\Api\Cp\TicketController::class, 'reply']);
+        });
+    });
+
+
     // --- Authenticated ---
     Route::middleware(['auth:sanctum', 'session_ttl'])->group(function () {
         // Always allowed (even when a password change is pending)
@@ -412,6 +449,30 @@ Route::prefix('v1')->group(function () {
         Route::put('partners/{channelPartner}', [ChannelPartnerController::class, 'update'])->middleware('permission:config.manage');
         Route::get('commissions', [ChannelPartnerController::class, 'commissions'])->middleware('permission:config.manage');
         Route::post('bookings/{booking}/commission', [ChannelPartnerController::class, 'decideCommission'])->middleware('permission:config.manage');
+
+        // --- Channel Partner admin management (invite/KYC/leads/documents/tickets) ---
+        Route::middleware('permission:partners.manage')->group(function () {
+            $A = \App\Http\Controllers\Api\Admin\PartnerAdminController::class;
+            Route::get('admin/partners', [$A, 'partners']);
+            Route::post('admin/partners/invite', [$A, 'invite']);
+            Route::get('admin/partners/{partner}', [$A, 'showPartner']);
+            Route::put('admin/partners/{partner}/status', [$A, 'setStatus']);
+            Route::post('admin/partners/{partner}/approve-kyc', [$A, 'approveKyc']);
+
+            Route::get('admin/cp-leads', [$A, 'cpLeads']);
+            Route::post('admin/cp-leads/{cpLead}/accept', [$A, 'acceptCpLead']);
+            Route::post('admin/cp-leads/{cpLead}/reject', [$A, 'rejectCpLead']);
+
+            Route::get('admin/cp-documents', [$A, 'documents']);
+            Route::post('admin/cp-documents', [$A, 'uploadDocument']);
+            Route::delete('admin/cp-documents/{document}', [$A, 'deleteDocument']);
+
+            Route::get('admin/cp-tickets', [$A, 'tickets']);
+            Route::get('admin/cp-tickets/{ticket}', [$A, 'ticket']);
+            Route::post('admin/cp-tickets/{ticket}/reply', [$A, 'replyTicket']);
+            Route::put('admin/cp-tickets/{ticket}/status', [$A, 'setTicketStatus']);
+        });
+
 
         Route::get('sequences', [SequenceController::class, 'index']);
         Route::get('templates', [TemplateController::class, 'index']);

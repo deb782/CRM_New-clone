@@ -1,0 +1,36 @@
+{
+  "summary": "Channel Partner module: comprehensive backend + frontend testing. 27/27 pytest tests PASS covering separate CP auth, auth isolation (both directions + bogus token), portal dashboard/leads/reps/inventory/documents/profile/KYC/tickets, admin invite/approve-kyc/set-status, cp-leads accept-into-CRM bridge with double-accept (422) and reject-requires-reason (422), admin docs upload/delete, admin tickets reply+status, and RBAC (process_admin=200 vs BDE=403). Frontend portal at /partner logs in with cp@partner.local, dashboard shows stats + recent leads, submit-new-lead form (customer_name+phone) creates a cp_lead visible in list with success toast 'Lead submitted to our team'. Admin SPA nav 'PARTNERS' group renders Partner Onboarding/Leads/Documents/Support pages at #/cpPartners, #/cpLeadsAdmin, #/cpDocs, #/cpTicketsAdmin with all documented data-testids (cp-invite, cp-approve-{id}, cp-suspend-{id}, cpl-accept-{id}, cpl-reject-{id}, cpd-upload, cpd-del-{id}, cpt-open-{id}). BDE rahul does NOT see the Partners admin nav items and direct URL to cpPartners shows 'This action is unauthorized' (403).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Partner portal login (cp.blade.php / cp-portal.js)", "issue": "Wrong-password submit produces a backend 401 but NO visible error message is rendered to the user — the login form silently stays put. No .error / [role=alert] element is emitted. Users have no feedback that credentials are wrong.", "selector": "[data-testid=\"cp-login-submit\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_channel_partner.py",
+    "/app/test_reports/pytest/cp_results.xml"
+  ],
+  "action_items": [
+    "Show an inline error / toast on the partner portal login screen when POST /cp/auth/login returns 401 (currently silent — only visible in browser devtools)."
+  ],
+  "critical_code_review_comments": [
+    "CpAuth middleware rejects non-approved partners with 403 — good; combined with SlidingSession/CheckPermission guards this correctly enforces the 2-tier auth separation. Verified: partner token on /crm-api/v1/dashboard = 401, staff token on /crm-api/v1/cp/dashboard = 401, bogus token = 401.",
+    "acceptCpLead is properly idempotent: second call on a converted lead returns 422 with a clear message; reject validates reason (required|string|max:300) — both endpoints return the correct status codes.",
+    "Invite endpoint response still exposes temp_password in JSON — acceptable for preview but should be gated to non-production env or removed before prod release."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_channel_partner.py (new)"
+  ],
+  "success_rate": {"backend": "100% (27/27)", "frontend": "~95% (1 minor UX issue: silent login error)"},
+  "test_credentials": "cp@partner.local / Partner@12345 (portal); admin@crm.local / Admin@12345; process@crm.local / Demo@12345; rahul@crm.local / Demo@12345",
+  "seed_data_creation": "Created TEST_ CP leads (TEST_CP_LEAD Alice, TEST_Bridge Accept, TEST_Bridge Reject, UI Test Alice) via portal; invited TEST InviteCo partner (VV/CP/003); created TEST_Ticket - portal ticket (resolved). CP lead ids 5-8 range are used by the acceptance/rejection tests each run — fresh leads submitted per run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview API base = /crm-api/v1. CP portal API base = /crm-api/v1/cp. Portal SPA at /partner (token in localStorage['cp_token']). CP lead required fields: customer_name + phone (NOT 'name'). CP ticket required: subject + body (NOT 'message'). Admin invite required: name + contact_name + contact_email + phone. Admin routes are /admin/partners, /admin/partners/{id}/status (approved|suspended|pending), /admin/partners/{id}/approve-kyc, /admin/cp-leads, /admin/cp-leads/{id}/accept, /admin/cp-leads/{id}/reject (reason required), /admin/cp-documents (multipart title+file+active), /admin/cp-tickets/{id}/reply (body), /admin/cp-tickets/{id}/status (open|in_progress|resolved|closed). SPA routes: #/cpPartners, #/cpLeadsAdmin, #/cpDocs, #/cpTicketsAdmin (NOT /#/admin/partners).",
+  "rca of the issue": "Silent login error on partner portal: cp-portal.js login handler does not render a visible error node when fetch returns 401. Fix: catch !ok and append an inline .cp-login-error span (or toast) so the user knows credentials are wrong. Reproduction: /partner, cp@partner.local / WrongPass → click cp-login-submit → nothing visibly happens; network tab shows 401."
+}

@@ -54,6 +54,10 @@
     { label: 'Partners', perm: 'config.manage', items: [
       { route: 'partners', icon: 'fa-handshake', name: 'Channel Partners' },
       { route: 'commissions', icon: 'fa-hand-holding-dollar', name: 'Commissions' },
+      { route: 'cpPartners', icon: 'fa-user-check', name: 'Partner Onboarding', perm: 'partners.manage' },
+      { route: 'cpLeadsAdmin', icon: 'fa-inbox', name: 'Partner Leads', perm: 'partners.manage' },
+      { route: 'cpDocs', icon: 'fa-folder-open', name: 'Partner Documents', perm: 'partners.manage' },
+      { route: 'cpTicketsAdmin', icon: 'fa-life-ring', name: 'Partner Support', perm: 'partners.manage' },
     ]},
     { label: 'Administration', perm: 'config.manage', items: [
       { route: 'users', icon: 'fa-user-shield', name: 'Users & Roles', perm: 'users.manage' },

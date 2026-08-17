@@ -19,6 +19,10 @@ class SlidingSession
     public function handle(Request $request, Closure $next)
     {
         $user = $request->user();
+        // Staff routes are User-only. A ChannelPartner (or any non-User) token must never pass here.
+        if ($user && ! $user instanceof \App\Models\User) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
         if ($user) {
             if (! $user->is_active) {
                 $user->tokens()->delete();

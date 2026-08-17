@@ -187,7 +187,54 @@ class DatabaseSeeder extends Seeder
         // Attribute a handful of demo leads to this partner for the portal view
         \App\Models\Lead::whereNull('channel_partner_id')->orderBy('id')->limit(6)
             ->update(['channel_partner_id' => $partner->id]);
+
+        // Demo CP portal login (separate auth) with KYC + representatives + submitted leads.
+        $cp = \App\Models\ChannelPartner::updateOrCreate(
+            ['contact_email' => 'cp@partner.local'],
+            [
+                'name' => 'Skyline Realtors', 'company' => 'Skyline Realtors Pvt Ltd', 'email' => 'cp@partner.local',
+                'phone' => '9800000001', 'commission_rate' => 2.50, 'active' => true,
+                'cp_code' => 'VV/CP/001', 'contact_name' => 'Anil Kapoor', 'contact_designation' => 'Director',
+                'password_hash' => \Illuminate\Support\Facades\Hash::make('Partner@12345'),
+                'status' => 'approved', 'must_change_password' => false,
+                'registered_address' => '12 MG Road, Bengaluru', 'entity_type' => 'Private Limited',
+                'nature_of_business' => 'Real Estate Brokerage', 'pan' => 'ABCDE1234F', 'gstin' => '29ABCDE1234F1Z5',
+                'rera_number' => 'PRM/KA/RERA/1251/446/AG/220101/001234',
+                'bank_account_name' => 'Skyline Realtors Pvt Ltd', 'bank_name' => 'HDFC Bank',
+                'bank_account_number' => '50100123456789', 'bank_ifsc' => 'HDFC0001234', 'bank_account_type' => 'Current',
+                'signature_name' => 'Anil Kapoor', 'signature_designation' => 'Director',
+                'kyc_status' => 'approved', 'kyc_submitted_at' => now()->subDays(20), 'kyc_approved_at' => now()->subDays(18),
+            ]
+        );
+        $reps = [];
+        foreach ([['Ravi Nair', '9811111111'], ['Meera Iyer', '9822222222']] as [$rn, $rp]) {
+            $reps[] = \App\Models\CpRepresentative::updateOrCreate(
+                ['channel_partner_id' => $cp->id, 'name' => $rn],
+                ['phone' => $rp, 'status' => 'active']
+            );
+        }
+        $leadDefs = [
+            ['Rohan Gupta', '9700000011', 'rohan@example.com', '3BHK Villa Plot', 'new'],
+            ['Sneha Rao', '9700000012', 'sneha@example.com', '1200 Sq.Ft Plot', 'contacted'],
+            ['Imran Shaikh', '9700000013', 'imran@example.com', 'Commercial', 'qualified'],
+        ];
+        foreach ($leadDefs as $i => [$cn, $ph, $em, $pt, $st]) {
+            $exists = \App\Models\CpLead::where('channel_partner_id', $cp->id)->where('phone', $ph)->exists();
+            if (! $exists) {
+                $lead = \App\Models\CpLead::create([
+                    'channel_partner_id' => $cp->id, 'cp_representative_id' => $reps[$i % count($reps)]->id,
+                    'customer_name' => $cn, 'phone' => $ph, 'email' => $em, 'plot_type' => $pt,
+                    'source' => 'Channel Partner Portal', 'status' => $st, 'notes' => 'Referred by Skyline Realtors',
+                ]);
+                \App\Models\CpLeadEvent::create(['cp_lead_id' => $lead->id, 'new_status' => 'new', 'actor_type' => 'partner', 'actor_id' => $cp->id, 'note' => 'Submitted']);
+            }
+        }
+        \App\Models\CpDocument::updateOrCreate(
+            ['title' => 'Skyline Residences — Price List'],
+            ['category' => 'Price List', 'file_path' => rtrim(config('app.url'), '/') . '/assets/sample-pricelist.pdf', 'active' => true]
+        );
     }
+
 
     private function paymentPlans(): void
     {
@@ -230,6 +277,7 @@ class DatabaseSeeder extends Seeder
             'expenses.approve_final' => 'Approve expense (Management final)',
             'stock.view' => 'View site stock book',
             'stock.manage' => 'Manage site stock book',
+            'partners.manage' => 'Manage channel partners, their leads, documents & tickets',
         ];
         foreach ($perms as $key => $label) {
             Permission::firstOrCreate(['key' => $key], ['label' => $label, 'group' => explode('.', $key)[0]]);
@@ -241,7 +289,7 @@ class DatabaseSeeder extends Seeder
         // Heads get full department access; Support gets view/create only (no edit/delete/override).
         $map = [
             'admin' => ['name' => 'Super Admin', 'department' => 'admin', 'tier' => 'super', 'perms' => 'all'],
-            'process_admin' => ['name' => 'Process Admin', 'department' => 'admin', 'tier' => 'process', 'perms' => ['config.manage', 'users.manage', 'projects.manage', 'workflow.manage', 'leads.view', 'reports.sales', 'reports.financial', 'reports.activity']],
+            'process_admin' => ['name' => 'Process Admin', 'department' => 'admin', 'tier' => 'process', 'perms' => ['config.manage', 'users.manage', 'projects.manage', 'workflow.manage', 'leads.view', 'reports.sales', 'reports.financial', 'reports.activity', 'partners.manage']],
             'sales_head' => ['name' => 'Sales Head', 'department' => 'sales', 'tier' => 'head', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'discounts.approve', 'projects.manage', 'reports.sales', 'reports.activity', 'messaging.manage']],
             'sales_bdm' => ['name' => 'Business Development Manager', 'department' => 'sales', 'tier' => 'manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
             'sales_bde' => ['name' => 'Business Development Executive', 'department' => 'sales', 'tier' => 'exec', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
@@ -251,7 +299,7 @@ class DatabaseSeeder extends Seeder
             'site_manager' => ['name' => 'Site Manager', 'department' => 'operations', 'tier' => 'exec', 'perms' => ['expenses.view', 'expenses.raise', 'stock.view', 'stock.manage']],
             'legal_head' => ['name' => 'Legal Head', 'department' => 'legal', 'tier' => 'head', 'perms' => ['legal.view', 'legal.manage', 'leads.view', 'reports.activity']],
             'legal_support' => ['name' => 'Legal Support', 'department' => 'legal', 'tier' => 'support', 'perms' => ['legal.view', 'leads.view']],
-            'crm_head' => ['name' => 'CRM Head', 'department' => 'crm', 'tier' => 'head', 'perms' => ['crm.view', 'crm.manage', 'postsales.manage', 'leads.view', 'leads.edit', 'reports.activity', 'messaging.manage']],
+            'crm_head' => ['name' => 'CRM Head', 'department' => 'crm', 'tier' => 'head', 'perms' => ['crm.view', 'crm.manage', 'postsales.manage', 'leads.view', 'leads.edit', 'reports.activity', 'messaging.manage', 'partners.manage']],
             'crm_support' => ['name' => 'CRM Support', 'department' => 'crm', 'tier' => 'support', 'perms' => ['crm.view', 'leads.view']],
             'channel_partner' => ['name' => 'Channel Partner', 'department' => 'partner', 'tier' => 'external', 'perms' => ['partner.portal']],
         ];

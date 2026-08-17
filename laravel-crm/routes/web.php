@@ -15,4 +15,8 @@ Route::get('/refer/{code}', function (string $code) {
 // Public live-demo of the embeddable chat widget
 Route::view('/chat-demo', 'chat-demo');
 
+// Channel Partner Portal (standalone SPA, separate auth)
+Route::view('/partner', 'cp');
+Route::view('/partner/{any?}', 'cp')->where('any', '.*');
+
 Route::get('/{any?}', [PageController::class, 'index'])->where('any', '^(?!api).*$');

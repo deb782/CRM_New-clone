@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'force_pw' => ForcePasswordChange::class,
             'form-cors' => \App\Http\Middleware\PublicFormCors::class,
             'session_ttl' => \App\Http\Middleware\SlidingSession::class,
+            'cp.auth' => \App\Http\Middleware\CpAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
