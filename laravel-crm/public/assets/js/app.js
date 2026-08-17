@@ -25,6 +25,11 @@
       { route: 'demands', icon: 'fa-file-invoice-dollar', name: 'Demand Letters' },
       { route: 'approvals', icon: 'fa-gavel', name: 'Discount Approvals', perm: 'discounts.approve' },
     ]},
+    { label: 'Finance & Operations', perm: 'expenses.view', items: [
+      { route: 'finance', icon: 'fa-chart-pie', name: 'Revenue Overview', perm: 'finance.overview' },
+      { route: 'expenses', icon: 'fa-receipt', name: 'Site Expenses', perm: 'expenses.view' },
+      { route: 'stockBook', icon: 'fa-boxes-stacked', name: 'Stock Book', perm: 'stock.view' },
+    ]},
     { label: 'Messaging', perm: 'leads.view', items: [
       { route: 'inbox', icon: 'fa-whatsapp', iconStyle: 'brand', name: 'WhatsApp Inbox' },
       { route: 'broadcasts', icon: 'fa-bullhorn', name: 'WA Broadcasts', perm: 'config.manage' },

@@ -1,0 +1,43 @@
+{
+  "summary": "Backend Finance & Operations: 19/19 passed (1 skipped by-design). Frontend: MGMT nav shows Finance & Operations group with Revenue Overview + Site Expenses + Stock Book; rahul (sales BDE) does NOT see the group; site1 (site_manager) sees Site Expenses + Stock Book but NOT Revenue Overview (correct RBAC). Revenue Overview renders period picker, Set Targets, and per-project rows with accrued/received/receivable/expenses/net/target/variance. Stock Book shows material ledger with opening/inward/outward/closing and Ledger buttons. Expenses page shows stat cards + status pills + Final Approve button. Two UI issues: (1) /#/users (admin) does NOT render the assign-projects button — the card-layout renderer people.js has no assignment control; the assign-projects code in config.js is dead / not routed. (2) Management role cannot see a Reject button in expenses UI because reject visibility gates on 'expenses.approve' (accounts only) while management has 'expenses.approve_final'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /crm-api/v1/leads (as site_manager)", "issue": "Review request expects site_manager to see project-scoped leads, but site_manager role is NOT granted 'leads.view' in DatabaseSeeder.php, so leads-scoping via site_manager returns 403. Either grant leads.view to site_manager or update the requirement."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "UsersPage (people.js)", "issue": "Admin cannot open the project-assignment modal from Users & Roles. people.js renders a card layout with only edit + active-toggle icons; the assign-projects button (data-testid=assign-projects-{userId}) and projectForm modal defined in config.js are never invoked. Backend PUT /users/{id}/projects works (verified in pytest).", "selector": "[data-testid^=\"assign-projects-\"]", "priority": "HIGH"},
+      {"component": "ExpensesPage rowActions (finance-ops.js line 78)", "issue": "Reject button visibility uses can('expenses.approve') only. Management (has expenses.approve_final) sees Final Approve but NO Reject button for pending_management rows. Suggest: can('expenses.approve') || can('expenses.approve_final').", "selector": "[data-testid^=\"exp-reject-\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_finance_ops.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Port the assign-projects button + projectForm modal into /app/laravel-crm/public/assets/js/people.js (card layout) so admin can actually assign projects to users via UI. Currently the feature is only reachable via API.",
+    "Update finance-ops.js rowActions() so the Reject button also shows for users with expenses.approve_final (management), OR clarify that only Accounts can reject and Management must send back.",
+    "Decide: grant site_manager 'leads.view' permission (per review-request scope test) OR document that site_manager has no leads access."
+  ],
+  "critical_code_review_comments": [
+    "config.js contains a users-table + projectForm block (~lines 220-252) that is dead code — /#/users is served by people.js. Remove it or wire it up to avoid drift.",
+    "ExpenseController::store validates category in [material,labour,equipment,transport,utilities,other] (singular 'material'); ensure the raise-expense form uses these exact enum values.",
+    "Reject-authorization asymmetry: stage-1 approve/reject share expenses.approve; stage-2 uses expenses.approve_final. Consider a dedicated expenses.reject perm or allow reject at any stage the user is authorized on.",
+    "Stock item response uses opening_qty / closing_qty (not opening/closing) — keep consistent naming across responses.",
+    "Expense API returns { 'expense': {...} } wrapper — consider standardising to { data: ... } across resources for consistency with other endpoints."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_finance_ops.py (new)"
+  ],
+  "success_rate": {"backend": "100% (19/19; 1 skipped by-design)", "frontend": "~85% (2 UI issues)"},
+  "test_credentials": "admin@crm.local/Admin@12345, management@crm.local/Demo@12345, site1@crm.local/Demo@12345, site2@crm.local/Demo@12345, accountshead@crm.local/Demo@12345, rahul@crm.local/Demo@12345",
+  "seed_data_creation": "Backend tests created multiple TEST_ expenses on project 1 via site1 (statuses: pending_accounts, approved, rejected). Set revenue target 5,000,000 for project 1 / 2026-08 (upsert via POST /finance/targets).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview API base = /crm-api/v1. Expense POST payload requires {project_id, title, amount(integer), category in [material,labour,equipment,transport,utilities,other], description, incurred_on}. Expense API returns {'expense': {...}} wrapper. Stock item fields are opening_qty/inward/outward/closing_qty. site_manager role has no leads.view perm so the leads-scoping assertion is skipped. All Finance & Ops routes are under permission middleware — verify with correct role.",
+  "rca of the issue": "assign-projects UI missing: two different renderers exist for /#/users — config.js (table with assign-projects) and people.js (card layout without). app.js router loads people.js, so the code path adding the diagram-project icon per row is never executed. Reproduction: login as admin → /#/users → only pen (edit) icon and Active toggle appear per card; no button matching [data-testid^='assign-projects-']. Fix: add an assign-projects-{u.id} <button> to each user card in people.js and lift the projectForm() modal into people.js (or a shared module) preserving data-testid values (proj-cb-{pid}, proj-save)."
+}

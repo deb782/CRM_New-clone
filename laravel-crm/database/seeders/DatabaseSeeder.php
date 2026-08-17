@@ -36,6 +36,144 @@ class DatabaseSeeder extends Seeder
         $this->demoData($projects);
         $this->inventory($projects);
         $this->channelPartners();
+        $this->financeOps();
+    }
+
+    private function financeOps(): void
+    {
+        $sky = Project::where('code', 'SKY')->first();
+        $gvp = Project::where('code', 'GVP')->first();
+        $mar = Project::where('code', 'MAR')->first();
+        if (! $sky) {
+            return;
+        }
+
+        // Project assignments (scoping): each site manager owns one site.
+        $site1 = User::where('email', 'site1@crm.local')->first();
+        $site2 = User::where('email', 'site2@crm.local')->first();
+        $site1?->projects()->sync([$sky->id]);
+        $site2?->projects()->sync([$gvp->id]);
+
+        $accountsHead = User::where('email', 'accountshead@crm.local')->first();
+        $management = User::where('email', 'management@crm.local')->first();
+
+        // Expenses across the workflow stages.
+        $expenseDefs = [
+            [$sky, $site1, 'Cement — 200 bags', 'material', 'UltraTech Dealer', 480000, 'pending_accounts'],
+            [$sky, $site1, 'Steel TMT bars', 'material', 'Tata Steel', 1250000, 'pending_management'],
+            [$sky, $site1, 'Crane rental (2 weeks)', 'equipment', 'BuildLift Rentals', 320000, 'approved'],
+            [$gvp, $site2, 'Site levelling — JCB', 'equipment', 'Earthmovers Co', 210000, 'pending_accounts'],
+            [$gvp, $site2, 'Labour wages — May', 'labour', null, 640000, 'approved'],
+            [$gvp, $site2, 'Boundary wall bricks', 'material', 'RedClay Bricks', 175000, 'rejected'],
+        ];
+        $approvedForStock = [];
+        foreach ($expenseDefs as [$project, $raiser, $title, $cat, $vendor, $amount, $status]) {
+            $attrs = [
+                'phase_id' => null, 'category' => $cat, 'vendor' => $vendor, 'amount' => $amount,
+                'incurred_on' => now()->subDays(rand(2, 25))->toDateString(),
+                'description' => 'Demo seeded expense', 'raised_by' => $raiser?->id, 'status' => $status,
+            ];
+            if (in_array($status, ['pending_management', 'approved'], true)) {
+                $attrs['accounts_approved_by'] = $accountsHead?->id;
+                $attrs['accounts_approved_at'] = now()->subDays(rand(1, 5));
+            }
+            if ($status === 'approved') {
+                $attrs['management_approved_by'] = $management?->id;
+                $attrs['management_approved_at'] = now()->subDays(1);
+            }
+            if ($status === 'rejected') {
+                $attrs['rejected_by'] = $accountsHead?->id;
+                $attrs['rejected_at'] = now()->subDays(1);
+                $attrs['rejection_reason'] = 'Quote exceeds approved vendor rate; re-negotiate.';
+            }
+            $exp = \App\Models\Expense::updateOrCreate(
+                ['project_id' => $project->id, 'title' => $title],
+                $attrs
+            );
+            if ($status === 'approved') {
+                $approvedForStock[$project->id] = $exp;
+            }
+        }
+
+        // Stock items + movements (inward linked to an approved expense).
+        $stockDefs = [
+            [$sky, 'Cement (OPC 53)', 'bag', 500],
+            [$sky, 'TMT Steel', 'ton', 40],
+            [$gvp, 'Bricks', 'nos', 20000],
+            [$gvp, 'Sand', 'cum', 150],
+        ];
+        foreach ($stockDefs as [$project, $name, $unit, $opening]) {
+            $item = \App\Models\StockItem::updateOrCreate(
+                ['project_id' => $project->id, 'name' => $name],
+                ['unit' => $unit, 'opening_qty' => $opening]
+            );
+            if ($item->movements()->count() === 0) {
+                $exp = $approvedForStock[$project->id] ?? null;
+                if ($exp) {
+                    \App\Models\StockMovement::create([
+                        'project_id' => $project->id, 'stock_item_id' => $item->id, 'direction' => 'inward',
+                        'qty' => 100, 'expense_id' => $exp->id, 'note' => 'Delivery against approved expense',
+                        'moved_on' => now()->subDays(3)->toDateString(), 'created_by' => $project->id === $sky->id ? $site1?->id : $site2?->id,
+                    ]);
+                }
+                \App\Models\StockMovement::create([
+                    'project_id' => $project->id, 'stock_item_id' => $item->id, 'direction' => 'outward',
+                    'qty' => 30, 'note' => 'Consumed on site', 'moved_on' => now()->subDays(1)->toDateString(),
+                    'created_by' => $project->id === $sky->id ? $site1?->id : $site2?->id,
+                ]);
+            }
+        }
+
+        // Revenue targets for the current month.
+        foreach ([[$sky, 8000000], [$gvp, 4000000], [$mar, 6000000]] as [$project, $target]) {
+            if ($project) {
+                \App\Models\RevenueTarget::updateOrCreate(
+                    ['project_id' => $project->id, 'period_type' => 'month', 'period' => now()->format('Y-m')],
+                    ['amount' => $target]
+                );
+            }
+        }
+
+        // A few confirmed bookings + payments so Revenue Overview shows real
+        // accrued/received/receivable derived from the sales pipeline.
+        $bookingDefs = [
+            [$sky, 9500000, 4750000],  // deal value, received so far
+            [$sky, 8200000, 8200000],  // fully paid
+            [$gvp, 5200000, 1560000],
+            [$mar, 11000000, 3300000],
+        ];
+        $i = 0;
+        foreach ($bookingDefs as [$project, $deal, $received]) {
+            if (! $project) {
+                continue;
+            }
+            $lead = \App\Models\Lead::where('project_id', $project->id)->first()
+                ?? \App\Models\Lead::orderBy('id')->skip($i)->first();
+            if (! $lead) {
+                continue;
+            }
+            $plot = \App\Models\Plot::where('project_id', $project->id)->first();
+            $ref = 'BKG-DEMO-'.$project->code.'-'.($i + 1);
+            $booking = \App\Models\Booking::updateOrCreate(
+                ['booking_ref' => $ref],
+                [
+                    'lead_id' => $lead->id, 'project_id' => $project->id, 'plot_id' => $plot?->id,
+                    'form_token' => 'FT-DEMO-'.$project->code.'-'.($i + 1),
+                    'status' => 'confirmed', 'deal_value' => $deal,
+                    'token_amount' => (int) round($deal * 0.1), 'token_status' => 'paid',
+                    'verified_at' => now()->subDays(10),
+                ]
+            );
+            if ($booking->payments()->count() === 0 && $received > 0) {
+                \App\Models\Payment::create([
+                    'booking_id' => $booking->id, 'lead_id' => $lead->id, 'type' => 'milestone',
+                    'amount' => $received, 'method' => 'neft', 'status' => 'verified',
+                    'receipt_no' => 'RCP-DEMO-'.$project->code.'-'.($i + 1),
+                    'received_at' => now()->subDays(rand(1, 20)), 'verified_at' => now()->subDays(rand(1, 5)),
+                ]);
+            }
+            $i++;
+        }
     }
 
     private function channelPartners(): void
@@ -85,6 +223,13 @@ class DatabaseSeeder extends Seeder
             'reports.sales' => 'View sales reports', 'reports.financial' => 'View financial reports',
             'reports.activity' => 'View activity & SLA reports',
             'messaging.manage' => 'Build WhatsApp templates, chatbots, rules & campaigns',
+            'finance.overview' => 'View project revenue & financial overview',
+            'expenses.view' => 'View site expenses',
+            'expenses.raise' => 'Raise a site expense',
+            'expenses.approve' => 'Approve expense (Accounts stage 1)',
+            'expenses.approve_final' => 'Approve expense (Management final)',
+            'stock.view' => 'View site stock book',
+            'stock.manage' => 'Manage site stock book',
         ];
         foreach ($perms as $key => $label) {
             Permission::firstOrCreate(['key' => $key], ['label' => $label, 'group' => explode('.', $key)[0]]);
@@ -100,8 +245,10 @@ class DatabaseSeeder extends Seeder
             'sales_head' => ['name' => 'Sales Head', 'department' => 'sales', 'tier' => 'head', 'perms' => ['leads.view', 'leads.create', 'leads.edit', 'leads.delete', 'leads.override', 'discounts.approve', 'projects.manage', 'reports.sales', 'reports.activity', 'messaging.manage']],
             'sales_bdm' => ['name' => 'Business Development Manager', 'department' => 'sales', 'tier' => 'manager', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
             'sales_bde' => ['name' => 'Business Development Executive', 'department' => 'sales', 'tier' => 'exec', 'perms' => ['leads.view', 'leads.create', 'leads.edit']],
-            'accounts_head' => ['name' => 'Accounts Head', 'department' => 'accounts', 'tier' => 'head', 'perms' => ['accounts.view', 'accounts.manage', 'postsales.manage', 'leads.view', 'reports.financial', 'reports.activity']],
-            'accounts_support' => ['name' => 'Accounts Support', 'department' => 'accounts', 'tier' => 'support', 'perms' => ['accounts.view', 'leads.view']],
+            'accounts_head' => ['name' => 'Accounts Head', 'department' => 'accounts', 'tier' => 'head', 'perms' => ['accounts.view', 'accounts.manage', 'postsales.manage', 'leads.view', 'reports.financial', 'reports.activity', 'finance.overview', 'expenses.view', 'expenses.approve', 'stock.view']],
+            'accounts_support' => ['name' => 'Accounts Support', 'department' => 'accounts', 'tier' => 'support', 'perms' => ['accounts.view', 'leads.view', 'expenses.view', 'expenses.approve']],
+            'management' => ['name' => 'Management', 'department' => 'management', 'tier' => 'head', 'perms' => ['finance.overview', 'expenses.view', 'expenses.approve_final', 'stock.view', 'reports.financial', 'reports.activity', 'leads.view', 'projects.manage']],
+            'site_manager' => ['name' => 'Site Manager', 'department' => 'operations', 'tier' => 'exec', 'perms' => ['expenses.view', 'expenses.raise', 'stock.view', 'stock.manage']],
             'legal_head' => ['name' => 'Legal Head', 'department' => 'legal', 'tier' => 'head', 'perms' => ['legal.view', 'legal.manage', 'leads.view', 'reports.activity']],
             'legal_support' => ['name' => 'Legal Support', 'department' => 'legal', 'tier' => 'support', 'perms' => ['legal.view', 'leads.view']],
             'crm_head' => ['name' => 'CRM Head', 'department' => 'crm', 'tier' => 'head', 'perms' => ['crm.view', 'crm.manage', 'postsales.manage', 'leads.view', 'leads.edit', 'reports.activity', 'messaging.manage']],
@@ -140,6 +287,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Sana Sheikh', 'email' => 'legal@crm.local', 'password' => 'Demo@12345', 'role' => 'legal_support', 'phone' => '9000000014'],
             ['name' => 'Deepa Menon', 'email' => 'crmhead@crm.local', 'password' => 'Demo@12345', 'role' => 'crm_head', 'phone' => '9000000015'],
             ['name' => 'Rohit Das', 'email' => 'crm@crm.local', 'password' => 'Demo@12345', 'role' => 'crm_support', 'phone' => '9000000016'],
+            ['name' => 'Sunil Agarwal', 'email' => 'management@crm.local', 'password' => 'Demo@12345', 'role' => 'management', 'phone' => '9000000017'],
+            ['name' => 'Ramesh Yadav', 'email' => 'site1@crm.local', 'password' => 'Demo@12345', 'role' => 'site_manager', 'phone' => '9000000018'],
+            ['name' => 'Suresh Patil', 'email' => 'site2@crm.local', 'password' => 'Demo@12345', 'role' => 'site_manager', 'phone' => '9000000019'],
             ['name' => 'Prime Realty (Partner)', 'email' => 'partner@crm.local', 'password' => 'Demo@12345', 'role' => 'channel_partner', 'phone' => '9000000007'],
         ];
         foreach ($users as $u) {

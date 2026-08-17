@@ -30,6 +30,11 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    public function projects()
+    {
+        return $this->belongsToMany(Project::class);
+    }
+
     public function hasPermission(string $key): bool
     {
         if (! $this->role) {

@@ -17,7 +17,11 @@
 
   // ============ USERS DIRECTORY ============
   CRM.pages.users = async function (view) {
-    const [users, roles] = await Promise.all([api.get('/users').then(r => r.data), api.get('/roles').then(r => r.data)]);
+    const [users, roles, projects] = await Promise.all([
+      api.get('/users').then(r => r.data),
+      api.get('/roles').then(r => r.data),
+      api.get('/projects').then(r => r.data).catch(() => []),
+    ]);
     CRM.setActions(el('div', { style: 'display:flex;gap:8px' },
       CRM.can('users.manage') ? el('button', { class: 'btn btn--sm', 'data-testid': 'goto-access', onclick: () => location.hash = '#/access' }, el('i', { class: 'fa-solid fa-shield-halved' }), 'Roles & Access') : null,
       el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'add-user', onclick: () => userForm() }, el('i', { class: 'fa-solid fa-plus' }), 'Add User')));
@@ -57,12 +61,40 @@
       return el('div', { class: 'person-card', 'data-testid': 'user-row-' + u.id },
         el('div', { class: 'person-card__top' },
           el('div', { class: 'avatar avatar--lg', style: u.avatar_color ? 'background:' + u.avatar_color + ';color:#fff' : null }, initials(u.name)),
-          el('button', { class: 'icon-btn', 'data-testid': 'edit-user-' + u.id, onclick: () => userForm(u) }, el('i', { class: 'fa-solid fa-pen' }))),
+          el('div', { style: 'display:flex;gap:4px' },
+            CRM.can('users.manage') ? el('button', { class: 'icon-btn', 'data-testid': 'assign-projects-' + u.id, title: 'Project access', onclick: () => projectForm(u) }, el('i', { class: 'fa-solid fa-diagram-project' })) : null,
+            el('button', { class: 'icon-btn', 'data-testid': 'edit-user-' + u.id, onclick: () => userForm(u) }, el('i', { class: 'fa-solid fa-pen' })))),
         el('div', { class: 'person-card__name' }, u.name),
         el('div', { class: 'person-card__email' }, u.email),
         el('div', { class: 'person-card__foot' },
           el('span', { class: 'stage-pill' }, u.role ? u.role.name : '—'),
-          el('div', { class: 'person-card__active' }, el('span', { class: 'mut' }, u.is_active ? 'Active' : 'Inactive'), toggle)));
+          el('div', { class: 'person-card__active' }, el('span', { class: 'mut' }, u.is_active ? 'Active' : 'Inactive'), toggle)),
+        el('div', { style: 'margin-top:8px;font-size:12px;color:var(--text-3)' },
+          el('i', { class: 'fa-solid fa-diagram-project', style: 'margin-right:6px' }),
+          (u.projects && u.projects.length) ? ('Scoped to ' + u.projects.map(p => p.name).join(', ')) : 'All projects (no restriction)'));
+    }
+
+    function projectForm(user) {
+      const selected = new Set((user.projects || []).map(p => p.id));
+      const help = el('p', { style: 'color:var(--text-2);font-size:13px;margin-bottom:12px' }, 'Assign this user to specific projects. Leaving all unchecked gives access to ALL projects (no restriction). Site Managers should be scoped to their site.');
+      const list = el('div', { style: 'display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto' },
+        ...projects.map(p => {
+          const cb = el('input', { type: 'checkbox', 'data-testid': 'proj-cb-' + p.id });
+          if (selected.has(p.id)) cb.checked = true;
+          cb.addEventListener('change', () => { cb.checked ? selected.add(p.id) : selected.delete(p.id); });
+          return el('label', { class: 'card', style: 'display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer' }, cb,
+            el('div', {}, el('b', {}, p.name), el('div', { style: 'font-size:12px;color:var(--text-3)' }, (p.code || '') + (p.city ? ' · ' + p.city : ''))));
+        }));
+      if (!projects.length) list.appendChild(el('div', { class: 'mut' }, 'No projects available.'));
+      const save = el('button', { class: 'btn btn--primary', 'data-testid': 'proj-save' }, 'Save assignment');
+      const m = modal({ title: 'Project Access — ' + user.name, bodyNode: el('div', {}, help, list), footNodes: [el('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), save] });
+      save.addEventListener('click', async () => {
+        try {
+          const r = await api.put('/users/' + user.id + '/projects', { project_ids: Array.from(selected) });
+          user.projects = r.user.projects;
+          toast('Project access updated', 'success'); m.close(); render(search.value);
+        } catch (err) { toast(err.message, 'error'); }
+      });
     }
 
     function userForm(user) {

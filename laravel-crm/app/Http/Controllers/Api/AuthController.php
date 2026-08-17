@@ -212,6 +212,7 @@ class AuthController extends Controller
             'department' => $user->role?->department,
             'tier' => $user->role?->tier,
             'must_change_password' => (bool) $user->must_change_password,
+            'projects' => $user->projects()->get(['projects.id', 'projects.name', 'projects.code']),
             'permissions' => $user->role?->slug === 'admin'
                 ? ['*']
                 : ($user->role?->permissions->pluck('key')->all() ?? []),

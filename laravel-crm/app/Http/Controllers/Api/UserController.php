@@ -12,7 +12,17 @@ class UserController extends Controller
 {
     public function index()
     {
-        return response()->json(['data' => User::with('role')->orderBy('name')->get()]);
+        return response()->json(['data' => User::with(['role', 'projects:id,name,code'])->orderBy('name')->get()]);
+    }
+
+    public function assignProjects(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'project_ids' => 'present|array',
+            'project_ids.*' => 'integer|exists:projects,id',
+        ]);
+        $user->projects()->sync($data['project_ids']);
+        return response()->json(['user' => $user->fresh()->load(['role', 'projects:id,name,code'])]);
     }
 
     public function roles()

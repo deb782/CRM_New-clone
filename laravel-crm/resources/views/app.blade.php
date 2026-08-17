@@ -37,7 +37,8 @@
     <script src="{{ asset('assets/js/datepicker.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/inventory.js') }}?v=12"></script>
     <script src="{{ asset('assets/js/deals.js') }}?v=11"></script>
-    <script src="{{ asset('assets/js/config.js') }}?v=11"></script>
+    <script src="{{ asset('assets/js/finance-ops.js') }}?v=2"></script>
+    <script src="{{ asset('assets/js/config.js') }}?v=12"></script>
     <script src="{{ asset('assets/js/whatsapp.js') }}?v=17"></script>
     <script src="{{ asset('assets/js/wa-flows.js') }}?v=4"></script>
     <script src="{{ asset('assets/js/wa-inbound.js') }}?v=1"></script>
@@ -47,13 +48,13 @@
     <script src="{{ asset('assets/vendor/sortable.min.js') }}"></script>
     <script src="{{ asset('assets/js/journey.js') }}?v=5"></script>
     <script src="{{ asset('assets/js/profile.js') }}?v=2"></script>
-    <script src="{{ asset('assets/js/people.js') }}?v=3"></script>
+    <script src="{{ asset('assets/js/people.js') }}?v=4"></script>
     <script src="{{ asset('assets/js/integrations.js') }}?v=6"></script>
     <script src="{{ asset('assets/js/notifications.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/reports.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/forms-ui.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/chatbot-ui.js') }}?v=5"></script>
     <script src="{{ asset('assets/js/webcapture.js') }}?v=2"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=33"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=34"></script>
 </body>
 </html>

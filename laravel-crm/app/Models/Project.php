@@ -23,4 +23,19 @@ class Project extends Model
     {
         return $this->hasMany(Plot::class);
     }
+
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    public function stockItems()
+    {
+        return $this->hasMany(StockItem::class);
+    }
+
+    public function assignedUsers()
+    {
+        return $this->belongsToMany(User::class);
+    }
 }

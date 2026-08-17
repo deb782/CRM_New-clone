@@ -13,7 +13,9 @@ class InventoryController extends Controller
     /** Full Projects -> Phases -> Plots tree with availability counts. */
     public function tree(Request $request)
     {
-        $projects = Project::with(['phases.plots' => fn ($q) => $q->orderBy('number'), 'plots'])->get()->map(function ($p) {
+        $base = Project::query();
+        \App\Support\ProjectScope::apply($base, $request->user(), 'id');
+        $projects = $base->with(['phases.plots' => fn ($q) => $q->orderBy('number'), 'plots'])->get()->map(function ($p) {
             $plots = $p->plots;
             return [
                 'id' => $p->id, 'name' => $p->name, 'code' => $p->code, 'city' => $p->city, 'zone' => $p->zone,

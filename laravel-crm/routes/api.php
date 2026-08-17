@@ -203,6 +203,28 @@ Route::prefix('v1')->group(function () {
         Route::put('plots/{plot}', [InventoryController::class, 'updatePlot'])->middleware('permission:projects.manage');
         Route::delete('plots/{plot}', [InventoryController::class, 'destroyPlot'])->middleware('permission:projects.manage');
 
+        // --- Finance & Operations: Expenses (two-stage approval) ---
+        Route::get('expenses', [\App\Http\Controllers\Api\ExpenseController::class, 'index'])->middleware('permission:expenses.view');
+        Route::get('expenses/summary', [\App\Http\Controllers\Api\ExpenseController::class, 'summary'])->middleware('permission:expenses.view');
+        Route::post('expenses', [\App\Http\Controllers\Api\ExpenseController::class, 'store'])->middleware('permission:expenses.raise');
+        Route::get('expenses/{expense}', [\App\Http\Controllers\Api\ExpenseController::class, 'show'])->middleware('permission:expenses.view');
+        Route::post('expenses/{expense}/receipt', [\App\Http\Controllers\Api\ExpenseController::class, 'uploadReceipt'])->middleware('permission:expenses.raise');
+        Route::post('expenses/{expense}/approve-accounts', [\App\Http\Controllers\Api\ExpenseController::class, 'approveAccounts'])->middleware('permission:expenses.approve');
+        Route::post('expenses/{expense}/approve-management', [\App\Http\Controllers\Api\ExpenseController::class, 'approveManagement'])->middleware('permission:expenses.approve_final');
+        Route::post('expenses/{expense}/reject', [\App\Http\Controllers\Api\ExpenseController::class, 'reject'])->middleware('permission:expenses.approve|expenses.approve_final');
+
+        // --- Finance & Operations: Stock Book ---
+        Route::get('stock/items', [\App\Http\Controllers\Api\StockController::class, 'index'])->middleware('permission:stock.view');
+        Route::post('stock/items', [\App\Http\Controllers\Api\StockController::class, 'storeItem'])->middleware('permission:stock.manage');
+        Route::get('stock/approved-expenses', [\App\Http\Controllers\Api\StockController::class, 'approvedExpenses'])->middleware('permission:stock.manage');
+        Route::get('stock/items/{item}/movements', [\App\Http\Controllers\Api\StockController::class, 'movements'])->middleware('permission:stock.view');
+        Route::post('stock/items/{item}/movements', [\App\Http\Controllers\Api\StockController::class, 'storeMovement'])->middleware('permission:stock.manage');
+
+        // --- Finance & Operations: Revenue overview & targets ---
+        Route::get('finance/overview', [\App\Http\Controllers\Api\FinanceController::class, 'overview'])->middleware('permission:finance.overview');
+        Route::get('finance/targets', [\App\Http\Controllers\Api\FinanceController::class, 'targets'])->middleware('permission:finance.overview');
+        Route::post('finance/targets', [\App\Http\Controllers\Api\FinanceController::class, 'saveTarget'])->middleware('permission:finance.overview');
+
         // Site Visits (Sections I & J)
         Route::get('site-visits', [SiteVisitController::class, 'index']);
         Route::get('site-visits/slots', [SiteVisitController::class, 'slots']);
@@ -401,6 +423,7 @@ Route::prefix('v1')->group(function () {
         Route::get('users', [UserController::class, 'index'])->middleware('permission:users.manage');
         Route::post('users', [UserController::class, 'store'])->middleware('permission:users.manage');
         Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:users.manage');
+        Route::put('users/{user}/projects', [UserController::class, 'assignProjects'])->middleware('permission:users.manage');
         Route::get('roles', [UserController::class, 'roles']);
         Route::get('permissions', [UserController::class, 'permissions'])->middleware('permission:users.manage');
         Route::put('roles/{role}/permissions', [UserController::class, 'updateRolePermissions'])->middleware('permission:users.manage');

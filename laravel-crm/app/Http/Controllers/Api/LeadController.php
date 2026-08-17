@@ -16,6 +16,7 @@ class LeadController extends Controller
     public function index(Request $request)
     {
         $q = Lead::query()->with(['stage', 'owner', 'project']);
+        \App\Support\ProjectScope::apply($q, $request->user());
 
         if ($s = $request->query('search')) {
             $q->where(function ($w) use ($s) {
