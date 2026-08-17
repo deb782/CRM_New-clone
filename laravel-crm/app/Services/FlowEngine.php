@@ -97,20 +97,25 @@ class FlowEngine
         return ['ok' => true, 'message' => 'Status → '.$target->display_name.($missing && ! $enforce ? ' (gate fields missing: '.implode(', ', $missing).')' : '')];
     }
 
-    /** Create the next call task the BDE must action for call-driven statuses. */
+    /** Create the next call task the BDE / BDM must action for call-driven statuses. */
     private function createFollowUpTask(Lead $lead, LeadStatus $target): void
     {
         $map = [
-            'CONTACTED' => ['Next call: nurture ' . $lead->name, 24],
-            'NO_RESPONSE' => ['Retry call (no response): ' . $lead->name, 12],
-            'FOLLOWUP_1' => ['Follow-up call 2: ' . $lead->name, 48],
-            'FOLLOWUP_2' => ['Follow-up call 3: ' . $lead->name, 72],
-            'FOLLOWUP_3' => ['Final follow-up call: ' . $lead->name, 72],
+            // BDE journey
+            'CONTACTED' => ['Next call: nurture ' . $lead->name, 24, 'medium'],
+            'NO_RESPONSE' => ['Retry call (no response): ' . $lead->name, 12, 'high'],
+            'FOLLOWUP_1' => ['Follow-up call 2: ' . $lead->name, 48, 'medium'],
+            'FOLLOWUP_2' => ['Follow-up call 3: ' . $lead->name, 72, 'medium'],
+            'FOLLOWUP_3' => ['Final follow-up call: ' . $lead->name, 72, 'medium'],
+            // BDM opportunity closing stages
+            'OPP_PRICING_SHEET' => ['BDM: follow up on the pricing sheet with ' . $lead->name, 24, 'high'],
+            'OPP_NEGOTIATION' => ['BDM: negotiation follow-up with ' . $lead->name, 24, 'high'],
+            'OPP_FINAL_CALL' => ['BDM: final closing call with ' . $lead->name, 12, 'high'],
         ];
         if (! isset($map[$target->code]) || ! $lead->owner_id) {
             return;
         }
-        [$title, $dueHours] = $map[$target->code];
+        [$title, $dueHours, $priority] = $map[$target->code];
         try {
             \App\Models\Task::create([
                 'lead_id' => $lead->id,
@@ -118,7 +123,7 @@ class FlowEngine
                 'title' => $title,
                 'type' => 'call',
                 'due_at' => now()->addHours($dueHours),
-                'priority' => $target->code === 'NO_RESPONSE' ? 'high' : 'medium',
+                'priority' => $priority,
                 'meta' => ['auto' => true, 'status_code' => $target->code],
             ]);
         } catch (\Throwable $e) {

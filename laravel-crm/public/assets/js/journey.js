@@ -67,8 +67,48 @@
           step('send_whatsapp', { template: 'Site Visit Confirmation' }),
           step('task', { title: 'Hand over to BDM for site visit', task_type: 'other', due_hours: 4 }),
         ] },
+        // ---- Post-booking BDM Opportunity pipeline (auto — driven by the Opportunity board) ----
+        { key: 'B1', title: 'BDM · Engagement', idx: 'STAGE 5', readonly: true, steps: [
+          step('status_change', { status_code: 'OPP_NOT_CONTACTED' }),
+          step('task', { title: 'BDM: confirm the booked slot', task_type: 'call', due_hours: 4 }),
+          step('status_change', { status_code: 'OPP_INITIAL_CALL' }),
+          step('status_change', { status_code: 'OPP_FOLLOW_UP' }),
+        ] },
+        { key: 'B2', title: 'BDM · Site Visit', idx: 'STAGE 6', readonly: true, steps: [
+          step('status_change', { status_code: 'OPP_SV_POSITIVE' }, ['No show → reschedule', 'No decision → follow up']),
+          step('status_change', { status_code: 'OPP_SV_NO_DECISION' }),
+        ] },
+        { key: 'B3', title: 'BDM · Post Visit', idx: 'STAGE 7', readonly: true, steps: [
+          step('status_change', { status_code: 'OPP_POST_SV_FU1' }),
+          step('status_change', { status_code: 'OPP_POST_SV_FU2' }, ['Lost → drop']),
+        ] },
+        { key: 'B4', title: 'BDM · Closing', idx: 'STAGE 8', readonly: true, steps: [
+          step('status_change', { status_code: 'OPP_PRICING_SHEET' }),
+          step('send_whatsapp', { template: 'Pricing Sheet' }),
+          step('status_change', { status_code: 'OPP_NEGOTIATION' }),
+          step('status_change', { status_code: 'OPP_FINAL_CALL' }),
+          step('status_change', { status_code: 'OPP_WON' }, ['Lost → drop']),
+        ] },
+        { key: 'PS', title: 'Post-Sales', idx: 'STAGE 9', readonly: true, steps: [
+          step('task', { title: 'Generate booking form & cost sheet', task_type: 'other', due_hours: 24 }),
+          step('task', { title: 'Collect token & schedule payment plan', task_type: 'other', due_hours: 48 }),
+          step('send_whatsapp', { template: 'Payment Receipt' }),
+          step('task', { title: 'Registration, legal & handover', task_type: 'other', due_hours: 72 }),
+        ] },
       ],
     };
+  }
+
+  // Canonical read-only lanes (BDM pipeline + post-sales) — always shown so the full flow is visible.
+  const READONLY_KEYS = ['B1', 'B2', 'B3', 'B4', 'PS'];
+  function ensureFullFlow(journey) {
+    const have = {}; journey.lanes.forEach(l => { have[l.key] = true; });
+    defaultJourney().lanes.forEach(dl => {
+      if (dl.readonly && !have[dl.key]) journey.lanes.push(dl);
+    });
+    // keep read-only flags authoritative even if an older saved graph stored them without it
+    journey.lanes.forEach(l => { if (READONLY_KEYS.includes(l.key)) l.readonly = true; });
+    return journey;
   }
 
   const S = { journey: null, workflowId: null, statusMap: {}, stages: [] };
@@ -78,7 +118,7 @@
     const nodes = {};
     let id = 1;
     const flat = [];
-    journey.lanes.forEach(lane => lane.steps.forEach(s => flat.push({ s, stage: lane.key })));
+    journey.lanes.filter(lane => !lane.readonly).forEach(lane => lane.steps.forEach(s => flat.push({ s, stage: lane.key })));
     const triggerId = String(id++);
     flat.forEach(f => { f.id = String(id++); });
     const mk = (nid, type, data, x, y, nextId) => {
@@ -130,6 +170,7 @@
     const map = {};
     S.journey.lanes.forEach(l => l.steps.forEach(s => { map[s.uid] = s; }));
     S.journey.lanes.forEach((lane, i) => {
+      if (lane.readonly) return;
       const body = canvas.querySelector('[data-lane="' + lane.key + '"] .jb-lane__body');
       const order = [...body.querySelectorAll('.jb-card')].map(c => map[c.dataset.uid]).filter(Boolean);
       lane.steps = order;
@@ -141,28 +182,31 @@
     const reg = STEP[s.type];
     const icon = el('div', { class: 'jb-card__icon', style: 'background:' + reg.color }, el('i', { class: (reg.brand ? 'fa-brands ' : 'fa-solid ') + reg.icon }));
     const chips = (s.branches || []).map(b => el('span', { class: 'jb-chip ' + (CHIP_CLASS[chipKind(b)] || 'jb-chip--neutral') }, b));
-    const card = el('div', { class: 'jb-card', 'data-uid': s.uid, 'data-testid': 'jb-card-' + s.uid },
-      el('div', { class: 'jb-card__actions' },
+    const card = el('div', { class: 'jb-card' + (lane.readonly ? ' jb-card--readonly' : ''), 'data-uid': s.uid, 'data-testid': 'jb-card-' + s.uid },
+      lane.readonly ? null : el('div', { class: 'jb-card__actions' },
         el('button', { title: 'Edit', 'data-testid': 'jb-edit-' + s.uid, onclick: (e) => { e.stopPropagation(); openDrawer(s, lane, canvas); } }, el('i', { class: 'fa-solid fa-pen' })),
         el('button', { title: 'Delete', 'data-testid': 'jb-del-' + s.uid, onclick: (e) => { e.stopPropagation(); lane.steps = lane.steps.filter(x => x.uid !== s.uid); rerender(canvas); } }, el('i', { class: 'fa-solid fa-trash' }))),
       el('div', { class: 'jb-card__top' }, icon, el('div', { class: 'jb-card__label' }, reg.label)),
       el('div', { class: 'jb-card__sum' }),
       chips.length ? el('div', { class: 'jb-chips' }, ...chips) : null);
     card.querySelector('.jb-card__sum').innerHTML = reg.sum(s.config, S.statusMap);
-    card.addEventListener('click', () => openDrawer(s, lane, canvas));
+    if (!lane.readonly) card.addEventListener('click', () => openDrawer(s, lane, canvas));
     return card;
   }
 
   function laneEl(lane, canvas) {
     const body = el('div', { class: 'jb-lane__body' });
     lane.steps.forEach(s => body.appendChild(cardEl(s, lane, canvas)));
-    const addBtn = el('button', { class: 'jb-add', 'data-testid': 'jb-add-' + lane.key, onclick: (e) => openPalette(e, lane, canvas) }, el('i', { class: 'fa-solid fa-plus' }), 'Add step');
-    body.appendChild(addBtn);
-    const laneNode = el('div', { class: 'jb-lane', 'data-lane': lane.key, 'data-testid': 'jb-lane-' + lane.key },
+    if (!lane.readonly) {
+      const addBtn = el('button', { class: 'jb-add', 'data-testid': 'jb-add-' + lane.key, onclick: (e) => openPalette(e, lane, canvas) }, el('i', { class: 'fa-solid fa-plus' }), 'Add step');
+      body.appendChild(addBtn);
+    }
+    const laneNode = el('div', { class: 'jb-lane' + (lane.readonly ? ' jb-lane--readonly' : ''), 'data-lane': lane.key, 'data-testid': 'jb-lane-' + lane.key },
       el('div', { class: 'jb-lane__head' },
-        el('div', {}, el('div', { class: 'jb-lane__idx' }, lane.idx), el('div', { class: 'jb-lane__title' }, lane.title))),
+        el('div', {}, el('div', { class: 'jb-lane__idx' }, lane.idx), el('div', { class: 'jb-lane__title' }, lane.title)),
+        lane.readonly ? el('span', { class: 'jb-lane__auto', title: 'Driven automatically by the Opportunity board' }, el('i', { class: 'fa-solid fa-robot' }), 'Auto') : null),
       body);
-    if (window.Sortable) {
+    if (window.Sortable && !lane.readonly) {
       window.Sortable.create(body, { group: 'jb', animation: 150, ghostClass: 'jb-ghost', draggable: '.jb-card', filter: '.jb-add', onEnd: () => { syncFromDom(canvas); } });
     }
     return laneNode;
@@ -356,7 +400,7 @@
     view.innerHTML = '';
     // load status catalog + existing journey workflow
     let stages = [], wf = null;
-    try { const r = await api.get('/journey/statuses'); stages = r.stages || []; } catch (e) {}
+    try { const r = await api.get('/journey/statuses?group=all'); stages = r.stages || []; } catch (e) {}
     try {
       const list = (await api.get('/workflows')).workflows || [];
       const jw = list.find(w => w.name && w.name.toLowerCase().includes('journey')) || list.find(w => w.status === 'active') || list[0];
@@ -368,6 +412,7 @@
     stages.forEach(st => st.statuses.forEach(x => { S.statusMap[x.code] = x.display_name; }));
     S.journey = (wf && wf.graph) ? journeyFromGraph(wf.graph) : defaultJourney();
     S.workflowId = wf ? wf.id : null;
+    ensureFullFlow(S.journey);
     // ensure uids exist on loaded steps
     S.journey.lanes.forEach(l => l.steps.forEach(s => { if (!s.uid) s.uid = uid(); if (!s.branches) s.branches = []; }));
 

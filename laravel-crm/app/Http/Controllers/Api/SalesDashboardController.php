@@ -138,6 +138,7 @@ class SalesDashboardController extends Controller
             'pipeline' => $this->laneCadence('bdm', $pipeline),
             'upcoming' => $upcoming,
             'engagements' => $engagements,
+            'calendar' => $this->calendarFull($userId, $isAll),
         ];
     }
 
@@ -150,43 +151,61 @@ class SalesDashboardController extends Controller
         $bdeCounts = Lead::whereIn('status_code', $bde->keys())->selectRaw('status_code, count(*) c')->groupBy('status_code')->pluck('c', 'status_code');
         $bdmCounts = Lead::whereIn('status_code', $bdm->keys())->selectRaw('status_code, count(*) c')->groupBy('status_code')->pluck('c', 'status_code');
 
-        // Workload — per BDE / BDM: open (non-terminal) leads + open tasks.
-        $workload = [];
-        foreach (['sales_bde' => 'BDE', 'sales_bdm' => 'BDM'] as $slug => $band) {
-            $users = User::where('is_active', true)->whereHas('role', fn ($q) => $q->where('slug', $slug))->get(['id', 'name']);
-            foreach ($users as $u) {
-                $workload[] = [
-                    'id' => $u->id,
-                    'name' => $u->name,
-                    'band' => $band,
-                    'open_leads' => Lead::where('owner_id', $u->id)->whereNotIn('status_code', ['OPP_WON', 'OPP_LOST', 'OPP_POST_SV_LOST', 'JUNK_INVALID', 'UNRESPONSIVE', 'LOST'])->count(),
-                    'open_tasks' => Task::whereNull('completed_at')->where('assigned_to', $u->id)->count(),
-                ];
-            }
-        }
-
-        // SLA — open tasks by time-to-breach bucket.
-        $openTasks = Task::whereNull('completed_at')->get(['id', 'due_at']);
-        $sla = ['breached' => 0, 'red' => 0, 'amber' => 0, 'green' => 0];
-        foreach ($openTasks as $t) {
-            if (! $t->due_at) { $sla['green']++; continue; }
-            $m = now()->diffInMinutes($t->due_at, false);
-            $sla[$m < 0 ? 'breached' : ($m < 60 ? 'red' : ($m < 240 ? 'amber' : 'green'))]++;
-        }
-
         return [
             'stats' => [
                 'total_open' => Lead::whereNotIn('status_code', ['OPP_WON', 'OPP_LOST', 'OPP_POST_SV_LOST', 'JUNK_INVALID', 'UNRESPONSIVE', 'LOST'])->whereNotNull('status_code')->count(),
                 'opportunities' => Lead::whereIn('status_code', $bdm->keys())->whereNotIn('status_code', ['OPP_WON', 'OPP_LOST', 'OPP_POST_SV_LOST'])->count(),
                 'won_month' => Lead::where('status_code', 'OPP_WON')->where('updated_at', '>=', now()->startOfMonth())->count(),
+                'lost_month' => Lead::whereIn('status_code', ['OPP_LOST', 'OPP_POST_SV_LOST'])->where('updated_at', '>=', now()->startOfMonth())->count(),
                 'active_nudges' => VisitEngagement::where('active', true)->count(),
                 'upcoming_visits' => SiteVisit::whereIn('status', ['scheduled', 'confirmed', 'rescheduled'])->where('scheduled_at', '>=', now())->count(),
             ],
             'funnel_bde' => $this->laneCadence('bde', $bdeCounts),
             'funnel_bdm' => $this->laneCadence('bdm', $bdmCounts),
-            'workload' => $workload,
-            'sla' => $sla,
+            'calendar' => $this->calendarVisits(),
         ];
+    }
+
+    /** Site visits / meetings for the current month (optionally scoped to one owner). */
+    private function calendarVisits(?int $ownerId = null): array
+    {
+        $q = SiteVisit::whereBetween('scheduled_at', [now()->startOfMonth(), now()->endOfMonth()])->with('lead:id,name');
+        if ($ownerId) {
+            $q->where('assigned_to', $ownerId);
+        }
+
+        return $q->orderBy('scheduled_at')->get()->map(fn ($v) => [
+            'date' => $v->scheduled_at?->toDateString(),
+            'at' => $v->scheduled_at?->toIso8601String(),
+            'title' => 'Site visit · ' . ($v->lead?->name ?? 'Lead'),
+            'kind' => 'visit',
+            'lead_id' => $v->lead_id,
+            'lead_name' => $v->lead?->name,
+            'status' => $v->status,
+        ])->values()->all();
+    }
+
+    /** Everything on a rep's plate this month — visits + tasks. */
+    private function calendarFull(int $userId, bool $isAll): array
+    {
+        $items = $this->calendarVisits($isAll ? null : $userId);
+        $tq = Task::whereNull('completed_at')->whereBetween('due_at', [now()->startOfMonth(), now()->endOfMonth()])->with('lead:id,name');
+        if (! $isAll) {
+            $tq->where('assigned_to', $userId);
+        }
+        foreach ($tq->orderBy('due_at')->get() as $t) {
+            $items[] = [
+                'date' => $t->due_at?->toDateString(),
+                'at' => $t->due_at?->toIso8601String(),
+                'title' => $t->title,
+                'kind' => 'task',
+                'lead_id' => $t->lead_id,
+                'lead_name' => $t->lead?->name,
+                'status' => $t->priority,
+            ];
+        }
+
+        return $items;
     }
 
     /** Ordered status list for a group, each annotated with its live count + colour. */

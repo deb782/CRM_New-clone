@@ -61,9 +61,11 @@ class BdmOpportunitySeeder extends Seeder
                 ['OPP_NEGOTIATION', 'OPP_FINAL_CALL', 'OPP_LOST'], 'negotiation', null, false,
                 'Hi {name}, sharing your personalised pricing sheet. Let\'s discuss the best plan for you.'],
             ['OPP4', 'OPP_NEGOTIATION', 'Negotiations', '#D6437F',
-                ['OPP_FINAL_CALL', 'OPP_WON', 'OPP_LOST'], 'negotiation', null, false, null],
+                ['OPP_FINAL_CALL', 'OPP_WON', 'OPP_LOST'], 'negotiation', null, false,
+                'Hi {name}, let\'s work out the best possible deal for you. Our team will call to finalise the numbers.'],
             ['OPP4', 'OPP_FINAL_CALL', 'Final Call', '#C2410C',
-                ['OPP_WON', 'OPP_LOST'], 'negotiation', null, false, null],
+                ['OPP_WON', 'OPP_LOST'], 'negotiation', null, false,
+                'Hi {name}, we\'re almost there! A quick final call to lock in your booking — talk soon.'],
 
             // Terminals
             ['OPP4', 'OPP_WON', 'Won', '#2F7D32', [], 'won', 'won', true,

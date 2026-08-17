@@ -111,7 +111,7 @@ class EngagementService
             $body = "Hi {$first}, a quick reminder about your upcoming {$label} on {$when}"
                 . ($remaining > 0 ? " (in {$remaining} day" . ($remaining === 1 ? '' : 's') . ")" : '')
                 . ". We're excited to host you! Reply here if you'd like to reschedule or have any questions. 🌱";
-            $this->whatsapp->send($lead, $body, 'engagement:' . $eng->id);
+            $this->whatsapp->sendInteractive($lead, $body, [['id' => 'resched', 'title' => 'Reschedule']], 'engagement:' . $eng->id);
         } catch (\Throwable $e) {
             Log::warning('Engagement nudge send failed for engagement ' . $eng->id . ': ' . $e->getMessage());
             return false;

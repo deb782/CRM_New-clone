@@ -120,6 +120,8 @@ class SiteVisitService
             'reminders_sent' => null,
         ]);
         $this->activity->log($visit->lead, 'system', "Site visit rescheduled (#{$count})", $data['reason'] ?? null);
+        // Restart the every-2-day engagement nudge loop against the new date.
+        $this->engagement->start($visit->lead, $visit->scheduled_at, $visit->id, $data['mode'] ?? 'site_visit');
 
         if ($count >= 3) {
             Task::create([

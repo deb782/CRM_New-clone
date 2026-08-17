@@ -378,4 +378,7 @@
     if (d.view === 'functional') return renderFunctional(view, d);
     return renderAdmin(view, d);
   };
+  // Expose the shared visual helpers so other modules (sales cockpit) reuse the exact look.
+  CRM.dashHelpers = { kpi, funnelBars, miniBars, ring, fmt, ymd, hhmm };
+
 })();

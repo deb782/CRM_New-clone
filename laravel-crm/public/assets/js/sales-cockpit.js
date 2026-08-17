@@ -162,82 +162,134 @@
         h('div', { class: 'en-next' }, e.next_send_at ? 'next ' + when(e.next_send_at) : 'done')));
     });
     wrap.appendChild(eng);
+
+    // Full-month calendar — everything on the BDM's plate (visits + tasks).
+    wrap.appendChild(h('div', { class: 'ck-h2', style: 'margin-top:26px' }, 'Your month'));
+    wrap.appendChild(monthCalendar(d.calendar || [], { title: 'This month · visits & tasks' }));
     CRM.setTitle('Sales Command');
   }
 
+  // ---------------- Shared: full-month calendar ----------------
+  const dh = CRM.dashHelpers || {};
+  const df = (n) => (dh.fmt ? dh.fmt(n) : String(n || 0));
+
+  function monthCalendar(events, opts) {
+    opts = opts || {};
+    const byDate = {};
+    (events || []).forEach(e => { if (e.date) (byDate[e.date] = byDate[e.date] || []).push(e); });
+    const today = new Date();
+    let year = today.getFullYear(), month = today.getMonth();
+    const pad = (n) => String(n).padStart(2, '0');
+    const key = (y, m, d) => y + '-' + pad(m + 1) + '-' + pad(d);
+    let selected = key(year, month, today.getDate());
+    const head = h('div', { class: 'cal-head' });
+    const grid = h('div', { class: 'cal-grid' });
+    const agenda = h('div', { class: 'cal-agenda' });
+
+    function renderAgenda() {
+      agenda.innerHTML = '';
+      const list = (byDate[selected] || []).slice().sort((a, b) => new Date(a.at) - new Date(b.at));
+      agenda.appendChild(h('div', { class: 'cal-agenda-h' }, new Date(selected + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })));
+      if (!list.length) { agenda.appendChild(h('div', { class: 'cal-none' }, 'Nothing scheduled')); return; }
+      list.forEach(it => agenda.appendChild(h('div', { class: 'cal-item ' + it.kind, 'data-testid': 'cal-item', onclick: () => { if (it.lead_id) location.hash = '#/leads'; } },
+        h('span', { class: 'cal-ic' }, h('i', { class: 'fa-solid ' + (it.kind === 'visit' ? 'fa-location-dot' : 'fa-list-check') })),
+        h('div', { style: 'min-width:0' },
+          h('div', { class: 'cal-it-t' }, it.title),
+          h('div', { class: 'cal-it-m' }, (it.lead_name ? it.lead_name + ' · ' : '') + (it.at ? new Date(it.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''))))));
+    }
+    function render() {
+      head.innerHTML = ''; grid.innerHTML = '';
+      const monthName = new Date(year, month, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+      head.appendChild(h('div', { class: 'cal-title' }, opts.title || 'Calendar'));
+      head.appendChild(h('div', { class: 'cal-nav' },
+        h('button', { 'data-testid': 'cal-prev', onclick: () => { month--; if (month < 0) { month = 11; year--; } render(); } }, h('i', { class: 'fa-solid fa-chevron-left' })),
+        h('span', { class: 'cal-mon' }, monthName),
+        h('button', { 'data-testid': 'cal-next', onclick: () => { month++; if (month > 11) { month = 0; year++; } render(); } }, h('i', { class: 'fa-solid fa-chevron-right' }))));
+      ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(w => grid.appendChild(h('div', { class: 'cal-dow' }, w)));
+      const first = new Date(year, month, 1).getDay();
+      const days = new Date(year, month + 1, 0).getDate();
+      for (let i = 0; i < first; i++) grid.appendChild(h('div', { class: 'cal-cell empty' }));
+      for (let d = 1; d <= days; d++) {
+        const k = key(year, month, d);
+        const list = byDate[k] || [];
+        const isToday = k === key(today.getFullYear(), today.getMonth(), today.getDate());
+        const cell = h('div', { class: 'cal-cell' + (isToday ? ' today' : '') + (k === selected ? ' sel' : '') + (list.length ? ' has' : ''), 'data-testid': 'cal-day-' + k, onclick: () => { selected = k; render(); } },
+          h('span', { class: 'cal-d' }, String(d)));
+        if (list.length) {
+          const dots = h('div', { class: 'cal-dots' });
+          if (list.some(x => x.kind === 'visit')) dots.appendChild(h('i', { class: 'v' }));
+          if (list.some(x => x.kind === 'task')) dots.appendChild(h('i', { class: 't' }));
+          cell.appendChild(dots);
+        }
+        grid.appendChild(cell);
+      }
+      renderAgenda();
+    }
+    render();
+    return h('div', { class: 'cal-card', 'data-testid': 'dash-month-calendar' }, head, grid, agenda);
+  }
+
   // ---------------- Sales-Admin — Command Matrix ----------------
-  function funnelBars(entries, key) {
-    const max = Math.max(1, ...entries.map(e => e.count));
-    const panel = h('div', { class: 'panel', 'data-testid': 'admin-' + key });
-    panel.appendChild(h('div', { class: 'ck-h2' }, key === 'funnel_bde' ? 'Pre-Sales funnel (BDE)' : 'Opportunity funnel (BDM)'));
-    entries.forEach(e => {
-      panel.appendChild(h('div', { class: 'fbar' },
-        h('div', { class: 'fl' }, e.display_name),
-        h('div', { class: 'track' }, (() => { const f = h('div', { class: 'fill' }); f.style.width = Math.round(e.count / max * 100) + '%'; f.style.background = e.color || '#4F5823'; return f; })()),
-        h('div', { class: 'fv' }, fmt(e.count))));
+  const FUNNEL_ICONS = ['fa-crown', 'fa-medal', 'fa-award'];
+  function funnelCard(title, entries) {
+    const sorted = (entries || []).slice().sort((a, b) => b.count - a.count);
+    const top = sorted.slice(0, 3), rest = sorted.slice(3);
+    const max = Math.max(1, ...sorted.map(e => e.count));
+    const card = h('div', { class: 'chart-card', 'data-testid': 'funnel-' + title.replace(/\W+/g, '-').toLowerCase() });
+    card.appendChild(h('div', { class: 'chart-card__head' }, h('h3', {}, title), h('span', { class: 'mut' }, df(sorted.reduce((a, b) => a + b.count, 0)) + ' in stage')));
+    const cards = h('div', { class: 'fn-top' });
+    top.forEach((e, i) => {
+      const ic = h('div', { class: 'fn-tic' }, h('i', { class: 'fa-solid ' + FUNNEL_ICONS[i] }));
+      ic.style.color = e.color || '#4F5823';
+      cards.appendChild(h('div', { class: 'fn-tcard' }, ic, h('div', { class: 'fn-tnum' }, df(e.count)), h('div', { class: 'fn-tlbl' }, e.display_name)));
     });
-    return panel;
+    card.appendChild(cards);
+    if (rest.length) {
+      const list = h('div', { class: 'fn-list' });
+      rest.forEach(e => {
+        const fill = h('div', { class: 'fn-fill' }); fill.style.background = e.color || '#4F5823'; setTimeout(() => fill.style.width = Math.round(e.count / max * 100) + '%', 40);
+        list.appendChild(h('div', { class: 'fn-row' },
+          (() => { const dot = h('span', { class: 'fn-dot' }); dot.style.background = e.color || '#4F5823'; return dot; })(),
+          h('span', { class: 'fn-name' }, e.display_name),
+          h('div', { class: 'fn-bar' }, fill),
+          h('span', { class: 'fn-val' }, df(e.count))));
+      });
+      card.appendChild(list);
+    }
+    return card;
   }
 
   async function renderSalesAdmin(view) {
     view.innerHTML = '';
-    const wrap = h('div', { class: 'cockpit', 'data-testid': 'salesadmin-dashboard' });
+    const wrap = h('div', { class: 'dash-admin2', 'data-testid': 'salesadmin-dashboard' });
     view.appendChild(wrap);
     const d = await api.get('/dashboards/admin');
     const s = d.stats || {};
-    wrap.appendChild(heroBlock('Command <b>Matrix</b>', 'Funnel health, team workload and SLA pressure at a glance.'));
-    wrap.appendChild(h('div', { class: 'ck-stats', style: 'margin-bottom:26px' },
-      stat('Open leads', s.total_open, { key: 'open' }),
-      stat('Opportunities', s.opportunities, { key: 'opps', hot: true }),
-      stat('Won this month', s.won_month, { key: 'won', hot: true }),
-      stat('Active nudges', s.active_nudges, { key: 'nudges' }),
-      stat('Upcoming visits', s.upcoming_visits, { key: 'upcoming', urgent: (s.upcoming_visits || 0) > 0 })));
+    const closed = (s.won_month || 0) + (s.lost_month || 0);
+    const pct = closed ? Math.round((s.won_month || 0) / closed * 100) : 0;
 
-    const bento = h('div', { class: 'bento' });
-    wrap.appendChild(bento);
-    bento.appendChild(funnelBars(d.funnel_bde || [], 'funnel_bde'));
+    const hero = h('div', { class: 'dash-hero', 'data-testid': 'dash-hero' },
+      h('div', { class: 'hero-greet' }, 'Command ', h('b', {}, 'Matrix')),
+      h('div', { class: 'hero-sub' }, 'Funnel health and this month\u2019s meetings at a glance.'),
+      dh.ring ? dh.ring(pct, df(s.won_month) + ' won') : null,
+      h('div', { class: 'breakdown' },
+        h('div', { class: 'bd', style: '--dot:var(--hot)' }, h('div', { class: 'lbl' }, 'Opportunities'), h('div', { class: 'num' }, df(s.opportunities))),
+        h('div', { class: 'bd', style: '--dot:#2F7D32' }, h('div', { class: 'lbl' }, 'Won (mo)'), h('div', { class: 'num' }, df(s.won_month))),
+        h('div', { class: 'bd', style: '--dot:var(--cold)' }, h('div', { class: 'lbl' }, 'Lost (mo)'), h('div', { class: 'num' }, df(s.lost_month)))),
+      h('div', { class: 'hero-foot' }, h('div', { class: 'lbl' }, 'Open Leads'), h('div', { class: 'hero-num' }, df(s.total_open), h('span', { class: 'unit' }, 'leads'))));
 
-    // Workload
-    const wl = h('div', { class: 'panel', 'data-testid': 'admin-workload' });
-    wl.appendChild(h('div', { class: 'ck-h2' }, 'Workload balance'));
-    (d.workload || []).forEach(u => wl.appendChild(h('div', { class: 'wl-row' },
-      h('span', { class: 'wl-band' }, u.band),
-      h('span', { class: 'wl-name' }, u.name),
-      h('span', { class: 'wl-metric' }, h('div', { class: 'k' }, 'Leads'), h('div', { class: 'v' }, fmt(u.open_leads))),
-      h('span', { class: 'wl-metric' }, h('div', { class: 'k' }, 'Tasks'), h('div', { class: 'v' }, fmt(u.open_tasks))))));
-    if (!(d.workload || []).length) wl.appendChild(h('div', { class: 'ck-empty', style: 'padding:20px' }, h('div', { class: 'small' }, 'No active reps.')));
-    bento.appendChild(wl);
+    const kpiRow = h('div', { class: 'kpi-row', 'data-testid': 'dash-kpis' },
+      dh.kpi('Open Leads', df(s.total_open), { icon: 'fa-users', sub: 'in the pipeline' }),
+      dh.kpi('Opportunities', df(s.opportunities), { icon: 'fa-bullseye', sub: 'with a BDM' }),
+      dh.kpi('Won This Month', df(s.won_month), { icon: 'fa-trophy', deltaClass: 'delta--lime', sub: 'closed deals' }),
+      dh.kpi('Upcoming Visits', df(s.upcoming_visits), { icon: 'fa-location-dot', sub: 'site visits & meets' }));
 
-    bento.appendChild(funnelBars(d.funnel_bdm || [], 'funnel_bdm'));
+    const right = h('div', { class: 'dash-right' }, kpiRow,
+      funnelCard('Pre-Sales funnel (BDE)', d.funnel_bde || []),
+      funnelCard('Opportunity funnel (BDM)', d.funnel_bdm || []),
+      monthCalendar(d.calendar || [], { title: 'This month · site visits & meets' }));
 
-    // SLA
-    const sla = d.sla || {};
-    const slaPanel = h('div', { class: 'panel', 'data-testid': 'admin-sla' });
-    slaPanel.appendChild(h('div', { class: 'ck-h2' }, 'Task SLA pressure'));
-    slaPanel.appendChild(h('div', { class: 'sla-strip' },
-      h('div', { class: 'sla-cell breached' }, h('div', { class: 'v' }, fmt(sla.breached)), h('div', { class: 'k' }, 'Breached')),
-      h('div', { class: 'sla-cell red' }, h('div', { class: 'v' }, fmt(sla.red)), h('div', { class: 'k' }, '< 1h')),
-      h('div', { class: 'sla-cell amber' }, h('div', { class: 'v' }, fmt(sla.amber)), h('div', { class: 'k' }, '< 4h')),
-      h('div', { class: 'sla-cell green' }, h('div', { class: 'v' }, fmt(sla.green)), h('div', { class: 'k' }, 'Healthy'))));
-    bento.appendChild(slaPanel);
-
-    // Gravity heatmap (BDM stage load)
-    const bdm = d.funnel_bdm || [];
-    const max = Math.max(1, ...bdm.map(e => e.count));
-    const heatPanel = h('div', { class: 'panel full', 'data-testid': 'admin-heatmap' });
-    heatPanel.appendChild(h('div', { class: 'ck-h2' }, 'Opportunity gravity heatmap'));
-    const heat = h('div', { class: 'heat' });
-    bdm.forEach(e => {
-      const alpha = 0.06 + 0.55 * (e.count / max);
-      const cell = h('div', { class: 'heat-cell' },
-        h('div', { class: 'hn' }, e.display_name),
-        h('div', { class: 'hv' }, fmt(e.count)));
-      cell.style.background = 'rgba(79,88,35,' + alpha.toFixed(2) + ')';
-      if (e.count === max && max > 0) cell.style.borderColor = '#111';
-      heat.appendChild(cell);
-    });
-    heatPanel.appendChild(heat);
-    bento.appendChild(heatPanel);
+    wrap.appendChild(h('div', { class: 'dash-grid' }, hero, right));
     CRM.setTitle('Sales Admin Command');
   }
 

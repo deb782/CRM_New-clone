@@ -222,6 +222,41 @@ class WebhookController extends Controller
             }
         }
 
+        // "Reschedule" tapped on an engagement nudge → pause the loop, alert the BDM, ask for a new slot.
+        if ($lead && is_string($input) && $input === 'resched') {
+            \App\Models\VisitEngagement::where('lead_id', $lead->id)->where('active', true)
+                ->update(['active' => false, 'stopped_reason' => 'reschedule_requested']);
+            \App\Models\Task::create([
+                'lead_id' => $lead->id,
+                'assigned_to' => $lead->owner_id,
+                'title' => 'Reschedule requested — call ' . $lead->name . ' to set a new slot',
+                'type' => 'call',
+                'due_at' => now()->addHours(4),
+                'priority' => 'high',
+                'meta' => ['reschedule' => true],
+            ]);
+            $conv->bot_state = ['reschedule' => true];
+            $conv->save();
+            $inbox->reply($conv, ['type' => 'text', 'body' => 'No problem! 🗓️ Reply with your preferred date & time and our team will set up your new visit.']);
+            return true;
+        }
+
+        // Awaiting the customer's preferred reschedule date/time (free text after tapping Reschedule).
+        $rs = $conv->bot_state;
+        if ($lead && is_array($rs) && ! empty($rs['reschedule'])) {
+            $pref = trim($body);
+            // Ignore too-short / emoji-only replies — keep waiting for a real date/time.
+            if (mb_strlen(preg_replace('/[\p{So}\p{Sk}\s]/u', '', $pref)) < 3) {
+                $inbox->reply($conv, ['type' => 'text', 'body' => 'Please share a date & time (e.g. "Sat 25th, 4 PM") so we can set up your new visit.']);
+                return true;
+            }
+            $this->annotateReschedule($lead, $pref);
+            $conv->bot_state = null;
+            $conv->save();
+            $inbox->reply($conv, ['type' => 'text', 'body' => 'Thank you! ✅ Our team will confirm your new slot shortly.']);
+            return true;
+        }
+
         // Active bot session → advance it
         $state = $conv->bot_state;
         if (is_array($state) && ! empty($state['flow_id'])) {
@@ -334,6 +369,21 @@ class WebhookController extends Controller
     }
 
     /** Find a WaFlow linked to the quick-reply button the customer just tapped on a recent template. */
+    /** Log the customer's preferred reschedule slot + surface it on the BDM's reschedule task. */
+    private function annotateReschedule(Lead $lead, string $preferred): void
+    {
+        try {
+            app(ActivityService::class)->log($lead, 'note', 'Reschedule preference from customer', $preferred);
+            $task = \App\Models\Task::where('lead_id', $lead->id)->whereNull('completed_at')
+                ->where('meta->reschedule', true)->latest()->first();
+            if ($task && $preferred !== '') {
+                $task->update(['title' => 'Reschedule ' . $lead->name . ' — preferred: ' . \Illuminate\Support\Str::limit($preferred, 60)]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('annotateReschedule: ' . $e->getMessage());
+        }
+    }
+
     /** Parse a customer's free-text date/time (e.g. "tomorrow 11am", "25 Dec 4pm"); null if invalid/past. */
     private function parseWhen(string $text): ?\Carbon\Carbon
     {
