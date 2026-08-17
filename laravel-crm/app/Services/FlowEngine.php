@@ -61,6 +61,13 @@ class FlowEngine
                     $target->wa_message
                 );
                 $wa = app(\App\Services\WhatsAppService::class);
+                // Collateral on "Contacted": append a brochure link from the document library.
+                if ($target->code === 'CONTACTED') {
+                    $doc = \App\Models\CpDocument::where('active', true)->latest()->first();
+                    if ($doc) {
+                        $body .= "\n\n📄 Here's our brochure & price list: " . $doc->file_path;
+                    }
+                }
                 $buttons = collect($target->wa_buttons ?? [])
                     ->filter(fn ($b) => filled($b['label'] ?? null) && filled($b['next_code'] ?? null))
                     ->map(fn ($b) => ['id' => 'jrny_' . $b['next_code'], 'title' => $b['label']])
@@ -75,6 +82,9 @@ class FlowEngine
             }
         }
 
+        // BDE disposition side-effects: auto-create the next follow-up call task.
+        $this->createFollowUpTask($lead, $target);
+
         try {
             \App\Models\AuditLog::create([
                 'auditable_type' => Lead::class, 'auditable_id' => $lead->id,
@@ -86,6 +96,36 @@ class FlowEngine
 
         return ['ok' => true, 'message' => 'Status → '.$target->display_name.($missing && ! $enforce ? ' (gate fields missing: '.implode(', ', $missing).')' : '')];
     }
+
+    /** Create the next call task the BDE must action for call-driven statuses. */
+    private function createFollowUpTask(Lead $lead, LeadStatus $target): void
+    {
+        $map = [
+            'CONTACTED' => ['Next call: nurture ' . $lead->name, 24],
+            'NO_RESPONSE' => ['Retry call (no response): ' . $lead->name, 12],
+            'FOLLOWUP_1' => ['Follow-up call 2: ' . $lead->name, 48],
+            'FOLLOWUP_2' => ['Follow-up call 3: ' . $lead->name, 72],
+            'FOLLOWUP_3' => ['Final follow-up call: ' . $lead->name, 72],
+        ];
+        if (! isset($map[$target->code]) || ! $lead->owner_id) {
+            return;
+        }
+        [$title, $dueHours] = $map[$target->code];
+        try {
+            \App\Models\Task::create([
+                'lead_id' => $lead->id,
+                'assigned_to' => $lead->owner_id,
+                'title' => $title,
+                'type' => 'call',
+                'due_at' => now()->addHours($dueHours),
+                'priority' => $target->code === 'NO_RESPONSE' ? 'high' : 'medium',
+                'meta' => ['auto' => true, 'status_code' => $target->code],
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Follow-up task create failed for lead ' . $lead->id . ': ' . $e->getMessage());
+        }
+    }
+
 
     /** External event happened — start any matching active workflows. */
     public function trigger(string $event, Lead $lead, array $ctx = []): void
