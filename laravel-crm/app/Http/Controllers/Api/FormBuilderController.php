@@ -177,7 +177,9 @@ class FormBuilderController extends Controller
             $v = trim((string) ($values[$f->slug] ?? ''));
             if ($v === '') continue;
             $map = $f->maps_to_field;
-            if ($map === 'first_name' || $map === 'last_name') {
+            if ($map === 'name') {
+                $payload['name'] = $v;
+            } elseif ($map === 'first_name' || $map === 'last_name') {
                 $nameParts[$map] = $v;
             } elseif (in_array($map, $direct, true)) {
                 $payload[$map] = $v;
@@ -187,7 +189,9 @@ class FormBuilderController extends Controller
         }
 
         $name = trim($nameParts['first_name'] . ' ' . $nameParts['last_name']);
-        $payload['name'] = $name !== '' ? $name : 'Website Lead';
+        if (empty($payload['name'])) {
+            $payload['name'] = $name !== '' ? $name : 'Website Lead';
+        }
         $payload['source'] = $form->settings['sub_source'] ?? ($form->settings['source'] ?? 'Website Form');
         $payload['campaign'] = $form->name;
         if ($form->project_id) $payload['project_id'] = $form->project_id;

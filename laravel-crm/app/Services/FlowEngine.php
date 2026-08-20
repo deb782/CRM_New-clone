@@ -53,12 +53,13 @@ class FlowEngine
         $lead->save();
 
         // Fire the customer WhatsApp message configured for this status (Step B).
-        if ($target->wa_enabled && filled($target->wa_message) && filled($lead->phone)) {
+        if ($target->wa_enabled && filled($lead->phone) && (filled($target->wa_message) || filled($target->wa_template))) {
             try {
+                $firstName = explode(' ', trim((string) $lead->name))[0] ?: 'there';
                 $body = str_replace(
                     ['{name}', '{first_name}'],
-                    [$lead->name ?: 'there', explode(' ', trim((string) $lead->name))[0] ?: 'there'],
-                    $target->wa_message
+                    [$lead->name ?: 'there', $firstName],
+                    (string) $target->wa_message
                 );
                 $wa = app(\App\Services\WhatsAppService::class);
                 // Collateral on "Contacted": append a brochure link from the document library.
@@ -72,14 +73,44 @@ class FlowEngine
                     ->filter(fn ($b) => filled($b['label'] ?? null) && filled($b['next_code'] ?? null))
                     ->map(fn ($b) => ['id' => 'jrny_' . $b['next_code'], 'title' => $b['label']])
                     ->values()->all();
+                // Detect live Cloud API vs the mock driver so approved templates are used outside the 24h window.
+                $driverLive = ! str_contains(strtolower(get_class(app(\App\Integrations\WhatsApp\Contract::class))), 'mock');
+
                 if (! empty($buttons)) {
                     $wa->sendInteractive($lead, $body, $buttons, 'journey:' . $target->code);
-                } else {
-                    $wa->send($lead, $body, 'journey:' . $target->code);
+                } elseif (filled($target->wa_template) && $driverLive) {
+                    // Live: send the approved template ({{1}} = customer name).
+                    $wa->sendTemplate($lead, $target->wa_template, [$firstName], 'journey:' . $target->code);
+                } elseif (filled($body)) {
+                    $wa->send($lead, $body, $target->wa_template ?: ('journey:' . $target->code));
                 }
             } catch (\Throwable $e) {
                 Log::warning('Journey WhatsApp send failed for lead ' . $lead->id . ': ' . $e->getMessage());
             }
+        }
+
+        // Fire the customer email configured for this status.
+        if ($target->email_enabled && filled($lead->email) && filled($target->email_subject)) {
+            try {
+                $project = $lead->project?->name ?: 'Agrocorp';
+                $repl = [
+                    '{name}' => $lead->name ?: 'there',
+                    '{first_name}' => explode(' ', trim((string) $lead->name))[0] ?: 'there',
+                    '{project}' => $project,
+                ];
+                app(\App\Services\EmailService::class)->send(
+                    $lead,
+                    strtr((string) $target->email_subject, $repl),
+                    strtr((string) $target->email_body, $repl)
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Journey email send failed for lead ' . $lead->id . ': ' . $e->getMessage());
+            }
+        }
+
+        // Ownership hand-off (pre-sales -> sales -> post-sales) on entering this status.
+        if (filled($target->owner_role)) {
+            $this->reassignOwner($lead, $target->owner_role);
         }
 
         // BDE disposition side-effects: auto-create the next follow-up call task.
@@ -131,6 +162,28 @@ class FlowEngine
         }
     }
 
+
+    /** Reassign a lead to the least-busy active user of a role (pre-sales -> sales -> post-sales handover). */
+    private function reassignOwner(Lead $lead, string $roleSlug): void
+    {
+        try {
+            if ($lead->owner?->role?->slug === $roleSlug) {
+                return; // already owned by that role
+            }
+            $user = \App\Models\User::where('is_active', true)
+                ->whereHas('role', fn ($q) => $q->where('slug', $roleSlug))
+                ->get()
+                ->sortBy(fn ($u) => Lead::where('owner_id', $u->id)->whereNotIn('status', ['won', 'lost', 'not_interested'])->count())
+                ->first();
+            if ($user && $lead->owner_id !== $user->id) {
+                $lead->forceFill(['owner_id' => $user->id])->save();
+                app(\App\Services\ActivityService::class)->log($lead, 'system', 'Lead ownership transferred', $user->name, ['role' => $roleSlug]);
+                app(\App\Services\NotificationService::class)->notify($user->id, 'lead', 'New lead assigned to you', 'Lead: ' . $lead->name, '#/leads', ['lead_id' => $lead->id, 'popup' => true]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('reassignOwner failed for lead ' . $lead->id . ': ' . $e->getMessage());
+        }
+    }
 
     /** External event happened — start any matching active workflows. */
     public function trigger(string $event, Lead $lead, array $ctx = []): void

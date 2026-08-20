@@ -15,6 +15,9 @@ Route::get('/refer/{code}', function (string $code) {
 // Public live-demo of the embeddable chat widget
 Route::view('/chat-demo', 'chat-demo');
 
+// Public hosted enquiry form (demo entry point — captures a lead via the website-lead form)
+Route::view('/enquiry', 'enquiry');
+
 // Channel Partner Portal (standalone SPA, separate auth)
 Route::view('/partner', 'cp');
 Route::view('/partner/{any?}', 'cp')->where('any', '.*');

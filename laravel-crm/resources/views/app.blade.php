@@ -54,7 +54,7 @@
     <script src="{{ asset('assets/js/profile.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/people.js') }}?v=4"></script>
     <script src="{{ asset('assets/js/integrations.js') }}?v=6"></script>
-    <script src="{{ asset('assets/js/notifications.js') }}?v=1"></script>
+    <script src="{{ asset('assets/js/notifications.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/reports.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/forms-ui.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/chatbot-ui.js') }}?v=5"></script>

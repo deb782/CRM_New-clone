@@ -77,6 +77,38 @@ class WhatsAppService
         $this->activity->comm($lead->id, 'whatsapp', 'outbound', $res['status']);
         return $msg;
     }
+    /**
+     * Send an approved named template (works outside the 24-hour window on the live Cloud API).
+     * Falls back to a plain text send if the driver/template errors so the journey never stalls.
+     *
+     * @param  array<int, string>  $variables  positional body variables ({{1}}, {{2}}, ...)
+     */
+    public function sendTemplate(Lead $lead, string $name, array $variables = [], ?string $tag = null): WhatsappMessage
+    {
+        if ($lead->do_not_contact || $lead->whatsapp_opt_out) {
+            return WhatsappMessage::create([
+                'lead_id' => $lead->id, 'contact_phone' => $lead->phone, 'direction' => 'outbound',
+                'template' => $name, 'body' => '[template] '.$name, 'status' => 'failed',
+            ]);
+        }
+
+        try {
+            $res = $this->driver->sendTemplate((string) $lead->phone, $name, $variables);
+        } catch (\Throwable $e) {
+            $res = $this->driver->send((string) $lead->phone, ($variables[0] ?? 'Hi').' — '.$name, $name);
+        }
+
+        $msg = WhatsappMessage::create([
+            'lead_id' => $lead->id, 'contact_phone' => $lead->phone, 'direction' => 'outbound',
+            'template' => $name, 'body' => '[template] '.$name.($variables ? ' ('.implode(', ', $variables).')' : ''),
+            'status' => $res['status'], 'provider_id' => $res['provider_id'] ?? null, 'sent_at' => now(),
+        ]);
+        $this->activity->log($lead, 'whatsapp', 'WhatsApp template sent', $name, ['template' => $name, 'variables' => $variables]);
+        $this->activity->comm($lead->id, 'whatsapp', 'outbound', $res['status']);
+
+        return $msg;
+    }
+
     public function import(Lead $lead, string $body, ?string $providerId = null): WhatsappMessage
     {
         $msg = WhatsappMessage::create([

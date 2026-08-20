@@ -485,7 +485,7 @@ class DatabaseSeeder extends Seeder
         AutomationRule::updateOrCreate(['name' => 'Welcome on capture'], [
             'event' => 'lead.created', 'conditions' => [],
             'actions' => [['type' => 'send_whatsapp', 'body' => 'Hi {{name}}, thanks for reaching out! Our team will contact you shortly.']],
-            'active' => true,
+            'active' => false, // superseded by the journey NOT_CONTACTED acknowledgement (avoids duplicate WhatsApp)
         ]);
         AutomationRule::updateOrCreate(['name' => 'Qualify on Interested'], [
             'event' => 'status.changed', 'conditions' => ['to' => 'interested'],

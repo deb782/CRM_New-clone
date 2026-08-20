@@ -60,13 +60,12 @@ class LeadService
 
         // Real-time notification to the assigned owner (round-robin) so the BDE sees the new lead.
         if ($ownerId) {
-            $this->notify->notify($ownerId, 'lead', 'New lead assigned', trim($lead->name.' · '.($lead->phone ?? '')), '/leads/'.$lead->id, ['lead_id' => $lead->id, 'name' => $lead->name, 'phone' => $lead->phone]);
+            $this->notify->notify($ownerId, 'lead', 'New lead assigned', trim($lead->name.' · '.($lead->phone ?? '')), '/leads/'.$lead->id, ['lead_id' => $lead->id, 'name' => $lead->name, 'phone' => $lead->phone, 'popup' => true]);
         }
 
-        // Auto-acknowledgement <= 5 min (A / E1.1)
-        if ($lead->email) {
-            $this->email->send($lead, 'Thanks for your interest', "Hi {$lead->name}, thanks for reaching out. Our team will contact you shortly.");
-        }
+        // Enter the journey at Stage 1 (Not Contacted) — fires the acknowledgement WhatsApp + email.
+        try { app(\App\Services\FlowEngine::class)->applyStatus($lead, 'NOT_CONTACTED', false); }
+        catch (\Throwable $e) { \Log::warning('Journey NOT_CONTACTED on capture: '.$e->getMessage()); }
         $lead->acknowledged_at = now();
         $lead->save();
 
@@ -169,18 +168,21 @@ class LeadService
         return $lead->fresh();
     }
 
-    /** Round-robin owner assignment among pre-sales execs (A routing). */
+    /** Round-robin (least-busy) owner assignment among BDEs — pre-sales owns new leads. */
     protected function assignOwner(): ?int
     {
-        $execs = User::whereHas('role', fn ($q) => $q->whereIn('slug', ['sales_bde', 'sales_bdm']))
-            ->where('is_active', true)->pluck('id');
+        $execs = User::where('is_active', true)
+            ->whereHas('role', fn ($q) => $q->where('slug', 'sales_bde'))->get();
+        if ($execs->isEmpty()) {
+            $execs = User::where('is_active', true)
+                ->whereHas('role', fn ($q) => $q->where('slug', 'sales_bdm'))->get();
+        }
         if ($execs->isEmpty()) {
             return User::whereHas('role', fn ($q) => $q->where('slug', 'admin'))->value('id');
         }
-        $last = Lead::max('owner_id');
-        $pos = $execs->search($last);
-        $next = $pos === false ? 0 : ($pos + 1) % $execs->count();
-        return $execs[$next];
+
+        return $execs->sortBy(fn ($u) => Lead::where('owner_id', $u->id)
+            ->whereNotIn('status', ['won', 'lost', 'not_interested'])->count())->first()->id;
     }
 
     protected function audit(Lead $lead, string $action, ?string $field, $old, $new, ?string $reason = null): void

@@ -1,0 +1,24 @@
+{
+  "summary": "Wave-41 end-to-end Lead Journey demo verified. Public /enquiry submit creates a Lead with the submitted name (NOT 'Website Lead'), source='Website Form', round-robin assigned to a sales_bde, entering journey NOT_CONTACTED which fires exactly 1 email + 1 WhatsApp + 1 Verify task + 1 popup notification. FlowEngine::applyStatus walked all 8 stages (NOT_CONTACTED → CONTACTED → FOLLOWUP_1 → CONVERTED_OPPORTUNITY → OPP_NOT_CONTACTED → OPP_PRICING_SHEET → OPP_NEGOTIATION → OPP_FINAL_CALL → OPP_WON) — each configured stage produced email/WA rows and follow-up tasks; ownership handed pre-sales(BDE) → sales(BDM) at CONVERTED_OPPORTUNITY and → CRM Head at OPP_WON. Frontend popup: after logging in as rahul@crm.local, the center-screen modal data-testid='lead-popup' rendered immediately (well within the 15s poll), with lead-popup-open + lead-popup-dismiss buttons and the notif-badge bell — Dismiss closes it correctly. Staff logins (admin, BDE, BDM, CRM Head) all return 200.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_lead_journey_wave41.py",
+    "/app/test_reports/pytest/wave41_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "LeadJourneySeeder does not configure email_subject/email_body for the OPP_NOT_CONTACTED status (cumulative touchpoints after 8 stages = 8 not 9). This is not a functional bug (the stage still applies + WA sends), but if the Guidebook requires one email per stage, add an email template for that row.",
+    "FlowEngine::reassignOwner picks the least-busy user of the target role but does not persist an activity/audit entry noting the previous owner — only a system Activity is logged with the new name. Consider also logging the outgoing owner for full pre-sales → sales handover audit trail.",
+    "LeadService::capture() calls FlowEngine::applyStatus(NOT_CONTACTED) with enforce=false, then also fires `automation->fire('lead.created')` and `FlowEngine::trigger('new_lead')`. If any active Workflow's trigger also sets status → NOT_CONTACTED (or CONTACTED), duplicate WA/email rows could be produced. Consider a guard so the automation path skips journey re-entry when acknowledged_at was set moments ago.",
+    "FormBuilderController::mapToLead falls back to 'Website Lead' only when no name field was mapped; the fix relies on the `name` field having maps_to_field='name'. If an admin renames the field slug/mapping in Form Builder UI, the fallback silently kicks in. Consider requiring a name mapping at schema save time."
+  ],
+  "updated_files": ["/app/backend/tests/test_lead_journey_wave41.py (new, 4 tests, all passing)"],
+  "success_rate": {"backend": "100% (4/4 pytest)", "frontend": "100% (lead-popup + notif-badge + open/dismiss buttons all verified for BDE rahul)"},
+  "test_credentials": "admin@crm.local/Admin@12345, rahul@crm.local/Demo@12345 (BDE), bdm@crm.local/Demo@12345, crmhead@crm.local/Demo@12345.",
+  "seed_data_creation": "Created and cleaned up 4 TEST_W41_<hex> leads and their emails/WA/tasks/notifications. One transient Notification with data.popup=true was seeded for rahul to trigger the center popup and then removed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview base = https://deal-flow-platform.preview.emergentagent.com (browser uses /crm-api/v1). Local curl base = http://127.0.0.1:8000/api/v1. Public enquiry: POST /public/forms/website-lead/submit with {name,phone,email,message}. Journey stages configured in lead_statuses (columns wa_template, wa_message, email_enabled, email_subject, email_body, owner_role). To reproduce popup: insert a Notification for target user with data->popup=true and data->lead_id=<id>; then login and the notifications.js poll (~15s, but on-login renderBell fires immediately) shows the lead-popup modal.",
+  "rca of the issue": "N/A — all pass. Note: cumulative emails per lead across 9 stage-applies came out as 8 (not 9) because OPP_NOT_CONTACTED has no email_subject in the seed; documented as a minor code-review comment."
+}

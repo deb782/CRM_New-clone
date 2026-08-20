@@ -542,3 +542,17 @@ Source doc = ~40-item backlog vs the Hostinger deploy (maroon-goldfinch-862361.h
 Cache bumps: dashboard.js v18.
 REMAINING PHASES (user greenlit phased plan): P2 RBAC & menus (accounts/crm head+support dashboards+trim, import admin-only, inventory view-only BDE/BDM, lock lead after Won), P3 email automation, P4 finance/PDF/₹ format, P5 leads utilities (export/filter/validation/weekly report), P6 customer portal (+OTP), P7 call-list/IVR, P8 real-time BDE notifications.
 
+
+
+## 2026-06-30 (CRM.docx Phase 2 — Lead Journey automation for demo) [DONE, self-verified via curl/tinker; testing_agent pending]
+Source of truth: CRM_Lead_Flow_Journey_Operating_Guidebook.docx (5-stage state machine). Existing BDE (status_group=bde) + BDM (status_group=bdm) pipelines already mirror the guidebook; layered the automation on top (additive, low-risk).
+- **Migration** `2026_06_30_000000_lead_status_journey_templates`: adds wa_template, email_enabled, email_subject, email_body, owner_role to lead_statuses.
+- **FlowEngine::applyStatus** now, on entering a status: sends WhatsApp (approved template `wa_template` on live Cloud API via WhatsAppService::sendTemplate; free-text `wa_message` in mock), sends a customer email (email_subject/email_body with {name}/{project}), reassigns owner by `owner_role` (reassignOwner = least-busy of role) — driving pre-sales(BDE) → sales(BDM) → post-sales(crm_head). Follow-up tasks unchanged.
+- **Seeders** (LeadJourneySeeder + BdmOpportunitySeeder) now carry wa_template + email + owner_role per status. OPP_WON → owner_role crm_head + booking_confirmation; CONVERTED_OPPORTUNITY/OPP_* → sales_bdm.
+- **WhatsApp template names** (single var {{1}}=first name) documented in docs/WHATSAPP_TEMPLATES_TO_CREATE.md — user creates these in Meta Business Manager, syncs, and automations fire once approved. Email templates are seeded (no Meta approval).
+- **Lead capture fixes** (LeadService): round-robin now among BDEs only (least-busy); on capture the lead auto-enters journey at NOT_CONTACTED (fires acknowledgement WA+email); removed duplicate inline ack email; deactivated legacy 'Welcome on capture' automation (avoids duplicate WA).
+- **Form name mapping bug fixed** (FormBuilderController::mapToLead): maps_to_field 'name' now sets lead name (was falling to notes → 'Website Lead' default).
+- **Center-screen popup notification** (notifications.js v2): beautiful "New Lead Generated" modal for ALL roles on assignment (bell badge + popup), polls 15s, localStorage de-dupe. LeadService + reassignOwner set data.popup=true.
+- **Hosted enquiry form** at /enquiry (resources/views/enquiry.blade.php) — demo entry URL; uses form-embed.js (auto prefix) → website-lead form → lead → BDE round-robin → popup.
+- Verified via curl/tinker: full 9-step journey fires 8 emails/8 WA/5 tasks + ownership BDE→BDM→crm_head; form submit → BDE owner, NOT_CONTACTED, 1 ack email + 1 WA, verify task, popup. Cost sheet + formal booking use existing Deal-Won/Quote drawer flows (BookingService::markWon, CostSheetService).
+- DEMO ENV = Hostinger (user redeploys + seeds). On Hostinger set PUBLIC_API_PREFIX=/api/v1. Live WhatsApp needs approved templates synced.
