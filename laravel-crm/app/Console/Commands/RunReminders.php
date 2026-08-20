@@ -70,7 +70,9 @@ class RunReminders extends Command
             foreach ($windows as $w) {
                 $tag = 'w'.$w;
                 if ($minsAway <= $w && $minsAway >= 0 && ! in_array($tag, $sent) && $v->lead) {
-                    $whatsapp->send($v->lead, "Reminder: your site visit is on {$when} (in about {$human($w)}). Meeting point: ".($v->meeting_point ?: 'the sales office').".");
+                    $first = explode(' ', trim((string) $v->lead->name))[0] ?: 'there';
+                    $mp = $v->meeting_point ?: 'the sales office';
+                    $whatsapp->sendAuto($v->lead, "Reminder: your site visit is on {$when} (in about {$human($w)}). Meeting point: {$mp}.", 'site_visit_reminder', [$first, $when, $mp]);
                     if ($v->lead->email && $w >= 240) $email->send($v->lead, 'Reminder: your upcoming site visit', "See you on {$when} at ".($v->meeting_point ?: 'the sales office').".");
                     $sent[] = $tag; $v->update(['reminders_sent' => $sent]); $rSent++;
                 }
@@ -94,7 +96,7 @@ class RunReminders extends Command
             ->with('lead')->get();
         foreach ($pendingDocs as $doc) {
             if ($doc->lead) {
-                $whatsapp->send($doc->lead, "Reminder: please share your {$doc->name} to complete your booking documentation.");
+                $whatsapp->sendAuto($doc->lead, "Reminder: please share your {$doc->name} to complete your booking documentation.", 'document_reminder', [$doc->lead->name, $doc->name]);
                 $activity->log($doc->lead, 'system', 'Document reminder sent', $doc->name);
             }
             $doc->update(['reminded' => true]);
@@ -115,7 +117,7 @@ class RunReminders extends Command
                 foreach ($reminderDays as $d) {
                     if ($daysToDue <= $d && ! in_array('d'.$d, $sent)) {
                         if ($m->lead) {
-                            $whatsapp->send($m->lead, "Payment reminder: '{$m->label}' of ₹".number_format($m->outstanding())." is due on ".$m->due_at->format('d M Y').".");
+                            $whatsapp->sendAuto($m->lead, "Payment reminder: '{$m->label}' of ₹".number_format($m->outstanding())." is due on ".$m->due_at->format('d M Y').".", 'payment_reminder', [$m->lead->name, $m->label, number_format($m->outstanding()), $m->due_at->format('d M Y')]);
                         }
                         $sent[] = 'd'.$d; $mRem++;
                         break;
@@ -129,8 +131,8 @@ class RunReminders extends Command
                 }
                 if (! in_array('nudge', $sent) && $m->lead) {
                     $link = optional($m->booking)->payment_link;
-                    $whatsapp->send($m->lead, "Hi {$m->lead->name}, a gentle reminder — your '{$m->label}' payment of ₹".number_format($m->outstanding())." is now due."
-                        .($link ? " You can pay securely here: {$link}" : ' Please reach out to complete it.'));
+                    $whatsapp->sendAuto($m->lead, "Hi {$m->lead->name}, a gentle reminder — your '{$m->label}' payment of ₹".number_format($m->outstanding())." is now due."
+                        .($link ? " You can pay securely here: {$link}" : ' Please reach out to complete it.'), 'payment_overdue', [$m->lead->name, $m->label, number_format($m->outstanding()), $link ?: 'contact us']);
                     $activity->log($m->lead, 'system', 'Overdue payment nudge sent', $m->label);
                     $sent[] = 'nudge';
                     $m->update(['reminders_sent' => $sent]);

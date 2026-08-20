@@ -61,7 +61,7 @@ class DemandLetterService
             ." is overdue by {$letter->days_overdue} day(s). With late interest ₹".number_format($letter->late_interest)
             .", total payable is ₹".number_format($letter->total_due).". Please pay at the earliest.";
         if ($lead && str_contains($via, 'whatsapp')) {
-            $this->whatsapp->send($lead, $msg);
+            $this->whatsapp->sendAuto($lead, $msg, 'demand_notice', [$lead->name, number_format($letter->total_due), $letter->days_overdue.' day(s)']);
         }
         if ($lead && $lead->email && str_contains($via, 'email')) {
             $this->email->send($lead, "Demand Notice · {$letter->serial_no}", $msg);

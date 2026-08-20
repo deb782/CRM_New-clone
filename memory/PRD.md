@@ -556,3 +556,10 @@ Source of truth: CRM_Lead_Flow_Journey_Operating_Guidebook.docx (5-stage state m
 - **Hosted enquiry form** at /enquiry (resources/views/enquiry.blade.php) — demo entry URL; uses form-embed.js (auto prefix) → website-lead form → lead → BDE round-robin → popup.
 - Verified via curl/tinker: full 9-step journey fires 8 emails/8 WA/5 tasks + ownership BDE→BDM→crm_head; form submit → BDE owner, NOT_CONTACTED, 1 ack email + 1 WA, verify task, popup. Cost sheet + formal booking use existing Deal-Won/Quote drawer flows (BookingService::markWon, CostSheetService).
 - DEMO ENV = Hostinger (user redeploys + seeds). On Hostinger set PUBLIC_API_PREFIX=/api/v1. Live WhatsApp needs approved templates synced.
+
+
+## 2026-06-30 (Phase 2b — all 23 WhatsApp touchpoints wired to named templates) [DONE, self-verified]
+- Added `WhatsAppService::sendAuto(lead, freeText, template, variables, tag, buttons)` — sends the approved Meta template on the LIVE Cloud API (works outside the 24h window), else falls back to free-text (or interactive buttons) in mock/within-window.
+- Wired Sections B & C (were free-text): EngagementService→`appointment_reminder`; RunReminders→`site_visit_reminder`/`document_reminder`/`payment_reminder`/`payment_overdue`; PostSalesService→`welcome_customer`/`allotment_confirmed`; PaymentService (now injects WhatsAppService + sends customer receipt)→`payment_received`; DemandLetterService→`demand_notice`; BookingService→`booking_form`.
+- Total distinct customer WhatsApp templates = 23 (13 stage-change + 5 reminders/engagement + 5 post-sales/payments). Full list + variables in docs/WHATSAPP_TEMPLATES_TO_CREATE.md.
+- Verified: sendAuto mock fallback (status=sent, free-text); integrated booking→payment path fired welcome_customer + allotment_confirmed + payment_received with no errors; all 7 touched files php -l clean.

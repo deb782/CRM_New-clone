@@ -109,6 +109,25 @@ class WhatsAppService
         return $msg;
     }
 
+    /**
+     * Journey/lifecycle send: use the approved named template on the LIVE Cloud API (works outside the
+     * 24h window); fall back to the free-text body (or interactive buttons) in mock / within-window.
+     *
+     * @param  array<int, string>  $variables       positional template body variables ({{1}}, {{2}}, ...)
+     * @param  array<int, array{id?:string,title:string}>  $buttons  optional quick-reply buttons for the fallback
+     */
+    public function sendAuto(Lead $lead, string $freeText, ?string $template = null, array $variables = [], ?string $tag = null, array $buttons = []): WhatsappMessage
+    {
+        $live = ! str_contains(strtolower(get_class($this->driver)), 'mock');
+        if ($live && filled($template)) {
+            return $this->sendTemplate($lead, $template, $variables, $tag);
+        }
+        if (! empty($buttons)) {
+            return $this->sendInteractive($lead, $freeText, $buttons, $template ?: $tag);
+        }
+        return $this->send($lead, $freeText, $template ?: $tag);
+    }
+
     public function import(Lead $lead, string $body, ?string $providerId = null): WhatsappMessage
     {
         $msg = WhatsappMessage::create([

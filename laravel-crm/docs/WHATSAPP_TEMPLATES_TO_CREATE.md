@@ -62,8 +62,8 @@ these templates (the main agent can wire the services to use them on request).
 1, 2, 4, 5, 9, 10, 11, 12 (journey) + 19, 20, 21 (booking/receipt/welcome) + 14/15 (reminders if you demo scheduling).
 
 ## After approval
-Integrations → WhatsApp → **Sync templates from Meta**. Section A fires immediately on stage changes.
-For Sections B & C to send as approved templates (not free-text), tell the main agent to wire the
-scheduler/post-sales/payment services to `sendTemplate` with the variables above.
+Integrations → WhatsApp → **Sync templates from Meta**. Sections A, B and C are ALL wired now —
+every customer message goes out as its approved template on the live Cloud API (via WhatsAppService::sendAuto),
+and falls back to free-text automatically in mock / within the 24h window.
 
 > **Email templates need NO Meta approval** — they are seeded in the CRM and fire automatically per stage.

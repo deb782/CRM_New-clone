@@ -12,6 +12,7 @@ class PaymentService
         private ActivityService $activity,
         private PostSalesService $postSales,
         private NotificationService $notify,
+        private WhatsAppService $whatsapp,
     ) {}
 
     /** Record a payment against a booking and issue a serial receipt (N). */
@@ -49,6 +50,7 @@ class PaymentService
         if ($booking->lead) {
             $this->activity->log($booking->lead, 'system', 'Payment received · '.$payment->receipt_no,
                 '₹'.number_format($amount).' ('.$type.' · '.$payment->method.')');
+            $this->whatsapp->sendAuto($booking->lead, "Hi {$booking->lead->name}, we've received your payment of ₹".number_format($amount).". Receipt: {$payment->receipt_no}. Thank you!", 'payment_received', [$booking->lead->name, number_format($amount), $payment->receipt_no]);
             $this->notify->notify($booking->lead->owner_id, 'payment',
                 'Payment received · ₹'.number_format($amount),
                 $booking->lead->name.' · '.$payment->receipt_no, '#/collections');

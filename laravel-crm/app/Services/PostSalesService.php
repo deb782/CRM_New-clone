@@ -95,7 +95,7 @@ class PostSalesService
         ]);
 
         if ($lead) {
-            $this->whatsapp->send($lead, "Welcome aboard, {$lead->name}! Your booking {$booking->booking_ref} is confirmed. Ref: {$serial}");
+            $this->whatsapp->sendAuto($lead, "Welcome aboard, {$lead->name}! Your booking {$booking->booking_ref} is confirmed. Ref: {$serial}", 'welcome_customer', [$lead->name, $booking->booking_ref]);
             if ($lead->email) {
                 $this->email->send($lead, "Welcome · {$booking->booking_ref}", $body);
             }
@@ -133,7 +133,7 @@ class PostSalesService
             'created_by' => Auth::id(),
         ]);
         if ($lead) {
-            $this->whatsapp->send($lead, "Congratulations {$lead->name}! Your allotment is confirmed (Ref: {$serial}).");
+            $this->whatsapp->sendAuto($lead, "Congratulations {$lead->name}! Your allotment is confirmed (Ref: {$serial}).", 'allotment_confirmed', [$lead->name, $serial]);
             if ($lead->email) {
                 $this->email->send($lead, "Allotment Letter · {$booking->booking_ref}", $body);
             }
