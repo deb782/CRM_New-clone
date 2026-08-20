@@ -104,11 +104,21 @@ class LeadController extends Controller
         ]);
     }
 
+    /** Front-line execs (BDE/BDM) may only edit leads they currently own — read-only after hand-off. */
+    protected function assertOwnerOrManager(Request $request, Lead $lead): void
+    {
+        $user = $request->user();
+        if ($user->role?->tier === 'exec' && $lead->owner_id !== $user->id) {
+            abort(403, 'This lead is now owned by another team member and is read-only for you.');
+        }
+    }
+
     public function update(Request $request, Lead $lead)
     {
         if ($lead->locked && ! $request->user()->hasPermission('postsales.manage')) {
             abort(423, 'This record is locked (post-sales handover). Contact post-sales to edit.');
         }
+        $this->assertOwnerOrManager($request, $lead);
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'nullable|email',
@@ -131,6 +141,7 @@ class LeadController extends Controller
         if ($lead->locked && ! $request->user()->hasPermission('postsales.manage')) {
             abort(423, 'This record is locked (post-sales handover).');
         }
+        $this->assertOwnerOrManager($request, $lead);
         $data = $request->validate([
             'interest_level' => 'nullable|in:very_high,high,medium,low',
             'budget_min' => 'nullable|integer',
