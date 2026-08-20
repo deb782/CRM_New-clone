@@ -59,6 +59,6 @@
     <script src="{{ asset('assets/js/forms-ui.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/chatbot-ui.js') }}?v=5"></script>
     <script src="{{ asset('assets/js/webcapture.js') }}?v=2"></script>
-    <script src="{{ asset('assets/js/app.js') }}?v=37"></script>
+    <script src="{{ asset('assets/js/app.js') }}?v=38"></script>
 </body>
 </html>

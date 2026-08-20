@@ -76,6 +76,19 @@
     ]},
   ];
 
+  // Department nav allow-lists (CRM.docx): Accounts & CRM logins see only their own sections.
+  // A role NOT listed here keeps the default permission-based nav.
+  const ROLE_NAV = {
+    accounts_head:    ['dashboard', 'leads', 'bookings', 'collections', 'demands', 'approvals', 'finance', 'expenses', 'stockBook', 'profile'],
+    accounts_support: ['dashboard', 'leads', 'bookings', 'collections', 'demands', 'expenses', 'profile'],
+    crm_head:         ['dashboard', 'tasks', 'leads', 'bookings', 'collections', 'demands', 'profile'],
+    crm_support:      ['dashboard', 'tasks', 'leads', 'profile'],
+  };
+  function navAllowed(route) {
+    const list = ROLE_NAV[state.user && state.user.role];
+    return !list || list.includes(route);
+  }
+
   const TITLES = { dashboard: 'Dashboard', leads: 'Leads', pipeline: 'Pipeline', opportunities: 'Opportunity Pipeline', inventory: 'Inventory', visits: 'Site Visits', bookings: 'Bookings', collections: 'Collections', demands: 'Demand Letters', callList: 'Prioritized Call List', tasks: 'Tasks', import: 'Bulk Import', approvals: 'Discount Approvals', plans: 'Payment Plans', scoring: 'Lead Scoring Rules', automation: 'Automation Rules', templates: 'Message Templates', partners: 'Channel Partners', commissions: 'Commissions', slaBoard: 'SLA Heat-Board', chatbot: 'Website Chat Widget', inbox: 'WhatsApp Inbox', broadcasts: 'WhatsApp Broadcasts', waAutomations: 'WhatsApp Auto-Replies', waTemplates: 'WhatsApp Templates', waAnalytics: 'WhatsApp Analytics', waCanned: 'WhatsApp Canned Replies', emailTemplates: 'Email Templates', emailCampaigns: 'Email Campaigns', emailDesign: 'Email Template Designer', preview: 'Preview Roles', onboarding: 'Welcome & Setup', workflows: 'Lead Journey Builder', journeyMsgs: 'Journey Stage Messages', health: 'System & Integration Health', audit: 'Audit Log', users: 'Users & Roles', portal: 'Partner Portal', profile: 'Account Settings', access: 'Roles & Access', integrations: 'Integrations', reports: 'Reports & Analytics', webforms: 'Website Form Builder', webchatbot: 'Website Chatbot Builder' };
 
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('crm_theme', t); }
@@ -213,7 +226,7 @@
 
     NAV.forEach(group => {
       if (group.perm && !can(group.perm)) return;
-      const items = group.items.filter(i => (!i.perm || can(i.perm)) && (!i.adminOnly || state.user.role === 'admin'));
+      const items = group.items.filter(i => (!i.perm || can(i.perm)) && (!i.adminOnly || state.user.role === 'admin') && navAllowed(i.route));
       if (!items.length) return;
       const g = el('div', { class: 'nav__group' }, el('div', { class: 'nav__label' }, group.label));
       items.forEach(i => {
@@ -255,7 +268,7 @@
     const dests = [];
     NAV.forEach(group => {
       if (group.perm && !can(group.perm)) return;
-      group.items.forEach(i => { if ((!i.perm || can(i.perm)) && (!i.adminOnly || (state.user && state.user.role === 'admin'))) dests.push({ route: i.route, label: i.name, icon: i.icon }); });
+      group.items.forEach(i => { if ((!i.perm || can(i.perm)) && (!i.adminOnly || (state.user && state.user.role === 'admin')) && navAllowed(i.route)) dests.push({ route: i.route, label: i.name, icon: i.icon }); });
     });
     dests.push({ route: 'profile', label: 'Account Settings', icon: 'fa-user' });
     return dests;
@@ -288,10 +301,12 @@
     // Role-based home: land each role on what they act on first (once per session)
     if ((route === 'dashboard' || !route) && !sessionStorage.getItem('crm_homed')) {
       sessionStorage.setItem('crm_homed', '1');
-      const home = { channel_partner: 'portal', crm_head: 'collections', crm_support: 'collections', accounts_head: 'collections', accounts_support: 'collections', sales_bde: 'callList', sales_bdm: 'callList' }[state.user.role];
+      const home = { channel_partner: 'portal', crm_head: 'collections', crm_support: 'dashboard', accounts_head: 'collections', accounts_support: 'collections', sales_bde: 'callList', sales_bdm: 'callList' }[state.user.role];
       if (home && ('#/' + home) !== location.hash) { location.hash = '#/' + home; return; }
     }
     if (route === 'dashboard' && !can('leads.view') && can('partner.portal')) { location.hash = '#/portal'; return; }
+    // Department nav lock: Accounts/CRM roles can only reach their allowed sections.
+    if (state.user && ROLE_NAV[state.user.role] && !navAllowed(route) && !['profile', 'onboarding'].includes(route)) { location.hash = '#/dashboard'; return; }
     // Chromeless full-screen routes (no sidebar/topbar) — e.g. onboarding wizard
     const CHROMELESS = ['onboarding'];
     if (CHROMELESS.includes(route)) {
