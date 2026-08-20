@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agrocorp CRM — Lead Journey Dry-Run (Priya Nair)</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1a1a1a; font-size: 12px; line-height: 1.55; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.02em; }
+  h2 { font-size: 17px; margin: 26px 0 8px; padding-bottom: 6px; border-bottom: 2px solid #4F5823; color: #4F5823; }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: #333; }
+  .muted { color: #666; }
+  .cover { padding: 8px 0 6px; border-bottom: 4px solid #4F5823; margin-bottom: 10px; }
+  .pill { display: inline-block; background: #F2F5E6; color: #4F5823; border: 1px solid #DDE6C2; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 700; margin-right: 6px; }
+  .stagebar { display:flex; gap:6px; flex-wrap:wrap; margin: 10px 0 4px; }
+  .stagebar span { background:#111; color:#fff; border-radius:6px; padding:4px 9px; font-size:10.5px; font-weight:700; }
+  .stagebar span.arrow { background:none; color:#999; padding:4px 2px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 11px; }
+  th, td { border: 1px solid #E3E3DD; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #F6F6F1; font-weight: 700; }
+  .shot { width: 100%; max-width: 760px; border: 1px solid #DED9CE; border-radius: 8px; margin: 8px auto; display: block; }
+  .shot--tall { max-width: 420px; }
+  .card { background:#FAFAF6; border:1px solid #EAEAE2; border-radius:8px; padding:10px 12px; margin:8px 0; }
+  .kv { display:flex; gap:8px; margin:2px 0; }
+  .kv b { min-width:110px; color:#555; font-weight:600; }
+  .fire { margin:4px 0; }
+  .fire .t { font-weight:700; }
+  .wa { color:#1a7f37; } .em { color:#1f5eff; } .tk { color:#8a5a00; } .own { color:#b3005a; }
+  .pagebreak { page-break-before: always; }
+  .note { background:#FFF7E6; border:1px solid #Fed; border-left:4px solid #E0A63C; padding:8px 12px; border-radius:6px; margin:10px 0; }
+  footer { margin-top:18px; padding-top:8px; border-top:1px solid #ddd; color:#999; font-size:10px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Agrocorp CRM — Lead Journey Dry-Run</h1>
+  <div class="muted">Live walk-through of a single lead (<b>Priya Nair</b>) through the full 5-stage Operating-Guidebook flow, captured from the running preview environment. Every message, task and ownership change below was created by the actual system — not mock-ups.</div>
+  <div style="margin-top:10px">
+    <span class="pill">Lead: Priya Nair</span>
+    <span class="pill">Phone: 90080 07001</span>
+    <span class="pill">Source: Website Form</span>
+    <span class="pill">Result: Won &amp; Locked</span>
+  </div>
+  <div class="stagebar">
+    <span>1 · Lead Entry</span><span class="arrow">→</span>
+    <span>2 · Qualification</span><span class="arrow">→</span>
+    <span>3 · Meeting &amp; Booking</span><span class="arrow">→</span>
+    <span>4 · Conversion</span><span class="arrow">→</span>
+    <span>5 · Customer</span>
+  </div>
+</div>
+
+<div class="card">
+  <b>Ownership hand-offs observed in this run</b>
+  <div class="kv"><b>Stage 1–2</b> <span>System → <b>Rahul Verma</b> (BDE / Pre-Sales)</span></div>
+  <div class="kv"><b>Stage 3</b> <span>Converted → ownership auto-moved to <b>Karan Malhotra</b> (BDM / Closer)</span></div>
+  <div class="kv"><b>Stage 4–5</b> <span>Won → ownership auto-moved to <b>Deepa Menon</b> (CRM Head / Post-Sales), record <b>locked</b></span></div>
+</div>
+
+<h2>Entry point — the website enquiry form</h2>
+<div class="muted">Priya submits the hosted form at <code>/enquiry</code>. On submit the CRM creates the lead (source “Website Form”), round-robins it to the least-busy BDE, and fires the Stage-1 acknowledgement.</div>
+<img class="shot" src="01_enquiry_form.png" alt="Enquiry form">
+
+<h2>Stage 1 — Lead Entry &nbsp;<span class="muted" style="font-weight:400;font-size:12px">(owner: BDE Rahul Verma · status NOT&nbsp;CONTACTED)</span></h2>
+<div class="fire wa">📱 <span class="t">WhatsApp</span> — <code>lead_acknowledgement</code>: “Hi Priya Nair, thank you for your interest in Agrocorp…”</div>
+<div class="fire em">✉️ <span class="t">Email</span> — “Thank you for your interest in Agrocorp”</div>
+<div class="fire tk">✅ <span class="t">Task</span> — “Verify Lead: Priya Nair” (assigned to Rahul)</div>
+<div class="fire">🔔 <span class="t">Notification</span> — center-screen “New Lead” popup + bell badge for the BDE</div>
+<div class="muted" style="margin-top:6px">Below: the BDE opens Priya’s record — note the Activity Timeline already shows the WhatsApp + email, and the Open Tasks panel shows the verify task.</div>
+<img class="shot" src="03_stage1_not_contacted.png" alt="Stage 1 lead drawer">
+
+<div class="pagebreak"></div>
+<h3>The BDE’s dashboard &amp; the new-lead popup</h3>
+<img class="shot" src="02_bde_dashboard.png" alt="BDE dashboard">
+
+<h2>Stage 2 — Qualification &nbsp;<span class="muted" style="font-weight:400;font-size:12px">(owner: BDE Rahul Verma)</span></h2>
+<h3>→ Contacted</h3>
+<div class="fire wa">📱 <code>lead_collateral</code> — brochure &amp; price-list message (collateral link auto-appended)</div>
+<div class="fire em">✉️ “Your Agrocorp collaterals &amp; brochure”</div>
+<div class="fire tk">✅ “Next call: nurture Priya Nair” · due +24h · medium</div>
+<img class="shot" src="04_stage2_contacted.png" alt="Stage 2 contacted">
+
+<div class="pagebreak"></div>
+<h3>→ Follow-Up 1</h3>
+<div class="fire wa">📱 <code>lead_followup</code> — with quick-reply buttons [Book a visit] / [Not interested]</div>
+<div class="fire em">✉️ “Following up on your Agrocorp enquiry”</div>
+<div class="fire tk">✅ “Follow-up call 2: Priya Nair” · due +48h</div>
+<img class="shot" src="05_stage2_followup1.png" alt="Stage 2 follow-up">
+
+<h2>Stage 3 — Meeting &amp; Booking &nbsp;<span class="muted" style="font-weight:400;font-size:12px">(ownership hands to BDM)</span></h2>
+<h3>→ Converted to Opportunity — ownership auto-moves BDE → BDM</h3>
+<div class="fire wa">📱 <code>site_visit_confirmation</code> — “your site visit is confirmed!”</div>
+<div class="fire em">✉️ “Your site visit is confirmed — Agrocorp”</div>
+<div class="fire own">👥 Ownership transferred to <b>Karan Malhotra (BDM)</b>; lead enters the BDM opportunity pipeline; every-2-day engagement nudges begin.</div>
+<img class="shot" src="06_stage3_converted_owner_bdm.png" alt="Converted, owner BDM">
+
+<div class="pagebreak"></div>
+<h3>→ Pricing Sheet (BDM)</h3>
+<div class="fire wa">📱 <code>pricing_sheet</code> &nbsp; ✉️ “Your personalised pricing sheet — Agrocorp” &nbsp; ✅ “BDM: follow up on the pricing sheet” (high)</div>
+<img class="shot" src="07_stage3_pricing_sheet.png" alt="Pricing sheet">
+
+<div class="pagebreak"></div>
+<h3>→ Final Call (BDM)</h3>
+<div class="fire wa">📱 <code>negotiation</code> then <code>final_call</code> &nbsp; ✉️ “Let’s finalise…”, “Almost there…” &nbsp; ✅ negotiation &amp; final-closing-call tasks (high)</div>
+<img class="shot" src="08_stage3_final_call.png" alt="Final call">
+
+<h2>Stage 4 — Conversion (Won) &nbsp;<span class="muted" style="font-weight:400;font-size:12px">(ownership → Post-Sales · record locked)</span></h2>
+<div class="fire wa">📱 <code>booking_confirmation</code> — “Congratulations Priya Nair! 🎉 Welcome to the Agrocorp family.”</div>
+<div class="fire em">✉️ “Booking confirmed — welcome to Agrocorp! 🎉”</div>
+<div class="fire own">👥 Ownership transferred to <b>Deepa Menon (CRM Head / Post-Sales)</b>.</div>
+<div class="fire">🔒 <span class="t">Won Lock</span> — the record is frozen (“Won · Locked”); status &amp; pipeline can no longer be changed, even by an admin.</div>
+<div class="muted" style="margin-top:6px">Below: the complete activity timeline on the locked record — the full sequence of WhatsApp + emails + both ownership transfers, and the “Record locked” banner.</div>
+<img class="shot shot--tall" src="09_stage4_won_locked.png" alt="Won and locked full timeline">
+
+<div class="pagebreak"></div>
+<h2>Stage 5 — Customer &amp; the Accounts dashboard</h2>
+<div class="muted">Once Won, the deal appears for Post-Sales / Accounts. The Accounts login lands on a finance-only dashboard (Received, Collections Due, Overdue, GST Billed + Recent Receipts). All amounts render in Indian format (₹1,00,000).</div>
+<img class="shot" src="10_accounts_dashboard.png" alt="Accounts finance dashboard">
+
+<h3>Tasks &amp; reminders created along the journey (BDE view)</h3>
+<img class="shot" src="11_bde_tasks.png" alt="Tasks list">
+
+<div class="pagebreak"></div>
+<h2>The actual records this one lead generated</h2>
+
+<h3>WhatsApp messages (9)</h3>
+<table>
+<tr><th>#</th><th>Stage / trigger</th><th>Template</th><th>Message</th></tr>
+<tr><td>1</td><td>Not Contacted</td><td>lead_acknowledgement</td><td>Hi Priya Nair, thank you for your interest in Agrocorp. Our team will reach out to you shortly.</td></tr>
+<tr><td>2</td><td>Contacted</td><td>lead_collateral</td><td>Great speaking with you! Sharing the details &amp; collaterals (brochure/price-list link appended).</td></tr>
+<tr><td>3</td><td>Follow-Up 1</td><td>lead_followup</td><td>Just following up on your interest — would you like to schedule a visit? (+ buttons)</td></tr>
+<tr><td>4</td><td>Converted</td><td>site_visit_confirmation</td><td>Your site visit is confirmed! Our team looks forward to meeting you.</td></tr>
+<tr><td>5</td><td>Site Visit Positive</td><td>post_visit_followup</td><td>It was wonderful showing you around! We’ll follow up with the details shortly.</td></tr>
+<tr><td>6</td><td>Pricing Sheet</td><td>pricing_sheet</td><td>Sharing your personalised pricing sheet. Let’s discuss the best plan.</td></tr>
+<tr><td>7</td><td>Negotiation</td><td>negotiation</td><td>Let’s work out the best possible deal for you. Our team will call to finalise.</td></tr>
+<tr><td>8</td><td>Final Call</td><td>final_call</td><td>We’re almost there! A quick final call to lock in your booking.</td></tr>
+<tr><td>9</td><td>Won</td><td>booking_confirmation</td><td>Congratulations Priya Nair! Welcome to the Agrocorp family.</td></tr>
+</table>
+
+<h3>Emails (9)</h3>
+<table>
+<tr><th>#</th><th>Subject</th></tr>
+<tr><td>1</td><td>Thank you for your interest in Agrocorp</td></tr>
+<tr><td>2</td><td>Your Agrocorp collaterals &amp; brochure</td></tr>
+<tr><td>3</td><td>Following up on your Agrocorp enquiry</td></tr>
+<tr><td>4</td><td>Your site visit is confirmed — Agrocorp</td></tr>
+<tr><td>5</td><td>Thank you for visiting Agrocorp</td></tr>
+<tr><td>6</td><td>Your personalised pricing sheet — Agrocorp</td></tr>
+<tr><td>7</td><td>Let’s finalise your Agrocorp deal</td></tr>
+<tr><td>8</td><td>Almost there — final step for your Agrocorp booking</td></tr>
+<tr><td>9</td><td>Booking confirmed — welcome to Agrocorp! 🎉</td></tr>
+</table>
+
+<h3>Tasks &amp; reminders (6)</h3>
+<table>
+<tr><th>Task</th><th>Priority</th><th>Due</th><th>Assigned to</th></tr>
+<tr><td>Verify Lead: Priya Nair</td><td>High</td><td>same day</td><td>Rahul Verma (BDE)</td></tr>
+<tr><td>Next call: nurture Priya Nair</td><td>Medium</td><td>+24h</td><td>Rahul Verma (BDE)</td></tr>
+<tr><td>Follow-up call 2: Priya Nair</td><td>Medium</td><td>+48h</td><td>Rahul Verma (BDE)</td></tr>
+<tr><td>BDM: follow up on the pricing sheet with Priya Nair</td><td>High</td><td>+24h</td><td>Karan Malhotra (BDM)</td></tr>
+<tr><td>BDM: negotiation follow-up with Priya Nair</td><td>High</td><td>+24h</td><td>Karan Malhotra (BDM)</td></tr>
+<tr><td>BDM: final closing call with Priya Nair</td><td>High</td><td>+12h</td><td>Karan Malhotra (BDM)</td></tr>
+</table>
+
+<h3>Ownership timeline</h3>
+<table>
+<tr><th>When</th><th>Event</th><th>New owner</th></tr>
+<tr><td>Lead created</td><td>Round-robin assignment</td><td>Rahul Verma — BDE (Pre-Sales)</td></tr>
+<tr><td>Converted to Opportunity</td><td>Auto hand-off Pre-Sales → Sales</td><td>Karan Malhotra — BDM (Closer)</td></tr>
+<tr><td>Won</td><td>Auto hand-off Sales → Post-Sales + record locked</td><td>Deepa Menon — CRM Head (Post-Sales)</td></tr>
+</table>
+
+<div class="note">
+  <b>Important — what is live vs mock in this dry-run.</b> This was captured on the preview environment where WhatsApp &amp; email run in <b>mock mode</b> (messages are recorded &amp; shown in the timeline but not delivered to a real phone/inbox). On Hostinger, once your 23 approved WhatsApp templates are synced, the exact same triggers send the real approved templates. Emails are already real templates (no Meta approval needed).
+</div>
+
+<footer>
+  Agrocorp CRM · Lead Journey Dry-Run report · generated from the live preview build. Statuses shown use the CRM’s internal codes (NOT_CONTACTED, OPP_PRICING_SHEET, OPP_WON …) which map 1:1 to the Operating Guidebook’s 5 stages.
+</footer>
+
+</body>
+</html>

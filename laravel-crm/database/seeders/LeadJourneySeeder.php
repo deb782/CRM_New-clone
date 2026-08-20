@@ -87,7 +87,7 @@ class LeadJourneySeeder extends Seeder
 
             // STAGE 3 — Meeting & Site Visit (conversion -> handed to BDM)
             'CONVERTED_OPPORTUNITY' => ['S3', 'Converted to Opportunity', '#3CBA9A',
-                ['LOST'], 'opportunity', [], null, false,
+                ['OPP_NOT_CONTACTED', 'LOST'], 'opportunity', [], null, false,
                 'Hi {name}, your site visit is confirmed! Our team looks forward to meeting you. 📍',
                 'site_visit_confirmation',
                 'Your site visit is confirmed — Agrocorp',
