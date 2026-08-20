@@ -110,7 +110,11 @@
     wrap.appendChild(track);
 
     const focus = track.querySelector('.jt-stop--current, .jt-stop--waiting, .jt-stop--failed');
-    if (focus) requestAnimationFrame(() => { try { focus.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (e) {} });
+    // Only auto-scroll on the first render — not on the 4s polling refresh (was causing the page to auto-scroll).
+    if (focus && !wrap.dataset.jtScrolled) {
+      wrap.dataset.jtScrolled = '1';
+      requestAnimationFrame(() => { try { focus.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (e) {} });
+    }
 
     if (run && run.log && run.log.length) {
       const log = el('div', { class: 'jt-log', 'data-testid': 'journey-log' });

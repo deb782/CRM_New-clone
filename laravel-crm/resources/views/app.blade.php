@@ -33,7 +33,7 @@
     <script src="{{ asset('assets/vendor/drawflow.min.js') }}"></script>
     <script>window.CRM = { API: (location.port === '8000' ? '/api/v1' : '/crm-api/v1'), asset: '{{ asset('assets') }}' };</script>
     <script src="{{ asset('assets/js/api.js') }}?v=11"></script>
-    <script src="{{ asset('assets/js/dashboard.js') }}?v=17"></script>
+    <script src="{{ asset('assets/js/dashboard.js') }}?v=18"></script>
     <script src="{{ asset('assets/js/sales-cockpit.js') }}?v=4"></script>
     <script src="{{ asset('assets/js/leads.js') }}?v=17"></script>
     <script src="{{ asset('assets/js/datepicker.js') }}?v=1"></script>

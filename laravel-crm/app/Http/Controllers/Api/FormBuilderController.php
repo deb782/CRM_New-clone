@@ -115,7 +115,10 @@ class FormBuilderController extends Controller
     /** Public form schema — consumed by /assets/js/form-embed.js to render the form. */
     public function schema(string $slug): JsonResponse
     {
-        $form = Form::with('fields')->where('slug', $slug)->where('is_active', true)->firstOrFail();
+        $form = Form::with('fields')->where('slug', $slug)->where('is_active', true)->first();
+        if (! $form) {
+            return response()->json(['message' => 'This form is not available. It may be inactive or the link is incorrect.'], 404);
+        }
         return response()->json([
             'name'          => $form->name,
             'slug'          => $form->slug,

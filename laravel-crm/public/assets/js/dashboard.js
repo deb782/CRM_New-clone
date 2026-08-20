@@ -87,7 +87,8 @@
       kpi('New Today', fmt(d.new_today || 0), { sub: 'freshly captured' }),
       kpi('Hot Leads', fmt(d.hot_leads || 0), { delta: total ? Math.round((d.hot_leads || 0) / total * 100) + '%' : '0%', deltaClass: 'delta--lime', sub: 'ready to convert' }),
       kpi('Open Tasks', fmt(d.open_tasks || 0), { delta: (d.overdue_tasks || 0) + ' overdue', deltaClass: (d.overdue_tasks ? 'delta--down' : ''), sub: 'across the team' }),
-      kpi('Automation Fails', fmt(d.automation_failures || 0), { deltaClass: 'delta--down', sub: (d.automation_failures ? 'needs attention' : 'all healthy') }));
+      kpi('Automation Fails', fmt(d.automation_failures || 0), { deltaClass: 'delta--down', sub: (d.automation_failures ? 'needs attention' : 'all healthy') }),
+      kpi('Won Today', fmt(d.won_today || 0), { deltaClass: 'delta--lime', sub: 'closed today' }));
 
     const funnelEntries = Object.entries(d.funnel || {}).map(([k, v]) => ({ label: k, short: stageName(k).split(' ')[0], value: v }));
     const funnelCard = el('div', { class: 'chart-card', 'data-testid': 'dash-funnel' },
@@ -256,7 +257,8 @@
       kpi('New This Week', fmt(d.new_week || 0), { icon: 'fa-bolt', delta: fmt(d.new_today || 0) + ' today', deltaClass: 'delta--lime', sub: 'captured' }),
       kpi('Hot Leads', fmt(d.hot_leads || 0), { icon: 'fa-fire', delta: total ? Math.round((d.hot_leads || 0) / total * 100) + '%' : '0%', sub: 'ready to convert' }),
       kpi('Open Tasks', fmt(d.open_tasks || 0), { icon: 'fa-list-check', delta: (d.overdue_tasks || 0) + ' overdue', deltaClass: d.overdue_tasks ? 'delta--down' : '', sub: 'to action' }),
-      kpi('Conversions', fmt(d.conversions || 0), { icon: 'fa-trophy', delta: (d.conversion_rate || 0) + '%', deltaClass: 'delta--up', sub: 'won deals' }));
+      kpi('Conversions', fmt(d.conversions || 0), { icon: 'fa-trophy', delta: (d.conversion_rate || 0) + '%', deltaClass: 'delta--up', sub: 'won deals' }),
+      kpi('Won Today', fmt(d.won_today || 0), { icon: 'fa-star', deltaClass: 'delta--lime', sub: 'closed today' }));
 
     const funnelEntries = Object.entries(d.funnel || {}).map(([k, v]) => ({ label: k, short: stageName(k).split(' ')[0], value: v })).sort((a, b) => b.value - a.value).slice(0, 7);
     const funnelCard = el('div', { class: 'chart-card span-4', 'data-testid': 'dash-funnel' },
@@ -379,6 +381,6 @@
     return renderAdmin(view, d);
   };
   // Expose the shared visual helpers so other modules (sales cockpit) reuse the exact look.
-  CRM.dashHelpers = { kpi, funnelBars, miniBars, ring, fmt, ymd, hhmm };
+  CRM.dashHelpers = { kpi, funnelBars, miniBars, ring, fmt, ymd, hhmm }; // v18
 
 })();

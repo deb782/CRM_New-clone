@@ -20,6 +20,7 @@ class LeadService
         private WhatsAppService $whatsapp,
         private SequenceService $sequences,
         private AutomationService $automation,
+        private NotificationService $notify,
     ) {}
 
     /**
@@ -56,6 +57,11 @@ class LeadService
 
         $this->audit($lead, 'created', null, null, $lead->name, 'lead captured via '.$lead->source);
         $this->activity->log($lead, 'system', 'Lead captured', 'Source: '.$lead->source);
+
+        // Real-time notification to the assigned owner (round-robin) so the BDE sees the new lead.
+        if ($ownerId) {
+            $this->notify->notify($ownerId, 'lead', 'New lead assigned', trim($lead->name.' · '.($lead->phone ?? '')), '/leads/'.$lead->id, ['lead_id' => $lead->id, 'name' => $lead->name, 'phone' => $lead->phone]);
+        }
 
         // Auto-acknowledgement <= 5 min (A / E1.1)
         if ($lead->email) {

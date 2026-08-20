@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             LeadJourneySeeder::class,
             BdmOpportunitySeeder::class,
+            FormsSeeder::class,
         ]);
     }
 
