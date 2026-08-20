@@ -117,7 +117,7 @@ class RunReminders extends Command
                 foreach ($reminderDays as $d) {
                     if ($daysToDue <= $d && ! in_array('d'.$d, $sent)) {
                         if ($m->lead) {
-                            $whatsapp->sendAuto($m->lead, "Payment reminder: '{$m->label}' of ₹".number_format($m->outstanding())." is due on ".$m->due_at->format('d M Y').".", 'payment_reminder', [$m->lead->name, $m->label, number_format($m->outstanding()), $m->due_at->format('d M Y')]);
+                            $whatsapp->sendAuto($m->lead, "Payment reminder: '{$m->label}' of ₹".\App\Support\Money::group($m->outstanding())." is due on ".$m->due_at->format('d M Y').".", 'payment_reminder', [$m->lead->name, $m->label, \App\Support\Money::group($m->outstanding()), $m->due_at->format('d M Y')]);
                         }
                         $sent[] = 'd'.$d; $mRem++;
                         break;
@@ -131,8 +131,8 @@ class RunReminders extends Command
                 }
                 if (! in_array('nudge', $sent) && $m->lead) {
                     $link = optional($m->booking)->payment_link;
-                    $whatsapp->sendAuto($m->lead, "Hi {$m->lead->name}, a gentle reminder — your '{$m->label}' payment of ₹".number_format($m->outstanding())." is now due."
-                        .($link ? " You can pay securely here: {$link}" : ' Please reach out to complete it.'), 'payment_overdue', [$m->lead->name, $m->label, number_format($m->outstanding()), $link ?: 'contact us']);
+                    $whatsapp->sendAuto($m->lead, "Hi {$m->lead->name}, a gentle reminder — your '{$m->label}' payment of ₹".\App\Support\Money::group($m->outstanding())." is now due."
+                        .($link ? " You can pay securely here: {$link}" : ' Please reach out to complete it.'), 'payment_overdue', [$m->lead->name, $m->label, \App\Support\Money::group($m->outstanding()), $link ?: 'contact us']);
                     $activity->log($m->lead, 'system', 'Overdue payment nudge sent', $m->label);
                     $sent[] = 'nudge';
                     $m->update(['reminders_sent' => $sent]);

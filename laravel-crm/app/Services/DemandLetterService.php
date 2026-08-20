@@ -49,7 +49,7 @@ class DemandLetterService
         $this->deliver($letter, 'whatsapp+email');
         if ($booking->lead) {
             $this->activity->log($booking->lead, 'system', 'Demand letter issued · '.$serial,
-                'Due ₹'.number_format($outstanding).' + interest ₹'.number_format($interest));
+                'Due ₹'.\App\Support\Money::group($outstanding).' + interest ₹'.\App\Support\Money::group($interest));
         }
         return $letter->fresh();
     }
@@ -57,11 +57,11 @@ class DemandLetterService
     public function deliver(DemandLetter $letter, string $via, ?string $registeredPostRef = null): DemandLetter
     {
         $lead = $letter->lead;
-        $msg = "Demand Notice {$letter->serial_no}: ₹".number_format($letter->amount_due)
-            ." is overdue by {$letter->days_overdue} day(s). With late interest ₹".number_format($letter->late_interest)
-            .", total payable is ₹".number_format($letter->total_due).". Please pay at the earliest.";
+        $msg = "Demand Notice {$letter->serial_no}: ₹".\App\Support\Money::group($letter->amount_due)
+            ." is overdue by {$letter->days_overdue} day(s). With late interest ₹".\App\Support\Money::group($letter->late_interest)
+            .", total payable is ₹".\App\Support\Money::group($letter->total_due).". Please pay at the earliest.";
         if ($lead && str_contains($via, 'whatsapp')) {
-            $this->whatsapp->sendAuto($lead, $msg, 'demand_notice', [$lead->name, number_format($letter->total_due), $letter->days_overdue.' day(s)']);
+            $this->whatsapp->sendAuto($lead, $msg, 'demand_notice', [$lead->name, \App\Support\Money::group($letter->total_due), $letter->days_overdue.' day(s)']);
         }
         if ($lead && $lead->email && str_contains($via, 'email')) {
             $this->email->send($lead, "Demand Notice · {$letter->serial_no}", $msg);

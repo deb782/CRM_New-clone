@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\Agreement;
 use App\Models\Booking;
+use App\Models\CostSheet;
 use App\Models\DemandLetter;
 use App\Models\DiscountApproval;
 use App\Models\DocumentChecklistItem;
@@ -244,7 +245,7 @@ class DashboardController extends Controller
 
     protected function inr($n): string
     {
-        return '₹'.number_format((float) $n);
+        return \App\Support\Money::inr($n);
     }
 
     // ---------------- Accounts (collections) ----------------
@@ -252,7 +253,8 @@ class DashboardController extends Controller
     {
         $due = PaymentMilestone::where('status', '!=', 'paid')->selectRaw('COALESCE(SUM(amount - paid_amount),0) as s')->value('s');
         $overdue = PaymentMilestone::where('status', '!=', 'paid')->where('due_at', '<', now())->selectRaw('COALESCE(SUM(amount - paid_amount),0) as s')->value('s');
-        $received = Payment::where('status', 'paid')->whereMonth('received_at', now()->month)->whereYear('received_at', now()->year)->sum('amount');
+        $received = Payment::whereIn('status', ['paid', 'received'])->whereMonth('received_at', now()->month)->whereYear('received_at', now()->year)->sum('amount');
+        $gst = CostSheet::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('gst_amount');
 
         $rows = PaymentMilestone::with('lead')->where('status', '!=', 'paid')->whereNotNull('due_at')
             ->orderBy('due_at')->limit(12)->get()->map(fn ($m) => [
@@ -266,22 +268,41 @@ class DashboardController extends Controller
                 ],
             ])->all();
 
+        $receipts = Payment::with('lead')->whereIn('status', ['paid', 'received'])
+            ->orderByDesc('received_at')->limit(10)->get()->map(fn ($p) => [
+                'lead_id' => $p->lead_id,
+                'cells' => [
+                    $p->receipt_no ?: '—',
+                    optional($p->lead)->name ?: '—',
+                    $this->inr($p->amount),
+                    ucfirst((string) $p->type),
+                    optional($p->received_at)->format('d M Y') ?: '—',
+                ],
+            ])->all();
+
         return [
             'view' => 'functional',
             'dept' => 'accounts',
-            'heading' => 'Collections Overview',
-            'sub' => 'Money due, received and at risk across active bookings',
+            'heading' => 'Accounts & Finance',
+            'sub' => 'Payments received, collections due and GST billed across active bookings',
             'kpis' => [
+                ['label' => 'Received This Month', 'value' => $this->inr($received), 'sub' => 'collected', 'tone' => 'up'],
                 ['label' => 'Collections Due', 'value' => $this->inr($due), 'sub' => 'outstanding', 'tone' => ''],
                 ['label' => 'Overdue', 'value' => $this->inr($overdue), 'sub' => 'past due date', 'tone' => 'down'],
-                ['label' => 'Received This Month', 'value' => $this->inr($received), 'sub' => 'collected', 'tone' => 'up'],
-                ['label' => 'Pending Demand Letters', 'value' => (string) DemandLetter::where('status', '!=', 'closed')->count(), 'sub' => 'awaiting action', 'tone' => ''],
+                ['label' => 'GST Billed (MTD)', 'value' => $this->inr($gst), 'sub' => 'this month', 'tone' => ''],
             ],
-            'panels' => [[
-                'type' => 'table', 'title' => 'Upcoming & Overdue Payments', 'testid' => 'acc-payments',
-                'columns' => ['Customer', 'Milestone', 'Amount Due', 'Due Date', 'Status'],
-                'rows' => $rows,
-            ]],
+            'panels' => [
+                [
+                    'type' => 'table', 'title' => 'Recent Receipts', 'testid' => 'acc-receipts',
+                    'columns' => ['Receipt No', 'Customer', 'Amount', 'Type', 'Date'],
+                    'rows' => $receipts,
+                ],
+                [
+                    'type' => 'table', 'title' => 'Upcoming & Overdue Payments', 'testid' => 'acc-payments',
+                    'columns' => ['Customer', 'Milestone', 'Amount Due', 'Due Date', 'Status'],
+                    'rows' => $rows,
+                ],
+            ],
             'extra' => [
                 'discount_pending' => DiscountApproval::where('status', 'pending')->count(),
             ],

@@ -92,7 +92,7 @@ class CostSheetService
             ]);
             $this->activity->log($lead, 'system', "Discount {$discountPct}% requested — pending manager approval");
         } else {
-            $this->activity->log($lead, 'note', "Cost sheet created · total ₹".number_format($total));
+            $this->activity->log($lead, 'note', "Cost sheet created · total ₹".\App\Support\Money::group($total));
         }
 
         return $sheet->fresh(['plot', 'paymentPlan', 'approvals']);
@@ -151,10 +151,10 @@ class CostSheetService
     public function share(CostSheet $sheet): CostSheet
     {
         $lead = $sheet->lead;
-        $summary = "Base ₹".number_format($sheet->base_price).", GST ₹".number_format($sheet->gst_amount).
-            ", Reg ₹".number_format($sheet->registration_charges).
-            ($sheet->discount_amount ? ", Discount ₹".number_format($sheet->discount_amount) : '').
-            " — Total ₹".number_format($sheet->total);
+        $summary = "Base ₹".\App\Support\Money::group($sheet->base_price).", GST ₹".\App\Support\Money::group($sheet->gst_amount).
+            ", Reg ₹".\App\Support\Money::group($sheet->registration_charges).
+            ($sheet->discount_amount ? ", Discount ₹".\App\Support\Money::group($sheet->discount_amount) : '').
+            " — Total ₹".\App\Support\Money::group($sheet->total);
         $this->whatsapp->send($lead, "Here is your cost sheet: {$summary}");
         if ($lead->email) {
             $this->email->send($lead, 'Your cost sheet', "Hi {$lead->name},\n\n{$summary}\n\nReply to proceed with booking.");
@@ -205,7 +205,7 @@ class CostSheetService
     public function sendProposal(Proposal $proposal): Proposal
     {
         $lead = $proposal->lead;
-        $this->whatsapp->send($lead, "Your formal proposal {$proposal->reference_no} is ready. Total ₹".number_format($proposal->snapshot['total'] ?? 0).". Tap to confirm and proceed with booking.");
+        $this->whatsapp->send($lead, "Your formal proposal {$proposal->reference_no} is ready. Total ₹".\App\Support\Money::group($proposal->snapshot['total'] ?? 0).". Tap to confirm and proceed with booking.");
         if ($lead->email) {
             $this->email->send($lead, "Proposal {$proposal->reference_no}", "Hi {$lead->name},\n\nPlease find your proposal {$proposal->reference_no}. Confirm to proceed with booking.");
         }

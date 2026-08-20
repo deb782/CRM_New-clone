@@ -493,6 +493,10 @@
     const actionsMenu = el('div', { class: 'lc-menu' }, menuBtn, menuList);
     const scheduleBtn = el('button', { class: 'btn btn--primary', 'data-testid': 'schedule-visit-btn', onclick: () => CRM.scheduleVisit(lead, reload) }, el('i', { class: 'fa-solid fa-calendar-check' }), 'Schedule Visit');
 
+    const actionsRow = lead.locked
+      ? el('div', { class: 'lc-actions' }, el('span', { class: 'lc-pill lc-pill--status', 'data-testid': 'lead-status-pill', style: 'background:#EDE5D8;color:#7A5C1E' }, el('i', { class: 'fa-solid fa-lock', style: 'margin-right:6px' }), 'Won · Locked'))
+      : el('div', { class: 'lc-actions' }, el('div', { class: 'lc-pill-group' }, stageChanger(), statusPill), scheduleBtn, actionsMenu);
+
     const header = el('div', { class: 'lc-card lc__header', 'data-testid': 'lead-header' },
       el('div', { class: 'lc-id' },
         el('button', { class: 'icon-btn', 'data-testid': 'lead-back', onclick: close }, el('i', { class: 'fa-solid fa-arrow-left' })),
@@ -501,7 +505,7 @@
           el('h1', { class: 'lc-name', 'data-testid': 'lead-name' }, lead.name),
           el('div', { class: 'lc-contact' }, ...contactBits),
           el('div', { class: 'lc-badges' }, tempBadge(lead.temperature), scoreBar(lead.score)))),
-      el('div', { class: 'lc-actions' }, el('div', { class: 'lc-pill-group' }, stageChanger(), statusPill), scheduleBtn, actionsMenu));
+      actionsRow);
 
     // --- banners ---
     const banners = el('div', { class: 'lc__banners' });

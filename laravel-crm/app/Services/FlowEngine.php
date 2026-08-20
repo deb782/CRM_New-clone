@@ -27,6 +27,11 @@ class FlowEngine
         }
         $current = $lead->status_code ? LeadStatus::where('code', $lead->status_code)->first() : null;
 
+        // Won lock (M1.4): a Won lead's status/pipeline is frozen and cannot be changed.
+        if ($lead->locked && $current && $current->code !== $code) {
+            return ['ok' => false, 'locked' => true, 'message' => 'This lead is Won and locked — its status and pipeline can no longer be changed.'];
+        }
+
         // Allow-listed transition check (first move from a blank status is always allowed).
         if ($enforce && $current && $current->code !== $code) {
             $allowed = $current->allowed_next ?? [];
@@ -51,6 +56,11 @@ class FlowEngine
         }
         $lead->status_sla_due_at = null;
         $lead->save();
+
+        // Freeze the record once it reaches a Won outcome.
+        if (! $lead->locked && ($target->disposition === 'won' || $target->pipeline_slug === 'won')) {
+            $lead->forceFill(['locked' => true, 'locked_at' => now()])->save();
+        }
 
         // Fire the customer WhatsApp message configured for this status (Step B).
         if ($target->wa_enabled && filled($lead->phone) && (filled($target->wa_message) || filled($target->wa_template))) {

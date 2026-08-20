@@ -35,7 +35,7 @@
     <script src="{{ asset('assets/js/api.js') }}?v=11"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v=18"></script>
     <script src="{{ asset('assets/js/sales-cockpit.js') }}?v=4"></script>
-    <script src="{{ asset('assets/js/leads.js') }}?v=17"></script>
+    <script src="{{ asset('assets/js/leads.js') }}?v=18"></script>
     <script src="{{ asset('assets/js/datepicker.js') }}?v=1"></script>
     <script src="{{ asset('assets/js/inventory.js') }}?v=12"></script>
     <script src="{{ asset('assets/js/deals.js') }}?v=11"></script>

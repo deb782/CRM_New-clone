@@ -85,9 +85,9 @@ class BookingService
 
         // Auto-send booking form (M1.2)
         $formUrl = $appUrl.'/booking/'.$token;
-        $this->whatsapp->sendAuto($lead, "Congratulations {$lead->name}! Please complete your booking form: {$formUrl}\nToken amount: ₹".number_format($tokenAmount), 'booking_form', [$lead->name, $formUrl, number_format($tokenAmount)]);
+        $this->whatsapp->sendAuto($lead, "Congratulations {$lead->name}! Please complete your booking form: {$formUrl}\nToken amount: ₹".\App\Support\Money::group($tokenAmount), 'booking_form', [$lead->name, $formUrl, \App\Support\Money::group($tokenAmount)]);
         if ($lead->email) {
-            $this->email->send($lead, "Booking initiated · {$ref}", "Hi {$lead->name},\n\nWelcome aboard! Complete your booking form here: {$formUrl}\nToken/EOI amount: ₹".number_format($tokenAmount)."\nPayment link: {$booking->payment_link}");
+            $this->email->send($lead, "Booking initiated · {$ref}", "Hi {$lead->name},\n\nWelcome aboard! Complete your booking form here: {$formUrl}\nToken/EOI amount: ₹".\App\Support\Money::group($tokenAmount)."\nPayment link: {$booking->payment_link}");
         }
 
         // Post-sales handover + record lock (M1.4)

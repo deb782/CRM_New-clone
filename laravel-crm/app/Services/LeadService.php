@@ -117,6 +117,11 @@ class LeadService
         $to = PipelineStage::where('slug', $toSlug)->firstOrFail();
         $from = $lead->stage;
 
+        // Won lock (M1.4): frozen record — status/pipeline can no longer be changed (business freeze, all roles).
+        if ($lead->locked && $to->slug !== $lead->status) {
+            abort(423, 'This lead is Won and locked — its status can no longer be changed.');
+        }
+
         // Manager approval for downgrades (G1.4)
         if ($from && $to->sort_order < $from->sort_order && ! $force) {
             $user = Auth::user();
@@ -129,6 +134,11 @@ class LeadService
         $lead->pipeline_stage_id = $to->id;
         $lead->status = $to->slug;
         $lead->save();
+
+        // Freeze the record once the deal is Won.
+        if ($to->slug === 'won' && ! $lead->locked) {
+            $lead->forceFill(['locked' => true, 'locked_at' => now()])->save();
+        }
 
         AuditLog::create([
             'auditable_type' => Lead::class,

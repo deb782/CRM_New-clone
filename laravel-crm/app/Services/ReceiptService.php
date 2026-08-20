@@ -51,7 +51,7 @@ class ReceiptService
         $logoSrc = is_file($logo) ? 'file://'.$logo : '';
         $customer = $p->lead->name ?? 'Customer';
         $ref = $p->booking->booking_ref ?? '—';
-        $amount = number_format((int) $p->amount);
+        $amount = \App\Support\Money::group((int) $p->amount);
         $date = optional($p->received_at)->format('d M Y, h:i A') ?? now()->format('d M Y');
         $method = ucfirst((string) $p->method);
         $type = ucfirst((string) $p->type);

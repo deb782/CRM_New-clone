@@ -33,7 +33,7 @@ class AgreementService
             .($lead ? $lead->name : '')." for the sale of "
             .($booking->plot ? "Unit {$booking->plot->number}" : 'the said unit')
             .($booking->project ? " in the project \"{$booking->project->name}\"" : '').".\n\n"
-            ."1. Total Consideration: ₹".number_format($total)."\n"
+            ."1. Total Consideration: ₹".\App\Support\Money::group($total)."\n"
             ."2. Payment Plan: as per the agreed milestone schedule.\n"
             ."3. Possession & Construction: as per RERA-registered timelines.\n"
             ."4. Defect Liability, Common Areas, and Conveyance: as per the Real Estate (Regulation and Development) Act, 2016.\n\n"

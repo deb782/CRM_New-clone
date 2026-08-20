@@ -1,0 +1,40 @@
+{
+  "summary": "Verified Won Lead Lock, Accounts finance dashboard and Indian currency formatting. Backend: 11/11 pytest cases pass. Frontend: lock banner and Accounts & Finance dashboard render correctly. One minor frontend gap — status-change controls (stage changer, status pill, Schedule Visit, Actions menu button) remain visible on a locked lead, though the underlying actions are backend-guarded (423).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "LeadDrawer header (public/assets/js/leads.js line 504)",
+        "issue": "On a locked (Won) lead the stageChanger() pill, statusPill, Schedule Visit button and Actions menu button are still rendered. Review request says 'status-change + WhatsApp/chat actions are hidden'. Backend blocks any change (LeadService transition → 423, FlowEngine applyStatus → ok=false), but the UI still exposes the controls. Wrap the actions row in a `if (!lead.locked)` guard, or hide/disable stageChanger, statusPill and scheduleBtn when lead.locked is true.",
+        "selector": "[data-testid=\"lead-status-pill\"], [data-testid=\"schedule-visit-btn\"], [data-testid=\"lead-actions-btn\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_won_lock_accounts_dashboard.py",
+    "/app/test_reports/pytest/iter43.xml"
+  ],
+  "action_items": [
+    "In public/assets/js/leads.js, hide status-change controls (stage changer + status pill + schedule-visit + actions menu button) when lead.locked === true, so the UI matches the backend lock. The lock-banner is fine as-is."
+  ],
+  "critical_code_review_comments": [
+    "LeadService::transition uses `! $force` guard for Won lock. `$force` is derived from the caller's `leads.override` permission — Super Admin, Sales Head and other override-holders can silently move a locked lead via the Kanban endpoint. If the intent is a business freeze regardless of role, drop the `$force` bypass on the Won-lock check (keep it for downgrades). Currently only non-override users (e.g., BDM) hit 423.",
+    "In accountsPayload() the 'received' amount uses whereMonth/whereYear on received_at — this ignores timezone. For India-only deployment this is fine, but Carbon::now() with default UTC could skew month rollover. Consider now()->timezone(config('app.timezone'))."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_won_lock_accounts_dashboard.py (new)"
+  ],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "90% (lock banner + accounts dashboard OK; status controls not hidden)"},
+  "test_credentials": "admin@crm.local/Admin@12345, bdm@crm.local/Demo@12345, accountshead@crm.local/Demo@12345",
+  "seed_data_creation": "Created and cleaned up: TEST_won_* (journey lock test), TEST_lock_* (Kanban 423 test), TEST_reg_* (regression), TEST_UI_LOCKED (frontend lock banner). All deleted at end of run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend Won-lock, Accounts dashboard and Indian currency formatting all pass. Only remaining item is a minor frontend polish — hide stage/status/action controls on locked leads in leads.js (line 504 area). Backend endpoints correctly block via 423 (Kanban) / 422 with locked=true (Journey). The Money::inr helper is verified. The Accounts Head lands on /collections by default after login — that is the current app design; user must click 'Dashboard' to see the finance dashboard; both pages render Indian rupees correctly.",
+  "rca of the issue": "Frontend leads.js line 504 (lc-actions div) unconditionally includes stageChanger(), statusPill, scheduleBtn and actionsMenu. The `lead.locked` guard is only applied inside the actionsMenu items (mark won/lost/dnc/invalid) but the buttons/pills themselves remain in the DOM. Fix: wrap or short-circuit those controls when lead.locked. Backend behaviour is correct — attempts to change status on a locked lead are blocked (423 via LeadService, 422 ok=false via FlowEngine)."
+}

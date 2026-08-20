@@ -49,14 +49,14 @@ class PaymentService
 
         if ($booking->lead) {
             $this->activity->log($booking->lead, 'system', 'Payment received · '.$payment->receipt_no,
-                '₹'.number_format($amount).' ('.$type.' · '.$payment->method.')');
-            $this->whatsapp->sendAuto($booking->lead, "Hi {$booking->lead->name}, we've received your payment of ₹".number_format($amount).". Receipt: {$payment->receipt_no}. Thank you!", 'payment_received', [$booking->lead->name, number_format($amount), $payment->receipt_no]);
+                '₹'.\App\Support\Money::group($amount).' ('.$type.' · '.$payment->method.')');
+            $this->whatsapp->sendAuto($booking->lead, "Hi {$booking->lead->name}, we've received your payment of ₹".\App\Support\Money::group($amount).". Receipt: {$payment->receipt_no}. Thank you!", 'payment_received', [$booking->lead->name, \App\Support\Money::group($amount), $payment->receipt_no]);
             $this->notify->notify($booking->lead->owner_id, 'payment',
-                'Payment received · ₹'.number_format($amount),
+                'Payment received · ₹'.\App\Support\Money::group($amount),
                 $booking->lead->name.' · '.$payment->receipt_no, '#/collections');
         }
         $this->notify->notifyPermission('accounts.manage', 'payment',
-            'New payment to verify · ₹'.number_format($amount),
+            'New payment to verify · ₹'.\App\Support\Money::group($amount),
             ($booking->lead->name ?? 'Customer').' · '.$payment->receipt_no, '#/collections');
         return $payment->fresh();
     }
