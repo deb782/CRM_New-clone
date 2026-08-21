@@ -85,6 +85,9 @@
     ensurePopupStyles();
     document.querySelectorAll('.npop__ovl').forEach(o => o.remove());
     const d = n.data || {};
+    const isSV = d.kind === 'site_visit';
+    const kicker = isSV ? 'Site Visit Booked' : 'New Lead Generated';
+    const icon = isSV ? 'fa-calendar-check' : 'fa-user-plus';
     const name = d.name || (n.body || '').split('·')[0].trim() || 'a new lead';
     const phone = d.phone || '';
     const link = n.link ? ('#/leads') : '#/leads';
@@ -92,11 +95,11 @@
     const card = el('div', { class: 'npop', onclick: (e) => e.stopPropagation() },
       el('div', { class: 'npop__bar' }),
       el('div', { class: 'npop__body' },
-        el('div', { class: 'npop__ring' }, el('i', { class: 'fa-solid fa-user-plus' })),
-        el('div', { class: 'npop__kicker' }, 'New Lead Generated'),
+        el('div', { class: 'npop__ring' }, el('i', { class: 'fa-solid ' + icon })),
+        el('div', { class: 'npop__kicker' }, kicker),
         el('div', { class: 'npop__title' }, name),
         phone ? el('div', { class: 'npop__sub' }, el('i', { class: 'fa-solid fa-phone', style: 'font-size:12px;margin-right:6px;color:#8BA43B' }), phone) : null,
-        el('div', { class: 'npop__meta' }, 'Assigned to you just now'),
+        el('div', { class: 'npop__meta' }, isSV ? (n.body || 'A site visit is scheduled') : 'Assigned to you just now'),
         el('div', { class: 'npop__actions' },
           el('button', { class: 'npop__btn npop__btn--ghost', 'data-testid': 'lead-popup-dismiss', onclick: () => ovl.remove() }, 'Dismiss'),
           el('button', {

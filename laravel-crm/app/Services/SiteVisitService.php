@@ -74,8 +74,8 @@ class SiteVisitService
         }
         $this->activity->log($lead, 'system', ucfirst($modeLabel).' scheduled', $when);
 
-        // Start the every-2-day WhatsApp engagement nudge loop until the appointment / a status change.
-        $this->engagement->start($lead, $visit->scheduled_at, $visit->id, $mode);
+        // NOTE: the nurture loop does NOT start here — it begins only when the BDM confirms the
+        // visit via a logged call (see SiteVisitService::confirm), per the operating flow.
 
         return $visit->fresh(['project', 'plot', 'assignee']);
     }
@@ -95,6 +95,13 @@ class SiteVisitService
         if ($bdm && $lead->owner_id !== $bdm->id) {
             $lead->forceFill(['owner_id' => $bdm->id])->save();
             $this->activity->log($lead, 'system', 'Lead transferred to BDM', $bdm->name);
+            $when = optional($visit->scheduled_at)->format('d M Y') ?: 'soon';
+            app(\App\Services\NotificationService::class)->notify(
+                $bdm->id, 'lead', 'Site visit booked — ' . $lead->name,
+                'A site visit is scheduled for ' . $when . '. Confirm it with the lead.',
+                '/leads/' . $lead->id,
+                ['lead_id' => $lead->id, 'name' => $lead->name, 'phone' => $lead->phone, 'popup' => true, 'kind' => 'site_visit']
+            );
         }
 
         return $bdm ?? $lead->owner;
@@ -103,7 +110,11 @@ class SiteVisitService
     public function confirm(SiteVisit $visit): SiteVisit
     {
         $visit->update(['confirmation_status' => 'confirmed', 'status' => 'confirmed']);
-        $this->activity->log($visit->lead, 'system', 'Site visit confirmed by lead');
+        $lead = $visit->lead;
+        $this->activity->log($lead, 'system', 'Site visit confirmed', 'Pre-Sales complete → Sales journey started');
+        // Sales journey begins now: start the 3-day nurture loop (stops 3 days before the visit).
+        $this->engagement->start($lead, $visit->scheduled_at, $visit->id, 'site_visit');
+
         return $visit;
     }
 

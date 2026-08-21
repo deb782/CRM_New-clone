@@ -73,7 +73,7 @@ return [
     // Post-sales payments (Sections N–Q)
     'payments' => [
         'milestone_interval_days' => (int) env('MILESTONE_INTERVAL_DAYS', 30),
-        'reminder_days' => [30, 15, 7, 1],
+        'reminder_days' => [5],
         'late_interest_annual_pct' => (float) env('LATE_INTEREST_ANNUAL_PCT', 18),
         'allotment_trigger_pct' => (float) env('ALLOTMENT_TRIGGER_PCT', 10),
         'afs_review_days' => (int) env('AFS_REVIEW_DAYS', 5),

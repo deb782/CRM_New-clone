@@ -482,6 +482,8 @@ class DatabaseSeeder extends Seeder
 
     private function automationRules(): void
     {
+        \App\Models\AppSetting::set('site_visit_reminder_windows', [4320, 360]); // 3 days before + day-of
+
         AutomationRule::updateOrCreate(['name' => 'Welcome on capture'], [
             'event' => 'lead.created', 'conditions' => [],
             'actions' => [['type' => 'send_whatsapp', 'body' => 'Hi {{name}}, thanks for reaching out! Our team will contact you shortly.']],

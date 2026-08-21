@@ -439,13 +439,20 @@
 
       const outcomes = [{v:'connected',l:'Connected'},{v:'no_answer',l:'No Answer'},{v:'switched_off',l:'Switched Off'},{v:'wrong_number',l:'Wrong Number'},{v:'busy',l:'Busy'}];
       const callOut = el('select', { class: 'select', 'data-testid': 'call-outcome' }, ...outcomes.map(o => el('option', { value: o.v }, o.l)));
-      const callNotes = el('input', { class: 'input', placeholder: 'Call notes…', 'data-testid': 'call-notes' });
+      const callNotes = el('input', { class: 'input', placeholder: 'Discussion summary (required)…', 'data-testid': 'call-notes' });
+      const confirmSV = el('input', { type: 'checkbox', 'data-testid': 'call-confirm-sv', style: 'margin-right:6px' });
+      const confirmSVWrap = el('label', { style: 'display:flex;align-items:center;font-size:13px;color:#555;margin-top:8px;cursor:pointer' }, confirmSV, 'Confirm the booked site visit (starts the Sales nurture sequence)');
       const callLog = el('button', { class: 'btn btn--primary btn--sm', 'data-testid': 'call-log' }, el('i', { class: 'fa-solid fa-phone' }), 'Log Call');
-      callLog.addEventListener('click', async () => { await api.post('/leads/' + id + '/call-log', { outcome: callOut.value, notes: callNotes.value }); toast('Call logged', 'success'); reload(); });
+      callLog.addEventListener('click', async () => {
+        if (!callNotes.value.trim()) { toast('Please write a short discussion summary', 'error'); return; }
+        await api.post('/leads/' + id + '/call-log', { outcome: callOut.value, notes: callNotes.value, confirm_visit: confirmSV.checked });
+        toast(confirmSV.checked ? 'Call logged · site visit confirmed' : 'Call logged', 'success'); reload();
+      });
 
       return el('div', {},
         el('div', { class: 'card', style: 'margin-bottom:14px' }, el('div', { class: 'section-title', style: 'margin-top:0' }, el('i', { class: 'fa-solid fa-phone' }), 'Log Call'),
           el('div', { class: 'form-row' }, el('div', { class: 'field', style: 'margin:0' }, callOut), el('div', { class: 'field', style: 'margin:0' }, callNotes)),
+          confirmSVWrap,
           el('div', { style: 'margin-top:10px' }, callLog)),
         el('div', { class: 'card', style: 'margin-bottom:14px' }, el('div', { class: 'section-title', style: 'margin-top:0' }, el('i', { class: 'fa-brands fa-whatsapp' }), 'WhatsApp'),
           waBody, el('div', { style: 'margin-top:10px;display:flex;gap:8px' }, waTplBtn, waSend)),

@@ -92,7 +92,7 @@ class LeadJourneySeeder extends Seeder
                 'site_visit_confirmation',
                 'Your site visit is confirmed — Agrocorp',
                 "Hi {name},\n\nYour site visit for {project} is confirmed. Our team looks forward to welcoming you. You'll receive the schedule details shortly.\n\nWarm regards,\nTeam Agrocorp",
-                'sales_bdm'],
+                null],
 
             // Global terminal
             'LOST' => ['S3', 'Lost', '#E0483D', [], 'lost', [], 'lost', true,

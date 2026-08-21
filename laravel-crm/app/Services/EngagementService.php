@@ -19,7 +19,8 @@ class EngagementService
 {
     public function __construct(private WhatsAppService $whatsapp) {}
 
-    private const STEP_DAYS = 2;
+    private const STEP_DAYS = 3;
+    private const STOP_BEFORE_DAYS = 3; // nurture stops this many days before the appointment
 
     /** Begin a nudge loop for a freshly booked appointment. First nudge fires immediately. */
     public function start(Lead $lead, Carbon $appointmentAt, ?int $siteVisitId, string $mode = 'site_visit'): ?VisitEngagement
@@ -29,13 +30,15 @@ class EngagementService
             ->update(['active' => false, 'stopped_reason' => 'superseded']);
 
         $now = now();
-        if ($appointmentAt->lessThanOrEqualTo($now)) {
-            return null; // nothing to nudge for a past/immediate slot
+        // Nurture runs up to STOP_BEFORE_DAYS before the appointment (the SV reminders take over after that).
+        $cutoff = $appointmentAt->copy()->subDays(self::STOP_BEFORE_DAYS);
+        if ($cutoff->lessThanOrEqualTo($now)) {
+            return null; // appointment too close — reminders handle it
         }
 
-        // Count send offsets 0,2,4,... strictly before the appointment.
+        // Count send offsets 0,3,6,... strictly before the cutoff.
         $total = 0;
-        for ($d = 0; $now->copy()->addDays($d)->lessThan($appointmentAt); $d += self::STEP_DAYS) {
+        for ($d = 0; $now->copy()->addDays($d)->lessThan($cutoff); $d += self::STEP_DAYS) {
             $total++;
         }
         if ($total < 1) {
